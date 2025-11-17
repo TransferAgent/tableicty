@@ -12,7 +12,7 @@ import type {
   CertificateConversionRequest,
 } from '../types';
 
-const API_BASE_URL = '/api/v1/shareholder';
+const API_BASE_URL = '/api/v1/shareholders';
 
 class APIClient {
   private client: AxiosInstance;
