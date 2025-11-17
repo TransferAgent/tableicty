@@ -19,3 +19,5 @@ isort==5.12.0
 celery==5.3.4
 redis==5.0.1
 gunicorn==21.2.0
+boto3==1.34.0
+django-storages==1.14.2
