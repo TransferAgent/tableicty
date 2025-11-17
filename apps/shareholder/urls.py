@@ -15,4 +15,16 @@ urlpatterns = [
     # Portfolio endpoints
     path('holdings/', views.shareholder_holdings_view, name='holdings'),
     path('summary/', views.shareholder_summary_view, name='summary'),
+    
+    # Transaction history
+    path('transactions/', views.transaction_history_view, name='transactions'),
+    
+    # Tax documents
+    path('tax-documents/', views.tax_documents_view, name='tax_documents'),
+    
+    # Certificate conversion requests
+    path('certificate-conversion/', views.certificate_conversion_request_view, name='certificate_conversion'),
+    
+    # Profile management
+    path('profile/', views.profile_management_view, name='profile'),
 ]

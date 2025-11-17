@@ -2,7 +2,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from apps.core.models import Shareholder
+from apps.core.models import Shareholder, Transfer, Certificate, AuditLog
+from decimal import Decimal
 
 
 class ShareholderRegistrationSerializer(serializers.Serializer):
@@ -156,3 +157,143 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
                 {"password": "Password fields didn't match."}
             )
         return attrs
+
+
+class TransferSerializer(serializers.ModelSerializer):
+    issuer_name = serializers.CharField(source='issuer.company_name', read_only=True)
+    issuer_ticker = serializers.CharField(source='issuer.ticker_symbol', read_only=True)
+    security_type = serializers.CharField(source='security_class.security_type', read_only=True)
+    security_designation = serializers.CharField(source='security_class.class_designation', read_only=True)
+    from_shareholder_name = serializers.SerializerMethodField()
+    to_shareholder_name = serializers.SerializerMethodField()
+    direction = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Transfer
+        fields = [
+            'id',
+            'issuer_name',
+            'issuer_ticker',
+            'security_type',
+            'security_designation',
+            'from_shareholder_name',
+            'to_shareholder_name',
+            'share_quantity',
+            'transfer_price',
+            'transfer_date',
+            'transfer_type',
+            'status',
+            'direction',
+            'notes',
+            'created_at',
+        ]
+        read_only_fields = fields
+    
+    def get_from_shareholder_name(self, obj):
+        if obj.from_shareholder.account_type == 'ENTITY':
+            return obj.from_shareholder.entity_name
+        return f"{obj.from_shareholder.first_name} {obj.from_shareholder.last_name}".strip()
+    
+    def get_to_shareholder_name(self, obj):
+        if obj.to_shareholder.account_type == 'ENTITY':
+            return obj.to_shareholder.entity_name
+        return f"{obj.to_shareholder.first_name} {obj.to_shareholder.last_name}".strip()
+    
+    def get_direction(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request.user, 'shareholder'):
+            shareholder = request.user.shareholder
+            if obj.from_shareholder == shareholder:
+                return 'OUT'
+            elif obj.to_shareholder == shareholder:
+                return 'IN'
+        return None
+
+
+class TaxDocumentSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    document_type = serializers.CharField()
+    tax_year = serializers.IntegerField()
+    issuer_name = serializers.CharField()
+    issuer_ticker = serializers.CharField()
+    generated_date = serializers.DateField()
+    status = serializers.CharField()
+    download_url = serializers.CharField()
+
+
+class CertificateConversionRequestSerializer(serializers.Serializer):
+    certificate_number = serializers.CharField(required=True)
+    issuer_id = serializers.UUIDField(required=True)
+    conversion_type = serializers.ChoiceField(
+        choices=[
+            ('CERT_TO_DRS', 'Convert Physical Certificate to DRS'),
+            ('DRS_TO_CERT', 'Convert DRS to Physical Certificate'),
+        ],
+        required=True
+    )
+    notes = serializers.CharField(required=False, allow_blank=True)
+    
+    def validate(self, attrs):
+        request = self.context.get('request')
+        shareholder = request.user.shareholder
+        
+        if attrs['conversion_type'] == 'CERT_TO_DRS':
+            try:
+                cert = Certificate.objects.get(
+                    certificate_number=attrs['certificate_number'],
+                    issuer_id=attrs['issuer_id'],
+                    shareholder=shareholder,
+                    status='OUTSTANDING'
+                )
+                attrs['certificate'] = cert
+            except Certificate.DoesNotExist:
+                raise serializers.ValidationError(
+                    "Certificate not found or not eligible for conversion"
+                )
+        
+        return attrs
+
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shareholder
+        fields = [
+            'address_line1',
+            'address_line2',
+            'city',
+            'state',
+            'zip_code',
+            'country',
+            'phone',
+            'email_notifications',
+            'paper_statements',
+        ]
+    
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        changed_fields = []
+        
+        for field, value in validated_data.items():
+            old_value = getattr(instance, field)
+            if old_value != value:
+                changed_fields.append({
+                    'field': field,
+                    'old_value': str(old_value) if old_value is not None else '',
+                    'new_value': str(value) if value is not None else ''
+                })
+                setattr(instance, field, value)
+        
+        instance.save()
+        
+        if changed_fields and request:
+            AuditLog.objects.create(
+                entity_type='SHAREHOLDER',
+                entity_id=str(instance.id),
+                action='UPDATE',
+                performed_by=request.user.email,
+                changes=changed_fields,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')[:255]
+            )
+        
+        return instance
