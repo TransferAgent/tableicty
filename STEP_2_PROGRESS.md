@@ -18,7 +18,7 @@ Building a shareholder-facing React portal with:
 
 ---
 
-## ✅ COMPLETED (Backend Foundation - 30%)
+## ✅ COMPLETED (Backend APIs - 50%)
 
 ### Phase 1: JWT Authentication Setup ✅
 - ✅ Installed `djangorestframework-simplejwt==5.3.0`
@@ -41,7 +41,32 @@ Building a shareholder-facing React portal with:
 - ✅ `GET /api/v1/shareholder/holdings/` - All holdings with detailed info
 - ✅ `GET /api/v1/shareholder/summary/` - Portfolio summary stats
 
-### Phase 4: Permissions & Security ✅
+### Phase 4: Transaction History API ✅
+- ✅ `GET /api/v1/shareholder/transactions/` - All transfers (in/out)
+- ✅ Filter support: transfer_type, status, year
+- ✅ Direction indicator (IN/OUT based on context)
+- ✅ Input validation prevents 500 errors
+
+### Phase 5: Tax Documents API ✅
+- ✅ `GET /api/v1/shareholder/tax-documents/` - Mock 1099-DIV records
+- ✅ Generates documents for current + past 2 years
+- ✅ Status tracking (AVAILABLE vs PENDING)
+- ✅ Download URLs (placeholder for future implementation)
+
+### Phase 6: Certificate Conversion API ✅
+- ✅ `POST /api/v1/shareholder/certificate-conversion/` - Request conversions
+- ✅ Supports CERT_TO_DRS and DRS_TO_CERT
+- ✅ Certificate ownership validation
+- ✅ Comprehensive audit logging with request tracking
+- ✅ Returns request_id for tracking
+
+### Phase 7: Profile Management API ✅
+- ✅ `GET /api/v1/shareholder/profile/` - Get full profile
+- ✅ `PATCH /api/v1/shareholder/profile/` - Update safe fields only
+- ✅ Field-level change tracking in audit log
+- ✅ Tax ID masking in responses
+
+### Phase 8: Permissions & Security ✅
 - ✅ `IsShareholderOwner` permission class
 - ✅ Registration validates and links to existing Shareholder record
 - ✅ Profile serializer masks tax IDs (`***-**-1234`)
@@ -49,9 +74,9 @@ Building a shareholder-facing React portal with:
 - ✅ Read-only fields enforced (name, tax ID, account type, etc.)
 
 ### Architect Review ✅
-- ✅ Fixed: Registration now links users to Shareholder records
-- ✅ Fixed: Token blacklist app added and migrated
-- ✅ Fixed: Profile serializer protects sensitive fields
+- ✅ Initial review: Fixed registration, token blacklist, profile protection
+- ✅ Second review: Fixed certificate conversion crash, input validation, audit logging
+- ✅ All 11 backend endpoints tested and working
 
 ---
 
@@ -225,18 +250,19 @@ frontend/
 | 1 | JWT Authentication Setup | 2 hours | ✅ DONE |
 | 2 | Authentication Endpoints | 4 hours | ✅ DONE |
 | 3 | Shareholder Portfolio API | 4 hours | ✅ DONE |
-| 4 | Permissions & Security | 2 hours | ✅ DONE |
-| 5 | Transaction/Tax/Cert APIs | 1 day | 📝 PENDING |
-| 6 | React App Setup | 2 hours | 📝 PENDING |
-| 7 | Authentication UI | 1 day | 📝 PENDING |
-| 8 | Portfolio Dashboard UI | 2 days | 📝 PENDING |
-| 9 | Profile Management UI | 1 day | 📝 PENDING |
-| 10 | Transaction History UI | 1 day | 📝 PENDING |
-| 11 | Tax Documents UI | 1 day | 📝 PENDING |
-| 12 | Certificate Requests UI | 1 day | 📝 PENDING |
-| 13 | Integration & Testing | 2 days | 📝 PENDING |
-| 14 | Deployment Prep | 1 day | 📝 PENDING |
-| **TOTAL** | | **2-3 weeks** | **30% COMPLETE** |
+| 4 | Transaction/Tax/Cert APIs | 1 day | ✅ DONE |
+| 5 | Permissions & Security | 2 hours | ✅ DONE |
+| 6 | Backend Testing & Fixes | 2 hours | ✅ DONE |
+| 7 | React App Setup | 2 hours | 📝 PENDING |
+| 8 | Authentication UI | 1 day | 📝 PENDING |
+| 9 | Portfolio Dashboard UI | 2 days | 📝 PENDING |
+| 10 | Profile Management UI | 1 day | 📝 PENDING |
+| 11 | Transaction History UI | 1 day | 📝 PENDING |
+| 12 | Tax Documents UI | 1 day | 📝 PENDING |
+| 13 | Certificate Requests UI | 1 day | 📝 PENDING |
+| 14 | Integration & Testing | 2 days | 📝 PENDING |
+| 15 | Deployment Prep | 1 day | 📝 PENDING |
+| **TOTAL** | | **2-3 weeks** | **50% COMPLETE** |
 
 ---
 
