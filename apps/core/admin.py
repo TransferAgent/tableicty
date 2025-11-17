@@ -186,17 +186,122 @@ class TransferAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['approve_transfers', 'reject_transfers']
+    actions = ['approve_transfers', 'reject_transfers', 'execute_transfers']
     
     def approve_transfers(self, request, queryset):
-        count = queryset.filter(status='PENDING').update(status='APPROVED')
+        from django.utils import timezone
+        count = 0
+        for transfer in queryset.filter(status='PENDING'):
+            transfer.status = 'APPROVED'
+            transfer.processed_by = request.user
+            transfer.processed_date = timezone.now()
+            transfer.save()
+            count += 1
         self.message_user(request, f'{count} transfers approved.')
     approve_transfers.short_description = 'Approve selected transfers'
     
     def reject_transfers(self, request, queryset):
-        count = queryset.filter(status='PENDING').update(status='REJECTED')
+        from django.utils import timezone
+        count = 0
+        for transfer in queryset.filter(status='PENDING'):
+            transfer.status = 'REJECTED'
+            transfer.processed_by = request.user
+            transfer.processed_date = timezone.now()
+            transfer.save()
+            count += 1
         self.message_user(request, f'{count} transfers rejected.')
     reject_transfers.short_description = 'Reject selected transfers'
+    
+    def execute_transfers(self, request, queryset):
+        from django.db import transaction
+        from django.utils import timezone
+        from decimal import Decimal
+        from apps.core.models import AuditLog, Holding, Certificate
+        
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        for transfer in queryset.filter(status='APPROVED'):
+            try:
+                with transaction.atomic():
+                    seller_holding = Holding.objects.select_for_update().get(
+                        shareholder=transfer.from_shareholder,
+                        issuer=transfer.issuer,
+                        security_class=transfer.security_class
+                    )
+                    
+                    if seller_holding.share_quantity < transfer.share_quantity:
+                        errors.append(f'Transfer {transfer.id}: Insufficient shares')
+                        error_count += 1
+                        continue
+                    
+                    old_seller_qty = seller_holding.share_quantity
+                    seller_holding.share_quantity -= transfer.share_quantity
+                    seller_holding.save()
+                    
+                    buyer_holding, created = Holding.objects.get_or_create(
+                        shareholder=transfer.to_shareholder,
+                        issuer=transfer.issuer,
+                        security_class=transfer.security_class,
+                        defaults={
+                            'share_quantity': Decimal('0'),
+                            'acquisition_date': transfer.transfer_date,
+                            'holding_type': 'DRS',
+                        }
+                    )
+                    old_buyer_qty = buyer_holding.share_quantity if not created else Decimal('0')
+                    buyer_holding.share_quantity += transfer.share_quantity
+                    buyer_holding.save()
+                    
+                    if transfer.surrendered_certificates:
+                        Certificate.objects.filter(
+                            issuer=transfer.issuer,
+                            certificate_number__in=transfer.surrendered_certificates
+                        ).update(status='CANCELLED', cancellation_date=transfer.transfer_date)
+                    
+                    transfer.status = 'EXECUTED'
+                    transfer.processed_by = request.user
+                    transfer.processed_date = timezone.now()
+                    transfer.save()
+                    
+                    AuditLog.objects.create(
+                        user=request.user,
+                        user_email=request.user.email if request.user else 'system',
+                        action_type='TRANSFER_EXECUTED',
+                        model_name='Transfer',
+                        object_id=str(transfer.id),
+                        object_repr=str(transfer),
+                        new_value={
+                            'transfer_id': str(transfer.id),
+                            'from': str(transfer.from_shareholder),
+                            'to': str(transfer.to_shareholder),
+                            'shares': float(transfer.share_quantity),
+                            'seller_before': float(old_seller_qty),
+                            'seller_after': float(seller_holding.share_quantity),
+                            'buyer_before': float(old_buyer_qty),
+                            'buyer_after': float(buyer_holding.share_quantity),
+                        },
+                        timestamp=timezone.now(),
+                        ip_address=request.META.get('REMOTE_ADDR'),
+                        user_agent=request.META.get('HTTP_USER_AGENT', '')[:255],
+                    )
+                    
+                    success_count += 1
+                    
+            except Holding.DoesNotExist:
+                errors.append(f'Transfer {transfer.id}: Seller holding not found')
+                error_count += 1
+            except Exception as e:
+                errors.append(f'Transfer {transfer.id}: {str(e)}')
+                error_count += 1
+        
+        if success_count > 0:
+            self.message_user(request, f'{success_count} transfers executed successfully.')
+        if error_count > 0:
+            self.message_user(request, f'{error_count} transfers failed: {"; ".join(errors)}', level='ERROR')
+    
+    execute_transfers.short_description = 'Execute selected approved transfers'
 
 
 @admin.register(AuditLog)
