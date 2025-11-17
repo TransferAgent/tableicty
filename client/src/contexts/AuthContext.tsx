@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { apiClient } from '../api/client';
 import type { User, LoginCredentials, RegisterData } from '../types';
 
@@ -39,19 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (credentials: LoginCredentials) => {
-    const response = await apiClient.login(credentials);
+    await apiClient.login(credentials);
     const userData = await apiClient.getCurrentUser();
     setUser(userData);
   };
 
   const register = async (data: RegisterData) => {
-    const response = await apiClient.register(data);
-    if (response.user) {
-      setUser(response.user);
-    } else {
-      const userData = await apiClient.getCurrentUser();
-      setUser(userData);
-    }
+    await apiClient.register(data);
+    const userData = await apiClient.getCurrentUser();
+    setUser(userData);
   };
 
   const logout = async () => {
