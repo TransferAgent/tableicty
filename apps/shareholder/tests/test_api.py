@@ -79,7 +79,7 @@ class TestHoldingsAPI:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
     
     def test_get_holdings_multiple(self, api_client, test_user, test_shareholder, 
-                                    test_issuer, test_security_class):
+                                    test_issuer, test_security_class, test_holding):
         """Shareholder with multiple holdings sees all"""
         api_client.force_authenticate(user=test_user)
         

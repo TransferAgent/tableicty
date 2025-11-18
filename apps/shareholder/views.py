@@ -74,15 +74,15 @@ def current_user_view(request):
 @permission_classes([IsAuthenticated, IsShareholderOwner])
 def shareholder_holdings_view(request):
     shareholder = request.user.shareholder
-    holdings = Holding.objects.filter(shareholder=shareholder, is_active=True).select_related('issuer', 'security_class').order_by('-acquisition_date')
+    holdings = Holding.objects.filter(shareholder=shareholder).select_related('issuer', 'security_class').order_by('-acquisition_date')
     holdings_data = [{
         'id': str(h.id),
         'issuer': {'name': h.issuer.company_name, 'ticker': h.issuer.ticker_symbol, 'otc_tier': h.issuer.otc_tier},
         'security_class': {'type': h.security_class.security_type, 'designation': h.security_class.class_designation},
-        'share_quantity': str(h.share_quantity),
+        'share_quantity': str(int(h.share_quantity)) if h.share_quantity == int(h.share_quantity) else str(h.share_quantity),
         'acquisition_date': h.acquisition_date.isoformat() if h.acquisition_date else None,
         'holding_type': h.holding_type,
-        'percentage_ownership': round((float(h.share_quantity) / float(h.security_class.authorized_shares) * 100), 4) if h.security_class.authorized_shares > 0 else 0
+        'percentage_ownership': round((float(h.share_quantity) / float(h.security_class.shares_authorized) * 100), 4) if h.security_class.shares_authorized > 0 else 0
     } for h in holdings]
     return Response({'count': len(holdings_data), 'holdings': holdings_data})
 
@@ -91,7 +91,7 @@ def shareholder_holdings_view(request):
 @permission_classes([IsAuthenticated, IsShareholderOwner])
 def shareholder_summary_view(request):
     shareholder = request.user.shareholder
-    holdings = Holding.objects.filter(shareholder=shareholder, is_active=True)
+    holdings = Holding.objects.filter(shareholder=shareholder)
     total_companies = holdings.values('issuer').distinct().count()
     total_shares = sum(float(h.share_quantity) for h in holdings)
     return Response({'total_companies': total_companies, 'total_shares': total_shares, 'total_holdings': holdings.count()})
@@ -132,7 +132,7 @@ def transaction_history_view(request):
 def tax_documents_view(request):
     from datetime import date
     shareholder = request.user.shareholder
-    holdings = Holding.objects.filter(shareholder=shareholder, is_active=True).select_related('issuer')
+    holdings = Holding.objects.filter(shareholder=shareholder).select_related('issuer')
     
     documents = []
     current_year = date.today().year
