@@ -172,7 +172,7 @@ export function CertificatesPage() {
                       type="radio"
                       value="DRS_TO_CERT"
                       checked={formData.conversion_type === 'DRS_TO_CERT'}
-                      onChange={(e) => setFormData({ ...formData, conversion_type: e.target.value as any })}
+                      onChange={(e) => setFormData({ ...formData, conversion_type: e.target.value as 'DRS_TO_CERT' | 'CERT_TO_DRS' })}
                       className="mr-2"
                     />
                     <span className="text-sm">DRS → Paper Certificate (request physical cert)</span>
@@ -182,7 +182,7 @@ export function CertificatesPage() {
                       type="radio"
                       value="CERT_TO_DRS"
                       checked={formData.conversion_type === 'CERT_TO_DRS'}
-                      onChange={(e) => setFormData({ ...formData, conversion_type: e.target.value as any })}
+                      onChange={(e) => setFormData({ ...formData, conversion_type: e.target.value as 'DRS_TO_CERT' | 'CERT_TO_DRS' })}
                       className="mr-2"
                     />
                     <span className="text-sm">Paper Certificate → DRS (convert to electronic)</span>

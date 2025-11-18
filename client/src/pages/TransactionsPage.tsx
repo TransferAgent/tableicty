@@ -61,7 +61,7 @@ export function TransactionsPage() {
   const convertToCSV = (data: Transfer[]) => {
     const headers = ['Date', 'Type', 'Issuer', 'Security Class', 'Shares', 'Status'];
     const rows = data.map(t => [
-      formatDate(t.transfer_date),
+      formatDate(t.executed_date),
       t.transfer_type,
       t.issuer_name,
       t.security_type,
@@ -93,7 +93,7 @@ export function TransactionsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-500">Transfer Date</p>
-              <p className="font-medium">{formatDate(transaction.transfer_date)}</p>
+              <p className="font-medium">{formatDate(transaction.executed_date)}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Type</p>
@@ -220,7 +220,7 @@ export function TransactionsPage() {
                   onClick={() => setSelectedTransaction(transaction)}
                   className="hover:bg-gray-50 cursor-pointer"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{formatDate(transaction.transfer_date)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{formatDate(transaction.executed_date)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.transfer_type}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.issuer_name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.security_type}</td>

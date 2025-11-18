@@ -56,7 +56,7 @@ export interface Transfer {
   to_shareholder_name: string;
   share_quantity: string;
   transfer_price: string | null;
-  transfer_date: string;
+  executed_date: string;
   transfer_type: string;
   status: string;
   direction: 'IN' | 'OUT' | null;
