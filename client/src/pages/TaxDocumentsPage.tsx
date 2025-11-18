@@ -18,7 +18,11 @@ export function TaxDocumentsPage() {
   const loadDocuments = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.getTaxDocuments();
+      const params: any = {};
+      if (filters.year) params.year = filters.year;
+      if (filters.type) params.type = filters.type;
+      
+      const response = await apiClient.getTaxDocuments(params);
       setDocuments(response.documents);
     } catch (err) {
       console.error('Failed to load tax documents:', err);

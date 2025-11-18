@@ -150,13 +150,23 @@ class APIClient {
     transfer_type?: string;
     status?: string;
     year?: number;
+    page?: number;
+    page_size?: number;
   }): Promise<{ count: number; transfers: Transfer[] }> {
     const response = await this.client.get('/transactions/', { params });
     return response.data;
   }
 
-  async getTaxDocuments(): Promise<{ count: number; documents: TaxDocument[] }> {
-    const response = await this.client.get('/tax-documents/');
+  async getTaxDocuments(params?: {
+    year?: number;
+    type?: string;
+  }): Promise<{ count: number; documents: TaxDocument[] }> {
+    const response = await this.client.get('/tax-documents/', { params });
+    return response.data;
+  }
+
+  async getCertificateConversionRequests(): Promise<any[]> {
+    const response = await this.client.get('/certificate-requests/');
     return response.data;
   }
 

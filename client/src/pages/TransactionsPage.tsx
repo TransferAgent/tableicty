@@ -27,7 +27,7 @@ export function TransactionsPage() {
   const loadTransactions = async () => {
     setLoading(true);
     try {
-      const params: any = { page };
+      const params: any = { page, page_size: pageSize };
       if (filters.transfer_type) params.transfer_type = filters.transfer_type;
       if (filters.status) params.status = filters.status;
       if (filters.year) params.year = filters.year;
@@ -45,7 +45,12 @@ export function TransactionsPage() {
 
   const handleExportCSV = async () => {
     try {
-      const response = await apiClient.getTransactions(filters);
+      const params: any = {};
+      if (filters.transfer_type) params.transfer_type = filters.transfer_type;
+      if (filters.status) params.status = filters.status;
+      if (filters.year) params.year = filters.year;
+      
+      const response = await apiClient.getTransactions(params);
       const csvContent = convertToCSV(response.transfers);
       downloadCSV(csvContent, `transactions_${new Date().toISOString().split('T')[0]}.csv`);
     } catch (err) {
