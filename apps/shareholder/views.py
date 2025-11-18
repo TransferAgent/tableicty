@@ -170,18 +170,20 @@ def certificate_conversion_request_view(request):
     request_id = str(uuid.uuid4())
     
     AuditLog.objects.create(
-        entity_type='CERTIFICATE_CONVERSION',
-        entity_id=certificate_id,
-        action='REQUEST',
-        performed_by=request.user.email,
-        changes=[{
+        model_name='CERTIFICATE_CONVERSION',
+        object_id=certificate_id,
+        action_type='CREATE',
+        user=request.user,
+        user_email=request.user.email,
+        object_repr=f"Certificate Conversion Request {request_id}",
+        new_value={
             'request_id': request_id,
             'conversion_type': data['conversion_type'],
             'certificate_number': data['certificate_number'],
             'issuer_id': str(data['issuer_id']),
             'shareholder_id': str(shareholder.id),
             'notes': data.get('notes', '')
-        }],
+        },
         ip_address=request.META.get('REMOTE_ADDR'),
         user_agent=request.META.get('HTTP_USER_AGENT', '')[:255]
     )

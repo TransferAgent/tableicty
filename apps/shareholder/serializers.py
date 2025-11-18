@@ -91,8 +91,8 @@ class ShareholderProfileSerializer(serializers.ModelSerializer):
             'country',
             'phone',
             'accredited_investor',
-            'email_alerts_enabled',
-            'paper_statements_enabled',
+            'email_notifications',
+            'paper_statements',
         ]
         read_only_fields = [
             'id',
@@ -116,7 +116,7 @@ class ShareholderProfileSerializer(serializers.ModelSerializer):
     
     def update(self, instance, validated_data):
         # Only allow updating specific fields
-        allowed_fields = ['address_line1', 'address_line2', 'city', 'state', 'zip_code', 'country', 'phone', 'email_alerts_enabled', 'paper_statements_enabled']
+        allowed_fields = ['address_line1', 'address_line2', 'city', 'state', 'zip_code', 'country', 'phone', 'email_notifications', 'paper_statements']
         for field in allowed_fields:
             if field in validated_data:
                 setattr(instance, field, validated_data[field])
