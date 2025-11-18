@@ -90,7 +90,7 @@ class ShareholderProfileSerializer(serializers.ModelSerializer):
             'zip_code',
             'country',
             'phone',
-            'is_accredited_investor',
+            'accredited_investor',
             'email_alerts_enabled',
             'paper_statements_enabled',
         ]
@@ -104,7 +104,7 @@ class ShareholderProfileSerializer(serializers.ModelSerializer):
             'entity_name',
             'tax_id_masked',
             'tax_id_type',
-            'is_accredited_investor',
+            'accredited_investor',
         ]
     
     def get_tax_id_masked(self, obj):

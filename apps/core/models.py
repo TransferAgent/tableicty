@@ -130,6 +130,7 @@ class SecurityClass(models.Model):
 class Shareholder(models.Model):
     """Beneficial owner of securities."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='shareholder')
     
     ACCOUNT_TYPE_CHOICES = [
         ('INDIVIDUAL', 'Individual'),

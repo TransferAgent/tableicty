@@ -1,6 +1,13 @@
 import pytest
 from django.contrib.auth.models import User
+from rest_framework.test import APIClient
 from apps.core.models import Shareholder, Issuer, SecurityClass, Holding
+
+
+@pytest.fixture
+def api_client():
+    """Create API client"""
+    return APIClient()
 
 
 @pytest.fixture
@@ -14,8 +21,9 @@ def test_user(db):
 
 @pytest.fixture
 def test_shareholder(db, test_user):
-    """Create test shareholder"""
-    return Shareholder.objects.create(
+    """Create test shareholder linked to test_user"""
+    shareholder = Shareholder.objects.create(
+        user=test_user,
         email='test@example.com',
         first_name='John',
         last_name='Doe',
@@ -26,6 +34,7 @@ def test_shareholder(db, test_user):
         zip_code='10001',
         country='US'
     )
+    return shareholder
 
 
 @pytest.fixture
