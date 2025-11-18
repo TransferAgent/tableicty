@@ -1,7 +1,7 @@
 import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
-from apps.core.models import Shareholder, Issuer, SecurityClass, Holding
+from apps.core.models import Shareholder, Issuer, SecurityClass, Holding, Transfer
 
 
 @pytest.fixture
@@ -76,4 +76,32 @@ def test_holding(db, test_shareholder, test_issuer, test_security_class):
         security_class=test_security_class,
         share_quantity=1000,
         acquisition_date=date(2024, 1, 15)
+    )
+
+
+@pytest.fixture
+def test_transfer(db, test_shareholder, test_issuer, test_security_class):
+    """Create test transfer"""
+    from datetime import date
+    # Create a second shareholder for the transfer
+    second_shareholder = Shareholder.objects.create(
+        email='buyer@example.com',
+        first_name='Bob',
+        last_name='Smith',
+        account_type='INDIVIDUAL',
+        address_line1='456 Oak Ave',
+        city='Los Angeles',
+        state='CA',
+        zip_code='90001',
+        country='US'
+    )
+    return Transfer.objects.create(
+        issuer=test_issuer,
+        security_class=test_security_class,
+        from_shareholder=test_shareholder,
+        to_shareholder=second_shareholder,
+        share_quantity=100,
+        transfer_date=date(2025, 11, 18),
+        transfer_type='SALE',
+        status='EXECUTED'
     )
