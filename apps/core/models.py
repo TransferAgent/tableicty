@@ -406,7 +406,7 @@ class AuditLog(models.Model):
     
     def save(self, *args, **kwargs):
         """Enforce append-only: cannot update existing records"""
-        if self.pk is not None:
+        if not self._state.adding:
             raise ValueError("AuditLog records are immutable and cannot be updated")
         super().save(*args, **kwargs)
     

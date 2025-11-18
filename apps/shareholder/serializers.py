@@ -98,9 +98,6 @@ class ShareholderProfileSerializer(serializers.ModelSerializer):
             'id',
             'email',
             'account_type',
-            'first_name',
-            'middle_name',
-            'last_name',
             'entity_name',
             'tax_id_masked',
             'tax_id_type',
@@ -116,7 +113,7 @@ class ShareholderProfileSerializer(serializers.ModelSerializer):
     
     def update(self, instance, validated_data):
         # Only allow updating specific fields
-        allowed_fields = ['address_line1', 'address_line2', 'city', 'state', 'zip_code', 'country', 'phone', 'email_notifications', 'paper_statements']
+        allowed_fields = ['first_name', 'middle_name', 'last_name', 'address_line1', 'address_line2', 'city', 'state', 'zip_code', 'country', 'phone', 'email_notifications', 'paper_statements']
         for field in allowed_fields:
             if field in validated_data:
                 setattr(instance, field, validated_data[field])
@@ -258,6 +255,9 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shareholder
         fields = [
+            'first_name',
+            'middle_name',
+            'last_name',
             'address_line1',
             'address_line2',
             'city',
@@ -287,11 +287,15 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         
         if changed_fields and request:
             AuditLog.objects.create(
-                entity_type='SHAREHOLDER',
-                entity_id=str(instance.id),
-                action='UPDATE',
-                performed_by=request.user.email,
-                changes=changed_fields,
+                model_name='SHAREHOLDER',
+                object_id=str(instance.id),
+                action_type='UPDATE',
+                user=request.user,
+                user_email=request.user.email,
+                object_repr=f"{instance.first_name} {instance.last_name}".strip() or instance.email,
+                old_value=changed_fields[0]['old_value'] if changed_fields else None,
+                new_value={field['field']: field['new_value'] for field in changed_fields},
+                changed_fields=[field['field'] for field in changed_fields],
                 ip_address=request.META.get('REMOTE_ADDR'),
                 user_agent=request.META.get('HTTP_USER_AGENT', '')[:255]
             )

@@ -209,9 +209,8 @@ def profile_management_view(request):
     elif request.method == 'PATCH':
         serializer = ProfileUpdateSerializer(shareholder, data=request.data, partial=True, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        shareholder = serializer.save()
         
-        return Response({
-            'message': 'Profile updated successfully',
-            'profile': ShareholderProfileSerializer(shareholder).data
-        })
+        # Return the updated profile data directly (REST standard)
+        response_serializer = ShareholderProfileSerializer(shareholder)
+        return Response(response_serializer.data)
