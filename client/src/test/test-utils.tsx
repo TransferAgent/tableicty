@@ -1,26 +1,41 @@
 import { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 
-interface AllTheProvidersProps {
-  children: React.ReactNode;
+interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
+  initialRoute?: string;
 }
 
-function AllTheProviders({ children }: AllTheProvidersProps) {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        {children}
-      </AuthProvider>
-    </BrowserRouter>
-  );
-}
-
-const customRender = (
+export function renderWithProviders(
   ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>,
-) => render(ui, { wrapper: AllTheProviders, ...options });
+  {
+    initialRoute = '/',
+    ...renderOptions
+  }: RenderWithProvidersOptions = {}
+) {
+  const router = createMemoryRouter(
+    [
+      {
+        path: '*',
+        element: (
+          <AuthProvider>
+            {ui}
+          </AuthProvider>
+        ),
+      },
+    ],
+    {
+      initialEntries: [initialRoute],
+    }
+  );
+
+  const result = render(<RouterProvider router={router} />, renderOptions);
+
+  return {
+    ...result,
+    router,
+  };
+}
 
 export * from '@testing-library/react';
-export { customRender as render };
