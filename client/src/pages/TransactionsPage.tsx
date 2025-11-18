@@ -63,8 +63,8 @@ export function TransactionsPage() {
     const rows = data.map(t => [
       formatDate(t.transfer_date),
       t.transfer_type,
-      t.security_class.issuer.name,
-      t.security_class.type,
+      t.issuer_name,
+      t.security_type,
       t.share_quantity,
       t.status,
     ]);
@@ -115,11 +115,11 @@ export function TransactionsPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Issuer</p>
-              <p className="font-medium">{transaction.security_class.issuer.name}</p>
+              <p className="font-medium">{transaction.issuer_name}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Security Class</p>
-              <p className="font-medium">{transaction.security_class.type}</p>
+              <p className="font-medium">{transaction.security_type}</p>
             </div>
           </div>
         </div>
@@ -222,8 +222,8 @@ export function TransactionsPage() {
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{formatDate(transaction.transfer_date)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.transfer_type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.security_class.issuer.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.security_class.type}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.issuer_name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.security_type}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{formatNumber(parseFloat(transaction.share_quantity))}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 rounded text-xs ${

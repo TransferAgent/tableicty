@@ -110,7 +110,7 @@ export function TaxDocumentsPage() {
                       {doc.document_type}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{new Date(doc.issue_date).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{new Date(doc.generated_date).toLocaleDateString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(doc.status)}`}>
                       {doc.status}

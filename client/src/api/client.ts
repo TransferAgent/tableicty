@@ -9,7 +9,6 @@ import type {
   RegisterData,
   AuthResponse,
   Shareholder,
-  CertificateConversionRequest,
 } from '../types';
 
 const API_BASE_URL = '/api/v1/shareholders';
@@ -170,7 +169,7 @@ class APIClient {
     return response.data;
   }
 
-  async submitCertificateConversion(data: CertificateConversionRequest): Promise<any> {
+  async submitCertificateConversion(data: any): Promise<any> {
     const response = await this.client.post('/certificate-conversion/', data);
     return response.data;
   }

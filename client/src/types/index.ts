@@ -106,3 +106,10 @@ export interface CertificateConversionRequest {
   conversion_type: 'CERT_TO_DRS' | 'DRS_TO_CERT';
   notes?: string;
 }
+
+export interface CertificateConversionSubmission {
+  holding_id: number;
+  conversion_type: 'CERT_TO_DRS' | 'DRS_TO_CERT';
+  share_quantity: number;
+  mailing_address?: string;
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
-import type { Holding, CertificateConversionRequest } from '../types';
+import type { Holding } from '../types';
 import { Plus, X } from 'lucide-react';
 
 export function CertificatesPage() {
@@ -9,9 +9,14 @@ export function CertificatesPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    holding_id: string;
+    conversion_type: 'DRS_TO_CERT' | 'CERT_TO_DRS';
+    share_quantity: string;
+    mailing_address: string;
+  }>({
     holding_id: '',
-    conversion_type: 'DRS_TO_PAPER',
+    conversion_type: 'DRS_TO_CERT',
     share_quantity: '',
     mailing_address: '',
   });
@@ -47,7 +52,7 @@ export function CertificatesPage() {
       setShowModal(false);
       setFormData({
         holding_id: '',
-        conversion_type: 'DRS_TO_PAPER',
+        conversion_type: 'DRS_TO_CERT',
         share_quantity: '',
         mailing_address: '',
       });
@@ -105,15 +110,17 @@ export function CertificatesPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {requests.map((request, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{new Date().toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">Sample Issuer</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">Common</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{request.conversion_type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{request.share_quantity}</td>
+                <tr key={request.id || idx} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {request.created_at ? new Date(request.created_at).toLocaleDateString() : '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{request.issuer_name || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{request.security_type || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{request.conversion_type || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{request.share_quantity || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded text-xs ${getStatusBadge('PENDING')}`}>
-                      PENDING
+                    <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(request.status || 'PENDING')}`}>
+                      {request.status || 'PENDING'}
                     </span>
                   </td>
                 </tr>
@@ -163,9 +170,9 @@ export function CertificatesPage() {
                   <label className="flex items-center">
                     <input
                       type="radio"
-                      value="DRS_TO_PAPER"
-                      checked={formData.conversion_type === 'DRS_TO_PAPER'}
-                      onChange={(e) => setFormData({ ...formData, conversion_type: e.target.value })}
+                      value="DRS_TO_CERT"
+                      checked={formData.conversion_type === 'DRS_TO_CERT'}
+                      onChange={(e) => setFormData({ ...formData, conversion_type: e.target.value as any })}
                       className="mr-2"
                     />
                     <span className="text-sm">DRS → Paper Certificate (request physical cert)</span>
@@ -173,9 +180,9 @@ export function CertificatesPage() {
                   <label className="flex items-center">
                     <input
                       type="radio"
-                      value="PAPER_TO_DRS"
-                      checked={formData.conversion_type === 'PAPER_TO_DRS'}
-                      onChange={(e) => setFormData({ ...formData, conversion_type: e.target.value })}
+                      value="CERT_TO_DRS"
+                      checked={formData.conversion_type === 'CERT_TO_DRS'}
+                      onChange={(e) => setFormData({ ...formData, conversion_type: e.target.value as any })}
                       className="mr-2"
                     />
                     <span className="text-sm">Paper Certificate → DRS (convert to electronic)</span>
@@ -200,7 +207,7 @@ export function CertificatesPage() {
                 )}
               </div>
 
-              {formData.conversion_type === 'DRS_TO_PAPER' && (
+              {formData.conversion_type === 'DRS_TO_CERT' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Mailing Address</label>
                   <textarea
