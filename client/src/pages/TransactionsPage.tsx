@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
 import type { Transfer } from '../types';
 import { formatNumber, formatDate } from '../lib/utils';
-import { Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Filter, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { SkeletonTable } from '../components/SkeletonTable';
 
 export function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transfer[]>([]);
@@ -36,7 +38,9 @@ export function TransactionsPage() {
       setTransactions(response.transfers);
       setTotalPages(Math.ceil(response.count / pageSize));
     } catch (err: any) {
-      setError('Failed to load transactions');
+      const message = err.response?.data?.error || 'Failed to load transactions';
+      setError(message);
+      toast.error(message);
       console.error(err);
     } finally {
       setLoading(false);
@@ -53,8 +57,10 @@ export function TransactionsPage() {
       const response = await apiClient.getTransactions(params);
       const csvContent = convertToCSV(response.transfers);
       downloadCSV(csvContent, `transactions_${new Date().toISOString().split('T')[0]}.csv`);
+      toast.success('Transactions exported successfully!');
     } catch (err) {
       console.error('Export failed:', err);
+      toast.error('Failed to export transactions');
     }
   };
 
@@ -201,49 +207,57 @@ export function TransactionsPage() {
       )}
 
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Issuer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Security</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shares</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {transactions.map((transaction) => (
-                <tr
-                  key={transaction.id}
-                  onClick={() => setSelectedTransaction(transaction)}
-                  className="hover:bg-gray-50 cursor-pointer"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{formatDate(transaction.executed_date)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.transfer_type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.issuer_name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.security_type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{formatNumber(parseFloat(transaction.share_quantity))}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      transaction.status === 'EXECUTED' ? 'bg-green-100 text-green-800' :
-                      transaction.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {transaction.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {transactions.length === 0 && !loading && (
+        {loading ? (
+          <SkeletonTable rows={10} columns={6} />
+        ) : transactions.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">No transactions found</p>
+            <FileText className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No transactions found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Adjust your filters or check back later.
+            </p>
           </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Issuer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Security</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shares</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {transactions.map((transaction) => (
+                    <tr
+                      key={transaction.id}
+                      onClick={() => setSelectedTransaction(transaction)}
+                      className="hover:bg-gray-50 cursor-pointer"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{formatDate(transaction.executed_date)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.transfer_type}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.issuer_name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.security_type}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{formatNumber(parseFloat(transaction.share_quantity))}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          transaction.status === 'EXECUTED' ? 'bg-green-100 text-green-800' :
+                          transaction.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {transaction.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {totalPages > 1 && (

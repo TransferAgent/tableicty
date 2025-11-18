@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
 import type { User, LoginCredentials, RegisterData } from '../types';
 
@@ -39,20 +40,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (credentials: LoginCredentials) => {
-    await apiClient.login(credentials);
-    const userData = await apiClient.getCurrentUser();
-    setUser(userData);
+    try {
+      await apiClient.login(credentials);
+      const userData = await apiClient.getCurrentUser();
+      setUser(userData);
+      const firstName = userData.first_name || 'there';
+      toast.success(`Welcome back, ${firstName}!`);
+    } catch (error: any) {
+      const message = error.response?.data?.error || 'Invalid email or password';
+      toast.error(message);
+      throw error;
+    }
   };
 
   const register = async (data: RegisterData) => {
-    await apiClient.register(data);
-    const userData = await apiClient.getCurrentUser();
-    setUser(userData);
+    try {
+      await apiClient.register(data);
+      const userData = await apiClient.getCurrentUser();
+      setUser(userData);
+      toast.success('Account created successfully! Welcome to tableicty.');
+    } catch (error: any) {
+      const message = error.response?.data?.error || 'Registration failed. Please try again.';
+      toast.error(message);
+      throw error;
+    }
   };
 
   const logout = async () => {
-    await apiClient.logout();
-    setUser(null);
+    try {
+      await apiClient.logout();
+      setUser(null);
+      toast.success('Logged out successfully');
+    } catch (error) {
+      toast.error('Logout failed');
+      throw error;
+    }
   };
 
   return (

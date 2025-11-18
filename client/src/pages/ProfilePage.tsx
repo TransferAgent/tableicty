@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
 import type { Shareholder } from '../types';
 
@@ -14,7 +15,9 @@ export function ProfilePage() {
     try {
       const data = await apiClient.getProfile();
       setProfile(data);
-    } catch (error) {
+    } catch (error: any) {
+      const message = error.response?.data?.error || 'Failed to load profile';
+      toast.error(message);
       console.error('Failed to load profile:', error);
     } finally {
       setLoading(false);

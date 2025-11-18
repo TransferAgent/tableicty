@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
 import type { Holding } from '../types';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, FileCheck } from 'lucide-react';
+import { SkeletonTable } from '../components/SkeletonTable';
 
 export function CertificatesPage() {
   const [showModal, setShowModal] = useState(false);
@@ -33,7 +35,9 @@ export function CertificatesPage() {
       ]);
       setHoldings(holdingsData.holdings);
       setRequests(requestsData);
-    } catch (err) {
+    } catch (err: any) {
+      const message = err.response?.data?.error || 'Failed to load certificate data';
+      toast.error(message);
       console.error('Failed to load data:', err);
     } finally {
       setLoading(false);
@@ -49,6 +53,7 @@ export function CertificatesPage() {
         share_quantity: parseInt(formData.share_quantity),
         mailing_address: formData.mailing_address || undefined,
       });
+      toast.success('Certificate conversion request submitted successfully!');
       setShowModal(false);
       setFormData({
         holding_id: '',
@@ -57,7 +62,9 @@ export function CertificatesPage() {
         mailing_address: '',
       });
       loadData();
-    } catch (err) {
+    } catch (err: any) {
+      const message = err.response?.data?.error || 'Failed to submit conversion request';
+      toast.error(message);
       console.error('Failed to submit request:', err);
     }
   };
@@ -96,42 +103,46 @@ export function CertificatesPage() {
       </div>
 
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Request Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Issuer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Security Class</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shares</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {requests.map((request, idx) => (
-                <tr key={request.id || idx} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {request.created_at ? new Date(request.created_at).toLocaleDateString() : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{request.issuer_name || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{request.security_type || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{request.conversion_type || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{request.share_quantity || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(request.status || 'PENDING')}`}>
-                      {request.status || 'PENDING'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {requests.length === 0 && (
+        {requests.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">No conversion requests yet</p>
+            <FileCheck className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No conversion requests yet</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              You haven't submitted any conversion requests. Click "Request Conversion" above to get started.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Request Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Issuer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Security Class</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shares</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {requests.map((request, idx) => (
+                  <tr key={request.id || idx} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {request.created_at ? new Date(request.created_at).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{request.issuer_name || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{request.security_type || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{request.conversion_type || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{request.share_quantity || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(request.status || 'PENDING')}`}>
+                        {request.status || 'PENDING'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

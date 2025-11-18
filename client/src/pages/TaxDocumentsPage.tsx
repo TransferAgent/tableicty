@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
 import type { TaxDocument } from '../types';
 import { Download, FileText } from 'lucide-react';
+import { SkeletonTable } from '../components/SkeletonTable';
 
 export function TaxDocumentsPage() {
   const [documents, setDocuments] = useState<TaxDocument[]>([]);
@@ -24,7 +26,9 @@ export function TaxDocumentsPage() {
       
       const response = await apiClient.getTaxDocuments(params);
       setDocuments(response.documents);
-    } catch (err) {
+    } catch (err: any) {
+      const message = err.response?.data?.error || 'Failed to load tax documents';
+      toast.error(message);
       console.error('Failed to load tax documents:', err);
     } finally {
       setLoading(false);
@@ -32,7 +36,13 @@ export function TaxDocumentsPage() {
   };
 
   const handleDownload = async (doc: TaxDocument) => {
-    console.log('Downloading document:', doc.document_type);
+    try {
+      toast.success(`Downloading ${doc.document_type}...`);
+      // Actual download logic would go here
+      console.log('Downloading document:', doc.document_type);
+    } catch (err) {
+      toast.error('Failed to download document');
+    }
   };
 
   const getDocumentTypeBadge = (type: string) => {
