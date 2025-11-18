@@ -3,6 +3,7 @@ import { apiClient } from '../api/client';
 import type { Holding, PortfolioSummary } from '../types';
 import { formatNumber, formatDate } from '../lib/utils';
 import { TrendingUp, Building2, Briefcase } from 'lucide-react';
+import { PortfolioCharts } from '../components/charts/PortfolioCharts';
 
 export function DashboardPage() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
@@ -107,6 +108,8 @@ export function DashboardPage() {
           </div>
         </div>
       )}
+
+      {holdings.length > 0 && <PortfolioCharts holdings={holdings} />}
 
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6">
