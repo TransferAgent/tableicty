@@ -103,6 +103,10 @@ class ShareholderProfileSerializer(serializers.ModelSerializer):
             'tax_id_type',
             'accredited_investor',
         ]
+        extra_kwargs = {
+            'first_name': {'allow_blank': False, 'required': False},
+            'last_name': {'allow_blank': False, 'required': False},
+        }
     
     def get_tax_id_masked(self, obj):
         if obj.tax_id:
@@ -110,6 +114,30 @@ class ShareholderProfileSerializer(serializers.ModelSerializer):
             if len(tax_id_str) >= 4:
                 return f"***-**-{tax_id_str[-4:]}"
         return "***-**-****"
+    
+    def validate_first_name(self, value):
+        """Ensure first_name is not blank for INDIVIDUAL accounts"""
+        account_type = self.instance.account_type if self.instance else self.initial_data.get('account_type')
+        
+        if account_type == 'INDIVIDUAL' and not value:
+            raise serializers.ValidationError("First name is required for individual accounts.")
+        return value
+    
+    def validate_last_name(self, value):
+        """Ensure last_name is not blank for INDIVIDUAL accounts"""
+        account_type = self.instance.account_type if self.instance else self.initial_data.get('account_type')
+        
+        if account_type == 'INDIVIDUAL' and not value:
+            raise serializers.ValidationError("Last name is required for individual accounts.")
+        return value
+    
+    def validate_entity_name(self, value):
+        """Ensure entity_name is not blank for ENTITY/JOINT accounts"""
+        account_type = self.instance.account_type if self.instance else self.initial_data.get('account_type')
+        
+        if account_type in ['ENTITY', 'JOINT'] and not value:
+            raise serializers.ValidationError("Entity name is required for entity/joint accounts.")
+        return value
     
     def update(self, instance, validated_data):
         # Only allow updating specific fields
@@ -268,10 +296,61 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             'email_notifications',
             'paper_statements',
         ]
+        extra_kwargs = {
+            'first_name': {'allow_blank': False, 'required': False},
+            'last_name': {'allow_blank': False, 'required': False},
+        }
+    
+    def validate_first_name(self, value):
+        """Ensure first_name is not blank for INDIVIDUAL accounts"""
+        if self.instance and self.instance.account_type == 'INDIVIDUAL' and not value:
+            raise serializers.ValidationError("First name is required for individual accounts.")
+        return value
+    
+    def validate_last_name(self, value):
+        """Ensure last_name is not blank for INDIVIDUAL accounts"""
+        if self.instance and self.instance.account_type == 'INDIVIDUAL' and not value:
+            raise serializers.ValidationError("Last name is required for individual accounts.")
+        return value
+    
+    def validate(self, attrs):
+        """Validate required fields based on account type"""
+        instance = self.instance
+        if not instance:
+            return attrs
+        
+        # For INDIVIDUAL accounts, ensure names are not blank
+        if instance.account_type == 'INDIVIDUAL':
+            # Check first_name - either from attrs or existing instance
+            first_name = attrs.get('first_name', instance.first_name)
+            if 'first_name' in attrs and not attrs['first_name']:
+                raise serializers.ValidationError({
+                    'first_name': "First name is required for individual accounts."
+                })
+            
+            # Check last_name - either from attrs or existing instance
+            last_name = attrs.get('last_name', instance.last_name)
+            if 'last_name' in attrs and not attrs['last_name']:
+                raise serializers.ValidationError({
+                    'last_name': "Last name is required for individual accounts."
+                })
+        
+        return attrs
     
     def update(self, instance, validated_data):
         request = self.context.get('request')
         changed_fields = []
+        
+        # Prevent blanking out required fields for INDIVIDUAL accounts
+        if instance.account_type == 'INDIVIDUAL':
+            if 'first_name' in validated_data and not validated_data['first_name']:
+                raise serializers.ValidationError({
+                    'first_name': "First name is required for individual accounts."
+                })
+            if 'last_name' in validated_data and not validated_data['last_name']:
+                raise serializers.ValidationError({
+                    'last_name': "Last name is required for individual accounts."
+                })
         
         for field, value in validated_data.items():
             old_value = getattr(instance, field)

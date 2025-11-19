@@ -55,6 +55,26 @@ class TestShareholderProfileAPI:
         })
         
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    
+    def test_update_profile_blank_name_rejected(self, api_client, test_user, test_shareholder):
+        """Cannot blank out required fields"""
+        api_client.force_authenticate(user=test_user)
+        
+        # Try to blank first_name (should fail)
+        response = api_client.patch(reverse('shareholder:profile'), {
+            'first_name': ''
+        })
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'first_name' in response.data
+        
+        # Try to blank last_name (should fail)
+        response = api_client.patch(reverse('shareholder:profile'), {
+            'last_name': ''
+        })
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'last_name' in response.data
 
 
 @pytest.mark.django_db
