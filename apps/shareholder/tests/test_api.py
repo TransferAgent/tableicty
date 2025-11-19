@@ -120,20 +120,11 @@ class TestTransactionsAPI:
     """Test GET /api/v1/shareholder/transactions/ endpoint"""
     
     def test_get_transactions_authenticated(self, api_client, test_user, test_shareholder,
-                                           test_issuer, test_security_class):
+                                           test_transfer):
         """Authenticated user can view their transactions"""
         api_client.force_authenticate(user=test_user)
         
-        # Create transfer
-        Transfer.objects.create(
-            issuer=test_issuer,
-            security_class=test_security_class,
-            to_shareholder=test_shareholder,
-            share_quantity=100,
-            transfer_type='SALE',
-            status='EXECUTED',
-            transfer_date=date.today()
-        )
+        # test_transfer fixture already provides a SALE transfer with from_shareholder and to_shareholder
         
         response = api_client.get(reverse('shareholder:transactions'))
         
@@ -149,24 +140,28 @@ class TestTransactionsAPI:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
     
     def test_filter_transactions_by_type(self, api_client, test_user, test_shareholder,
-                                        test_issuer, test_security_class):
+                                        test_issuer, test_security_class, test_transfer):
         """Filter transactions by transfer_type"""
         api_client.force_authenticate(user=test_user)
         
-        # Create multiple transfers
-        Transfer.objects.create(
-            issuer=test_issuer,
-            security_class=test_security_class,
-            to_shareholder=test_shareholder,
-            share_quantity=100,
-            transfer_type='SALE',
-            status='EXECUTED',
-            transfer_date=date.today()
+        # test_transfer provides SALE type
+        # Create one more with GIFT type
+        second_shareholder = Shareholder.objects.create(
+            email='recipient@example.com',
+            first_name='Alice',
+            last_name='Johnson',
+            account_type='INDIVIDUAL',
+            address_line1='789 Pine St',
+            city='Chicago',
+            state='IL',
+            zip_code='60601',
+            country='US'
         )
         Transfer.objects.create(
             issuer=test_issuer,
             security_class=test_security_class,
-            to_shareholder=test_shareholder,
+            from_shareholder=test_shareholder,
+            to_shareholder=second_shareholder,
             share_quantity=50,
             transfer_type='GIFT',
             status='EXECUTED',
@@ -183,24 +178,28 @@ class TestTransactionsAPI:
         assert response.data['transfers'][0]['transfer_type'] == 'SALE'
     
     def test_filter_transactions_by_status(self, api_client, test_user, test_shareholder,
-                                          test_issuer, test_security_class):
+                                          test_issuer, test_security_class, test_transfer):
         """Filter transactions by status"""
         api_client.force_authenticate(user=test_user)
         
-        # Create transfers with different statuses
-        Transfer.objects.create(
-            issuer=test_issuer,
-            security_class=test_security_class,
-            to_shareholder=test_shareholder,
-            share_quantity=100,
-            transfer_type='SALE',
-            status='EXECUTED',
-            transfer_date=date.today()
+        # test_transfer provides EXECUTED status
+        # Create one more with PENDING status
+        third_shareholder = Shareholder.objects.create(
+            email='pending@example.com',
+            first_name='Charlie',
+            last_name='Brown',
+            account_type='INDIVIDUAL',
+            address_line1='321 Elm St',
+            city='Boston',
+            state='MA',
+            zip_code='02101',
+            country='US'
         )
         Transfer.objects.create(
             issuer=test_issuer,
             security_class=test_security_class,
-            to_shareholder=test_shareholder,
+            from_shareholder=test_shareholder,
+            to_shareholder=third_shareholder,
             share_quantity=50,
             transfer_type='SALE',
             status='PENDING',
@@ -217,16 +216,28 @@ class TestTransactionsAPI:
         assert response.data['transfers'][0]['status'] == 'EXECUTED'
     
     def test_transactions_pagination(self, api_client, test_user, test_shareholder,
-                                    test_issuer, test_security_class):
+                                    test_issuer, test_security_class, test_transfer):
         """Transactions are paginated (50 per page)"""
         api_client.force_authenticate(user=test_user)
         
-        # Create 60 transfers (more than 1 page)
-        for i in range(60):
+        # test_transfer provides 1 transfer, create 59 more (for 60 total)
+        fourth_shareholder = Shareholder.objects.create(
+            email='bulk@example.com',
+            first_name='David',
+            last_name='Wilson',
+            account_type='INDIVIDUAL',
+            address_line1='555 Market St',
+            city='Seattle',
+            state='WA',
+            zip_code='98101',
+            country='US'
+        )
+        for i in range(59):
             Transfer.objects.create(
                 issuer=test_issuer,
                 security_class=test_security_class,
-                to_shareholder=test_shareholder,
+                from_shareholder=test_shareholder,
+                to_shareholder=fourth_shareholder,
                 share_quantity=10 + i,
                 transfer_type='SALE',
                 status='EXECUTED',
