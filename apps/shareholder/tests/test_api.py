@@ -290,6 +290,26 @@ class TestAuditLogImmutability:
             # Try to delete (should fail)
             with pytest.raises(ValidationError, match="cannot be deleted"):
                 audit.delete()
+    
+    def test_cannot_create_audit_log_directly(self):
+        """Cannot create AuditLog via direct create - must use signals"""
+        from django.core.exceptions import ValidationError
+        from apps.core.models import AuditLog
+        
+        # Try to forge an audit entry (should fail)
+        with pytest.raises(ValidationError, match="can only be created automatically"):
+            AuditLog.objects.create(
+                action_type='FORGED',
+                model_name='FakeModel',
+                object_id='12345',
+                user_email='hacker@example.com',
+                object_repr='Forged Entry',
+                new_value={'fake': 'data'}
+            )
+        
+        # Verify no forged entry was created
+        forged_logs = AuditLog.objects.filter(action_type='FORGED')
+        assert forged_logs.count() == 0
 
 
 @pytest.mark.django_db

@@ -216,27 +216,32 @@ class TransferViewSet(viewsets.ModelViewSet):
                 transfer.processed_date = timezone.now()
                 transfer.save()
                 
-                AuditLog.objects.create(
-                    user=request.user,
-                    user_email=request.user.email if request.user else 'system',
-                    action_type='TRANSFER_EXECUTED',
-                    model_name='Transfer',
-                    object_id=str(transfer.id),
-                    object_repr=str(transfer),
-                    new_value={
-                        'transfer_id': str(transfer.id),
-                        'from': str(transfer.from_shareholder),
-                        'to': str(transfer.to_shareholder),
-                        'shares': float(transfer.share_quantity),
-                        'seller_before': float(old_seller_qty),
-                        'seller_after': float(seller_holding.share_quantity),
-                        'buyer_before': float(old_buyer_qty),
-                        'buyer_after': float(buyer_holding.share_quantity),
-                    },
-                    timestamp=timezone.now(),
-                    ip_address=request.META.get('REMOTE_ADDR'),
-                    user_agent=request.META.get('HTTP_USER_AGENT', '')[:255],
-                )
+                from apps.core.signals import set_audit_signal_flag, clear_audit_signal_flag
+                set_audit_signal_flag()
+                try:
+                    AuditLog.objects.create(
+                        user=request.user,
+                        user_email=request.user.email if request.user else 'system',
+                        action_type='TRANSFER_EXECUTED',
+                        model_name='Transfer',
+                        object_id=str(transfer.id),
+                        object_repr=str(transfer),
+                        new_value={
+                            'transfer_id': str(transfer.id),
+                            'from': str(transfer.from_shareholder),
+                            'to': str(transfer.to_shareholder),
+                            'shares': float(transfer.share_quantity),
+                            'seller_before': float(old_seller_qty),
+                            'seller_after': float(seller_holding.share_quantity),
+                            'buyer_before': float(old_buyer_qty),
+                            'buyer_after': float(buyer_holding.share_quantity),
+                        },
+                        timestamp=timezone.now(),
+                        ip_address=request.META.get('REMOTE_ADDR'),
+                        user_agent=request.META.get('HTTP_USER_AGENT', '')[:255],
+                    )
+                finally:
+                    clear_audit_signal_flag()
                 
                 serializer = self.get_serializer(transfer)
                 return Response(serializer.data)

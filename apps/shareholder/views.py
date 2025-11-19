@@ -169,24 +169,29 @@ def certificate_conversion_request_view(request):
     certificate_id = str(data['certificate'].id) if 'certificate' in data else ''
     request_id = str(uuid.uuid4())
     
-    AuditLog.objects.create(
-        model_name='CERTIFICATE_CONVERSION',
-        object_id=certificate_id,
-        action_type='CREATE',
-        user=request.user,
-        user_email=request.user.email,
-        object_repr=f"Certificate Conversion Request {request_id}",
-        new_value={
-            'request_id': request_id,
-            'conversion_type': data['conversion_type'],
-            'certificate_number': data['certificate_number'],
-            'issuer_id': str(data['issuer_id']),
-            'shareholder_id': str(shareholder.id),
-            'notes': data.get('notes', '')
-        },
-        ip_address=request.META.get('REMOTE_ADDR'),
-        user_agent=request.META.get('HTTP_USER_AGENT', '')[:255]
-    )
+    from apps.core.signals import set_audit_signal_flag, clear_audit_signal_flag
+    set_audit_signal_flag()
+    try:
+        AuditLog.objects.create(
+            model_name='CERTIFICATE_CONVERSION',
+            object_id=certificate_id,
+            action_type='CREATE',
+            user=request.user,
+            user_email=request.user.email,
+            object_repr=f"Certificate Conversion Request {request_id}",
+            new_value={
+                'request_id': request_id,
+                'conversion_type': data['conversion_type'],
+                'certificate_number': data['certificate_number'],
+                'issuer_id': str(data['issuer_id']),
+                'shareholder_id': str(shareholder.id),
+                'notes': data.get('notes', '')
+            },
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:255]
+        )
+    finally:
+        clear_audit_signal_flag()
     
     return Response({
         'message': 'Certificate conversion request submitted successfully',

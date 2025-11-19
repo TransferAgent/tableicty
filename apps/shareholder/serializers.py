@@ -371,18 +371,23 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         
         if changed_fields and request:
-            AuditLog.objects.create(
-                model_name='SHAREHOLDER',
-                object_id=str(instance.id),
-                action_type='UPDATE',
-                user=request.user,
-                user_email=request.user.email,
-                object_repr=f"{instance.first_name} {instance.last_name}".strip() or instance.email,
-                old_value=changed_fields[0]['old_value'] if changed_fields else None,
-                new_value={field['field']: field['new_value'] for field in changed_fields},
-                changed_fields=[field['field'] for field in changed_fields],
-                ip_address=request.META.get('REMOTE_ADDR'),
-                user_agent=request.META.get('HTTP_USER_AGENT', '')[:255]
-            )
+            from apps.core.signals import set_audit_signal_flag, clear_audit_signal_flag
+            set_audit_signal_flag()
+            try:
+                AuditLog.objects.create(
+                    model_name='SHAREHOLDER',
+                    object_id=str(instance.id),
+                    action_type='UPDATE',
+                    user=request.user,
+                    user_email=request.user.email,
+                    object_repr=f"{instance.first_name} {instance.last_name}".strip() or instance.email,
+                    old_value=changed_fields[0]['old_value'] if changed_fields else None,
+                    new_value={field['field']: field['new_value'] for field in changed_fields},
+                    changed_fields=[field['field'] for field in changed_fields],
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT', '')[:255]
+                )
+            finally:
+                clear_audit_signal_flag()
         
         return instance

@@ -407,17 +407,27 @@ class AuditLog(models.Model):
     
     def save(self, *args, **kwargs):
         """
-        AuditLog entries are immutable.
-        Can only be created via Django signals (automatic logging).
-        Direct saves are blocked for security.
+        AuditLog entries are immutable and can only be created via Django signals.
+        Direct creates are blocked for security.
         """
-        # Check if trying to update existing object (not a new creation)
+        from apps.core.signals import is_from_signal  # Import here to avoid circular import
+        
+        # Block updates to existing entries
         if not self._state.adding:
             raise ValidationError(
-                "AuditLog entries cannot be modified after creation."
+                "AuditLog entries cannot be modified after creation. "
+                "Audit trail must remain immutable for compliance."
             )
         
-        # If we get here, it's a legitimate new record creation
+        # Block direct creates (must come from signals)
+        if not is_from_signal():
+            raise ValidationError(
+                "AuditLog entries can only be created automatically via Django signals. "
+                "Do not create AuditLog entries directly using AuditLog.objects.create(). "
+                "All audit logging happens automatically when models are saved."
+            )
+        
+        # If we get here, it's a legitimate signal-driven create
         super().save(*args, **kwargs)
     
     def delete(self, *args, **kwargs):
