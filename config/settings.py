@@ -16,6 +16,14 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '.r
 
 IS_PRODUCTION = env('IS_PRODUCTION', default=False)
 
+REFRESH_TOKEN_COOKIE_SETTINGS = {
+    'key': 'refresh_token',
+    'httponly': True,
+    'secure': IS_PRODUCTION,
+    'samesite': 'Strict',
+    'max_age': 60 * 60 * 24 * 7,
+}
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

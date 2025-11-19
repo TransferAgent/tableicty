@@ -36,16 +36,62 @@ class ShareholderRegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
-        return Response({
+        
+        response = Response({
             'user': UserSerializer(user).data,
-            'refresh': str(refresh),
             'access': str(refresh.access_token),
             'message': 'Registration successful'
         }, status=status.HTTP_201_CREATED)
+        
+        cookie_settings = settings.REFRESH_TOKEN_COOKIE_SETTINGS
+        response.set_cookie(
+            key=cookie_settings['key'],
+            value=str(refresh),
+            httponly=cookie_settings['httponly'],
+            secure=cookie_settings['secure'],
+            samesite=cookie_settings['samesite'],
+            max_age=cookie_settings['max_age']
+        )
+        
+        return response
 
 
 class ShareholderLoginView(TokenObtainPairView):
-    pass
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            refresh_token = response.data.get('refresh')
+            
+            if refresh_token:
+                cookie_settings = settings.REFRESH_TOKEN_COOKIE_SETTINGS
+                response.set_cookie(
+                    key=cookie_settings['key'],
+                    value=refresh_token,
+                    httponly=cookie_settings['httponly'],
+                    secure=cookie_settings['secure'],
+                    samesite=cookie_settings['samesite'],
+                    max_age=cookie_settings['max_age']
+                )
+                
+                del response.data['refresh']
+        
+        return response
+
+
+class ShareholderTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh_token')
+        
+        if refresh_token:
+            if hasattr(request.data, '_mutable'):
+                request.data._mutable = True
+                request.data['refresh'] = refresh_token
+                request.data._mutable = False
+            else:
+                request.data['refresh'] = refresh_token
+        
+        return super().post(request, *args, **kwargs)
 
 
 class ShareholderLogoutView(generics.GenericAPIView):
@@ -53,11 +99,16 @@ class ShareholderLogoutView(generics.GenericAPIView):
     
     def post(self, request):
         try:
-            refresh_token = request.data.get("refresh")
+            refresh_token = request.COOKIES.get("refresh_token")
+            
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()
-                return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
+                
+                response = Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
+                response.delete_cookie('refresh_token')
+                return response
+                
             return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

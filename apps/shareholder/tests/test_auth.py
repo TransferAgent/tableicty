@@ -46,9 +46,10 @@ class TestShareholderAuthentication:
         
         assert response.status_code == status.HTTP_200_OK
         assert 'access' in response.data
-        assert 'refresh' in response.data
         assert response.data['access'] is not None
-        assert response.data['refresh'] is not None
+        assert 'refresh' not in response.data
+        assert 'refresh_token' in response.cookies
+        assert response.cookies['refresh_token'].value is not None
     
     def test_login_wrong_password(self, api_client, registered_user_and_shareholder):
         """Test login fails with wrong password"""
@@ -142,24 +143,22 @@ class TestShareholderAuthentication:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
     
     def test_logout_success(self, api_client, registered_user_and_shareholder):
-        """Test successful logout with valid refresh token"""
+        """Test successful logout with valid refresh token in cookie"""
         login_response = api_client.post('/api/v1/shareholder/auth/login/', {
             'username': 'testuser@example.com',
             'password': 'TestPass123!'
         })
-        refresh_token = login_response.data['refresh']
         access_token = login_response.data['access']
         
         api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
-        logout_response = api_client.post('/api/v1/shareholder/auth/logout/', {
-            'refresh': refresh_token
-        })
+        api_client.cookies['refresh_token'] = login_response.cookies['refresh_token'].value
+        logout_response = api_client.post('/api/v1/shareholder/auth/logout/', {})
         
         assert logout_response.status_code == status.HTTP_200_OK
         assert logout_response.data['message'] == 'Logout successful'
     
     def test_logout_without_token(self, api_client, registered_user_and_shareholder):
-        """Test logout fails without refresh token"""
+        """Test logout fails without refresh token cookie"""
         login_response = api_client.post('/api/v1/shareholder/auth/login/', {
             'username': 'testuser@example.com',
             'password': 'TestPass123!'
@@ -167,6 +166,7 @@ class TestShareholderAuthentication:
         access_token = login_response.data['access']
         
         api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        api_client.cookies.clear()
         logout_response = api_client.post('/api/v1/shareholder/auth/logout/', {})
         
         assert logout_response.status_code == status.HTTP_400_BAD_REQUEST
@@ -181,16 +181,14 @@ class TestShareholderAuthentication:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
     
     def test_token_refresh_success(self, api_client, registered_user_and_shareholder):
-        """Test token refresh with valid refresh token"""
+        """Test token refresh with valid refresh token from cookie"""
         login_response = api_client.post('/api/v1/shareholder/auth/login/', {
             'username': 'testuser@example.com',
             'password': 'TestPass123!'
         })
-        refresh_token = login_response.data['refresh']
         
-        refresh_response = api_client.post('/api/v1/shareholder/auth/refresh/', {
-            'refresh': refresh_token
-        })
+        api_client.cookies['refresh_token'] = login_response.cookies['refresh_token'].value
+        refresh_response = api_client.post('/api/v1/shareholder/auth/refresh/', {})
         
         assert refresh_response.status_code == status.HTTP_200_OK
         assert 'access' in refresh_response.data

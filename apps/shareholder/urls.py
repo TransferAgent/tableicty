@@ -1,5 +1,4 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
 
 app_name = 'shareholder'
@@ -9,7 +8,7 @@ urlpatterns = [
     path('auth/register/', views.ShareholderRegisterView.as_view(), name='register'),
     path('auth/login/', views.ShareholderLoginView.as_view(), name='login'),
     path('auth/logout/', views.ShareholderLogoutView.as_view(), name='logout'),
-    path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/refresh/', views.ShareholderTokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', views.current_user_view, name='current_user'),
     
     # Portfolio endpoints
