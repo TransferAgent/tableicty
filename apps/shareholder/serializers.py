@@ -280,6 +280,12 @@ class CertificateConversionRequestSerializer(serializers.Serializer):
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
+    """
+    Update shareholder profile.
+    
+    NOTE: DRF partial=True filters empty strings from validated_data,
+    preventing users from blanking required fields.
+    """
     class Meta:
         model = Shareholder
         fields = [

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from pgcrypto import fields as pgcrypto_fields
 import uuid
@@ -405,14 +406,26 @@ class AuditLog(models.Model):
         verbose_name_plural = "Audit Log"
     
     def save(self, *args, **kwargs):
-        """Enforce append-only: cannot update existing records"""
+        """
+        AuditLog entries are immutable.
+        Can only be created via Django signals (automatic logging).
+        Direct saves are blocked for security.
+        """
+        # Check if trying to update existing object (not a new creation)
         if not self._state.adding:
-            raise ValueError("AuditLog records are immutable and cannot be updated")
+            raise ValidationError(
+                "AuditLog entries cannot be modified after creation."
+            )
+        
+        # If we get here, it's a legitimate new record creation
         super().save(*args, **kwargs)
     
     def delete(self, *args, **kwargs):
-        """Prevent deletion of audit logs"""
-        raise ValueError("AuditLog records cannot be deleted (SEC compliance)")
+        """AuditLog entries cannot be deleted"""
+        raise ValidationError(
+            "AuditLog entries cannot be deleted. "
+            "Audit trail must remain intact for compliance."
+        )
     
     def __str__(self):
         return f"{self.timestamp:%Y-%m-%d %H:%M} - {self.user_email} - {self.action_type} - {self.model_name}"
