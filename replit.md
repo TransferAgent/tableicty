@@ -22,16 +22,17 @@ The system is built on a Python 3.11/Django 4.2 LTS backend with Django REST Fra
 - **Database Models:** Seven core models (Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog) handle all essential transfer agent functionalities, including PII encryption and immutable audit trails.
 - **Admin Interface:** Full Django Admin configuration for all models with search, filter, and custom actions.
 - **REST API:** Comprehensive CRUD endpoints for all models, including custom actions for cap table generation, share summaries, and transfer approvals/execution. API documentation is auto-generated using OpenAPI/Swagger.
-- **Security:** Features include PII encryption, brute force protection (`django-axes`), strong password validation, CORS, two-factor authentication framework (`django-otp`), hardened AuditLog immutability with threadlocal flag system, and httpOnly cookie-based refresh tokens (XSS protection).
+- **Security:** Features include PII encryption, brute force protection (`django-axes`), strong password validation, CORS, two-factor authentication framework (`django-otp`), hardened AuditLog immutability with threadlocal flag system, and **production-ready httpOnly cookie authentication** with comprehensive XSS/CSRF protection.
+- **httpOnly Cookie Security (✅ COMPLETE):** Refresh tokens stored in httpOnly cookies (NOT accessible to JavaScript), SameSite='Strict' for CSRF protection, secure flag in production (HTTPS only), proper cookie deletion on logout with matching path/domain/samesite attributes to prevent session fixation attacks.
 - **Sample Data:** A management command (`seed_data`) creates realistic test data for development and testing.
-- **Backend Testing (✅ PRODUCTION READY):** 39/39 tests passing (38 passed, 1 skipped), 76% coverage. Comprehensive test coverage for authentication with httpOnly cookies, API endpoints, shareholder data isolation (permissions), AuditLog immutability, and negative-path scenarios.
+- **Backend Testing (✅ PRODUCTION READY):** 40/40 tests passing (40 passed, 1 skipped), 76% coverage. Comprehensive test coverage for authentication with httpOnly cookies (including security attribute validation and proper cookie deletion), API endpoints, shareholder data isolation (permissions), AuditLog immutability, and negative-path scenarios.
 
 **Project Structure:**
 The project is organized into `config/` for Django settings, `apps/` containing `core/` (models, admin, business logic), `api/` (serializers, views, URLs), and `reports/` (sample data generator).
 
 **Step 2: Shareholder Portal (COMPLETED - 100%):**
 - **React Frontend (✅ 100%):** Vite + TypeScript + Tailwind CSS v4 + React Router setup complete
-- **Authentication (✅ 100%):** JWT-based auth with login/register, token refresh, protected routes
+- **Authentication (✅ 100%):** JWT-based auth with httpOnly cookies, login/register, automatic token refresh, protected routes, sessionStorage for access tokens (not localStorage for enhanced security)
 - **Dashboard Layout (✅ 100%):** Navigation, routing, user menu, responsive layout
 - **Portfolio Dashboard (✅ 100%):** Holdings display with summary cards, detailed table, and Recharts visualizations (pie + bar charts)
 - **Transaction History (✅ 100%):** Filterable table (type/status/year), pagination (50/page), detail modals, CSV export with toasts
