@@ -18,6 +18,8 @@ IS_PRODUCTION = env('IS_PRODUCTION', default=False)
 
 REFRESH_TOKEN_COOKIE_SETTINGS = {
     'key': 'refresh_token',
+    'path': '/',
+    'domain': None,
     'httponly': True,
     'secure': IS_PRODUCTION,
     'samesite': 'Strict',

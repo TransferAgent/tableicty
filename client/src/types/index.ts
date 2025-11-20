@@ -95,7 +95,6 @@ export interface RegisterData {
 
 export interface AuthResponse {
   access: string;
-  refresh: string;
   user?: User;
   message?: string;
 }

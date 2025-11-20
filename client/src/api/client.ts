@@ -11,16 +11,16 @@ import type {
   Shareholder,
 } from '../types';
 
-const API_BASE_URL = '/api/v1/shareholders';
+const API_BASE_URL = '/api/v1/shareholder';
 
 class APIClient {
   private client: AxiosInstance;
   private accessToken: string | null = null;
-  private refreshToken: string | null = null;
 
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
+      withCredentials: true,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -59,37 +59,29 @@ class APIClient {
     );
   }
 
-  setTokens(access: string, refresh: string) {
+  setAccessToken(access: string) {
     this.accessToken = access;
-    this.refreshToken = refresh;
-    localStorage.setItem('access_token', access);
-    localStorage.setItem('refresh_token', refresh);
+    sessionStorage.setItem('access_token', access);
   }
 
-  getTokens() {
-    return {
-      access: this.accessToken || localStorage.getItem('access_token'),
-      refresh: this.refreshToken || localStorage.getItem('refresh_token'),
-    };
+  getAccessToken() {
+    return this.accessToken || sessionStorage.getItem('access_token');
   }
 
   loadTokens() {
-    this.accessToken = localStorage.getItem('access_token');
-    this.refreshToken = localStorage.getItem('refresh_token');
+    this.accessToken = sessionStorage.getItem('access_token');
   }
 
   clearTokens() {
     this.accessToken = null;
-    this.refreshToken = null;
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('access_token');
   }
 
   async register(data: RegisterData): Promise<AuthResponse> {
     const response = await this.client.post('/auth/register/', data);
     const authData = response.data;
-    if (authData.access && authData.refresh) {
-      this.setTokens(authData.access, authData.refresh);
+    if (authData.access) {
+      this.setAccessToken(authData.access);
     }
     return authData;
   }
@@ -97,32 +89,24 @@ class APIClient {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const response = await this.client.post('/auth/login/', credentials);
     const authData = response.data;
-    this.setTokens(authData.access, authData.refresh);
+    this.setAccessToken(authData.access);
     return authData;
   }
 
   async logout(): Promise<void> {
     try {
-      if (this.refreshToken) {
-        await this.client.post('/auth/logout/', { refresh: this.refreshToken });
-      }
+      await this.client.post('/auth/logout/', {});
     } finally {
       this.clearTokens();
     }
   }
 
   async refreshAccessToken(): Promise<string | null> {
-    if (!this.refreshToken) {
-      return null;
-    }
-
     try {
-      const response = await this.client.post('/auth/refresh/', {
-        refresh: this.refreshToken,
-      });
+      const response = await this.client.post('/auth/refresh/', {});
       const { access } = response.data;
       this.accessToken = access;
-      localStorage.setItem('access_token', access);
+      sessionStorage.setItem('access_token', access);
       return access;
     } catch (error) {
       this.clearTokens();

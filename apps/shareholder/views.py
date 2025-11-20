@@ -47,6 +47,8 @@ class ShareholderRegisterView(generics.CreateAPIView):
         response.set_cookie(
             key=cookie_settings['key'],
             value=str(refresh),
+            path=cookie_settings['path'],
+            domain=cookie_settings['domain'],
             httponly=cookie_settings['httponly'],
             secure=cookie_settings['secure'],
             samesite=cookie_settings['samesite'],
@@ -68,6 +70,8 @@ class ShareholderLoginView(TokenObtainPairView):
                 response.set_cookie(
                     key=cookie_settings['key'],
                     value=refresh_token,
+                    path=cookie_settings['path'],
+                    domain=cookie_settings['domain'],
                     httponly=cookie_settings['httponly'],
                     secure=cookie_settings['secure'],
                     samesite=cookie_settings['samesite'],
@@ -106,7 +110,14 @@ class ShareholderLogoutView(generics.GenericAPIView):
                 token.blacklist()
                 
                 response = Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
-                response.delete_cookie('refresh_token')
+                
+                cookie_settings = settings.REFRESH_TOKEN_COOKIE_SETTINGS
+                response.delete_cookie(
+                    key=cookie_settings['key'],
+                    path=cookie_settings['path'],
+                    domain=cookie_settings['domain'],
+                    samesite=cookie_settings['samesite']
+                )
                 return response
                 
             return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)

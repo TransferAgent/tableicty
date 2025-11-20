@@ -221,3 +221,70 @@ class TestShareholderAuthentication:
         response = api_client.get('/api/v1/shareholder/auth/me/')
         
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    
+    def test_cookie_security_attributes(self, api_client, registered_user_and_shareholder):
+        """
+        Test that refresh token cookies have proper security attributes.
+        
+        Security Implementation:
+        - httpOnly=True: Prevents JavaScript access (XSS protection)
+        - SameSite='Strict': Prevents CSRF attacks (cookies not sent cross-origin)
+        - secure=True (production): HTTPS only  
+        - max_age=7 days: Reasonable refresh token lifetime
+        
+        CSRF Protection:
+        SameSite='Strict' ensures cookies are only sent for same-site requests.
+        An attacker's site cannot trigger token refresh/logout since the browser
+        won't send cookies cross-origin.
+        """
+        response = api_client.post('/api/v1/shareholder/auth/login/', {
+            'username': 'testuser@example.com',
+            'password': 'TestPass123!'
+        })
+        
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Verify cookie is set
+        assert 'refresh_token' in response.cookies
+        cookie = response.cookies['refresh_token']
+        
+        # Verify security attributes
+        assert cookie['httponly'] is True, "Cookie must be httpOnly for XSS protection"
+        assert cookie['samesite'] == 'Strict', "Cookie must be SameSite=Strict for CSRF protection"
+        assert cookie['max-age'] == 60 * 60 * 24 * 7, "Cookie max-age should be 7 days"
+        
+        # In production (secure=True), in dev (secure=False for HTTP testing)
+        # This is environment-aware via IS_PRODUCTION setting
+    
+    def test_cookie_deletion_on_logout(self, api_client, registered_user_and_shareholder):
+        """
+        Test that refresh token cookie is properly deleted on logout.
+        
+        Critical Security Test:
+        - Verifies cookie is set on login
+        - Verifies cookie is deleted (not just blacklisted) on logout
+        - Ensures cookie deletion uses matching path/domain/samesite to actually remove it
+        - Prevents session fixation attacks where stale cookies persist
+        """
+        # Login and verify cookie is set
+        login_response = api_client.post('/api/v1/shareholder/auth/login/', {
+            'username': 'testuser@example.com',
+            'password': 'TestPass123!'
+        })
+        
+        assert login_response.status_code == status.HTTP_200_OK
+        assert 'refresh_token' in login_response.cookies
+        
+        # Logout
+        access_token = login_response.data['access']
+        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        api_client.cookies['refresh_token'] = login_response.cookies['refresh_token'].value
+        
+        logout_response = api_client.post('/api/v1/shareholder/auth/logout/', {})
+        
+        assert logout_response.status_code == status.HTTP_200_OK
+        
+        # Verify cookie is deleted (max-age=0 or empty value)
+        assert 'refresh_token' in logout_response.cookies
+        logout_cookie = logout_response.cookies['refresh_token']
+        assert logout_cookie.value == '' or logout_cookie['max-age'] == 0, "Cookie must be deleted on logout"

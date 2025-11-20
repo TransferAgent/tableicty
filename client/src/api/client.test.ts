@@ -26,7 +26,7 @@ const { apiClient } = await import('./client');
 describe('API Client', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    sessionStorage.clear();
   });
 
   describe('Authentication', () => {
@@ -34,7 +34,6 @@ describe('API Client', () => {
       const mockResponse = {
         data: {
           access: 'access-token',
-          refresh: 'refresh-token',
           user: { id: 1, email: 'test@example.com' },
         },
       };
@@ -46,7 +45,6 @@ describe('API Client', () => {
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/auth/login/', credentials);
       expect(result).toEqual(mockResponse.data);
       expect(result.access).toBe('access-token');
-      expect(result.refresh).toBe('refresh-token');
     });
 
     it('should register successfully', async () => {
