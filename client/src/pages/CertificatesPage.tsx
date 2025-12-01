@@ -3,7 +3,6 @@ import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
 import type { Holding } from '../types';
 import { Plus, X, FileCheck } from 'lucide-react';
-import { SkeletonTable } from '../components/SkeletonTable';
 
 export function CertificatesPage() {
   const [showModal, setShowModal] = useState(false);

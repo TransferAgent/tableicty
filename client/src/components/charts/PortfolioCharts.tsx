@@ -7,6 +7,13 @@ interface PortfolioChartsProps {
   holdings: Holding[];
 }
 
+interface PieDataItem {
+  name: string;
+  value: number;
+  percentage: string;
+  [key: string]: string | number;
+}
+
 export function PortfolioCharts({ holdings }: PortfolioChartsProps) {
   const holdingsByCompany = holdings.reduce((acc, holding) => {
     const company = holding.issuer.name;
@@ -36,7 +43,7 @@ export function PortfolioCharts({ holdings }: PortfolioChartsProps) {
 
   const totalShares = holdingsByCompany.reduce((sum, item) => sum + item.shares, 0);
 
-  const pieData = holdingsByCompany.map(item => ({
+  const pieData: PieDataItem[] = holdingsByCompany.map(item => ({
     name: item.name,
     value: item.shares,
     percentage: ((item.shares / totalShares) * 100).toFixed(2),
@@ -46,6 +53,14 @@ export function PortfolioCharts({ holdings }: PortfolioChartsProps) {
     name: item.name,
     shares: item.shares,
   }));
+
+  const renderLabel = (props: { name?: string; payload?: PieDataItem }) => {
+    const { name, payload } = props;
+    if (name && payload?.percentage) {
+      return `${name}: ${payload.percentage}%`;
+    }
+    return '';
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -59,19 +74,19 @@ export function PortfolioCharts({ holdings }: PortfolioChartsProps) {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percentage }) => `${name}: ${percentage}%`}
+                label={renderLabel}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
               >
-                {pieData.map((entry, index) => (
+                {pieData.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: number, name: string, props: any) => [
-                  `${value.toLocaleString()} shares (${props.payload.percentage}%)`,
-                  props.payload.name
+                formatter={(value: number, _name: string, props: { payload?: PieDataItem }) => [
+                  `${value.toLocaleString()} shares (${props.payload?.percentage || 0}%)`,
+                  props.payload?.name || ''
                 ]}
               />
             </PieChart>

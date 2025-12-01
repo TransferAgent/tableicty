@@ -25,9 +25,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadUser = async () => {
     try {
       apiClient.loadTokens();
-      const tokens = apiClient.getTokens();
+      const accessToken = apiClient.getAccessToken();
       
-      if (tokens.access) {
+      if (accessToken) {
         const userData = await apiClient.getCurrentUser();
         setUser(userData);
       }

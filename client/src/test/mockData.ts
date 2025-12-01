@@ -1,20 +1,25 @@
-import { Holding, Transfer, TaxDocument, CertificateRequest, Shareholder } from '../types';
+import type { Holding, Transfer, TaxDocument, CertificateRequest, Shareholder } from '../types';
 
 export const mockShareholder: Shareholder = {
-  id: 1,
+  id: '1',
   email: 'test@example.com',
+  account_type: 'INDIVIDUAL',
   first_name: 'John',
+  middle_name: '',
   last_name: 'Doe',
+  entity_name: null,
+  tax_id_masked: '***-**-1234',
+  tax_id_type: 'SSN',
   address_line1: '123 Main St',
   address_line2: 'Apt 4',
   city: 'New York',
   state: 'NY',
-  postal_code: '10001',
+  zip_code: '10001',
   country: 'USA',
   phone: '555-123-4567',
-  tax_id: '***-**-1234',
-  date_of_birth: '1980-01-15',
-  created_at: '2024-01-01T00:00:00Z',
+  is_accredited_investor: false,
+  email_alerts_enabled: true,
+  paper_statements_enabled: false,
 };
 
 export const mockHoldings: Holding[] = [

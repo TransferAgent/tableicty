@@ -112,3 +112,13 @@ export interface CertificateConversionSubmission {
   share_quantity: number;
   mailing_address?: string;
 }
+
+export interface CertificateRequest {
+  id: string;
+  holding_id: number;
+  conversion_type: string;
+  share_quantity: number;
+  status: string;
+  requested_date: string;
+  mailing_address: string;
+}

@@ -3,9 +3,8 @@ import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
 import type { Holding, PortfolioSummary } from '../types';
 import { formatNumber, formatDate } from '../lib/utils';
-import { TrendingUp, Building2, Briefcase, Inbox } from 'lucide-react';
+import { TrendingUp, Building2, Briefcase } from 'lucide-react';
 import { PortfolioCharts } from '../components/charts/PortfolioCharts';
-import { SkeletonTable } from '../components/SkeletonTable';
 
 export function DashboardPage() {
   const [holdings, setHoldings] = useState<Holding[]>([]);

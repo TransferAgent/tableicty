@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../test/test-utils';
 import { LoginPage } from '../LoginPage';
 import { apiClient } from '../../api/client';
+import { mockShareholder } from '../../test/mockData';
 
 vi.mock('../../api/client', () => ({
   apiClient: {
@@ -50,12 +51,14 @@ describe('LoginPage', () => {
     const user = userEvent.setup();
     const mockUser = {
       id: 123,
+      username: 'test@example.com',
       email: 'test@example.com',
       first_name: 'John',
       last_name: 'Doe',
+      shareholder: mockShareholder,
     };
 
-    vi.mocked(apiClient.login).mockResolvedValue(undefined);
+    vi.mocked(apiClient.login).mockResolvedValue({ access: 'test-token', user: mockUser });
     vi.mocked(apiClient.getCurrentUser).mockResolvedValue(mockUser);
 
     const { router } = renderWithProviders(<LoginPage />);

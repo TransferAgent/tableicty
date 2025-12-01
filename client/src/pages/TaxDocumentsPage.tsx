@@ -3,7 +3,6 @@ import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
 import type { TaxDocument } from '../types';
 import { Download, FileText } from 'lucide-react';
-import { SkeletonTable } from '../components/SkeletonTable';
 
 export function TaxDocumentsPage() {
   const [documents, setDocuments] = useState<TaxDocument[]>([]);

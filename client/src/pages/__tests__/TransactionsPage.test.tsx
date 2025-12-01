@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../test/test-utils';
 import { TransactionsPage } from '../TransactionsPage';
@@ -143,7 +143,6 @@ describe('TransactionsPage', () => {
   it('exports transactions to CSV', async () => {
     const user = userEvent.setup();
     const createElementSpy = vi.spyOn(document, 'createElement');
-    const clickSpy = vi.fn();
     
     vi.mocked(apiClient.getTransactions).mockResolvedValue({
       transfers: mockTransfers,

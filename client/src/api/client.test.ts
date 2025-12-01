@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mockHoldings, mockTransfers, mockTaxDocuments, mockCertificateRequests, mockPortfolioSummary, mockShareholder } from '../test/mockData';
 
-// Create a mock axios instance
 const mockAxiosInstance = {
   get: vi.fn(),
   post: vi.fn(),
@@ -13,14 +12,12 @@ const mockAxiosInstance = {
   },
 };
 
-// Mock axios module
 vi.mock('axios', () => ({
   default: {
     create: vi.fn(() => mockAxiosInstance),
   },
 }));
 
-// Import apiClient after mock is set up
 const { apiClient } = await import('./client');
 
 describe('API Client', () => {
@@ -39,7 +36,7 @@ describe('API Client', () => {
       };
       mockAxiosInstance.post.mockResolvedValueOnce(mockResponse);
 
-      const credentials = { email: 'test@example.com', password: 'password123' };
+      const credentials = { username: 'test@example.com', password: 'password123' };
       const result = await apiClient.login(credentials);
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/auth/login/', credentials);
@@ -51,8 +48,8 @@ describe('API Client', () => {
       const registerData = {
         email: 'new@example.com',
         password: 'password123',
-        first_name: 'John',
-        last_name: 'Doe',
+        password_confirm: 'password123',
+        invite_token: 'test-token',
       };
       const mockResponse = { data: { message: 'User created' } };
       mockAxiosInstance.post.mockResolvedValueOnce(mockResponse);
@@ -68,7 +65,6 @@ describe('API Client', () => {
 
       await apiClient.logout();
 
-      // Verify logout completes without throwing
       expect(true).toBe(true);
     });
   });
@@ -174,7 +170,7 @@ describe('API Client', () => {
       mockAxiosInstance.post.mockRejectedValueOnce(error);
 
       await expect(
-        apiClient.login({ email: 'test@example.com', password: 'wrong' })
+        apiClient.login({ username: 'test@example.com', password: 'wrong' })
       ).rejects.toThrow('Network error');
     });
   });
