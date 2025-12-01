@@ -11,7 +11,9 @@ import type {
   Shareholder,
 } from '../types';
 
-const API_BASE_URL = '/api/v1/shareholder';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/shareholder`
+  : '/api/v1/shareholder';
 
 class APIClient {
   private client: AxiosInstance;

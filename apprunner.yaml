@@ -10,7 +10,7 @@ build:
       - python manage.py collectstatic --noinput
 run:
   runtime-version: 3.11
-  command: gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 config.wsgi:application
+  command: gunicorn --bind 0.0.0.0:8000 --workers 3 --threads 2 --timeout 120 config.wsgi:application
   network:
     port: 8000
     env: APP_PORT
@@ -21,3 +21,5 @@ run:
       value: "False"
     - name: IS_PRODUCTION
       value: "True"
+    - name: ALLOWED_HOSTS
+      value: "tableicty.com,.tableicty.com,.awsapprunner.com"
