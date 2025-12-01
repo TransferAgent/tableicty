@@ -22,4 +22,10 @@ run:
     - name: IS_PRODUCTION
       value: "True"
     - name: ALLOWED_HOSTS
-      value: "tableicty.com,.tableicty.com,.awsapprunner.com"
+      value: "tableicty.com,api.tableicty.com,.awsapprunner.com"
+    - name: CORS_ALLOWED_ORIGINS
+      value: "https://tableicty.com"
+    - name: SESSION_COOKIE_SECURE
+      value: "True"
+    - name: CSRF_COOKIE_SECURE
+      value: "True"
