@@ -78,11 +78,17 @@ The project is organized into `config/` for Django settings, `apps/` containing 
 - `Faker`: Realistic sample data generation.
 - `black`, `flake8`, `isort`: Code quality tools.
 
-**AWS Deployment (Planned):**
-- AWS App Runner
-- AWS RDS PostgreSQL
-- AWS S3
-- AWS Secrets Manager
-- AWS Route 53
-- AWS CloudWatch
+**AWS Deployment (✅ READY):**
+- AWS App Runner (backend) - apprunner.yaml configured
+- AWS RDS PostgreSQL 17.6 - provisioned at tableicty-production-db
+- AWS ElastiCache Redis 7.1 - provisioned for caching/sessions
+- AWS S3 + CloudFront - for frontend static hosting
+- AWS Parameter Store - secrets management (KMS encrypted)
+- AWS Route 53 - DNS for tableicty.com
+- AWS ACM - SSL certificate ready
 - `boto3`, `django-storages` (for AWS integration)
+
+**Deployment Documentation:**
+- `AWS_APPRUNNER_SETUP.md` - Step-by-step App Runner configuration
+- `DEPLOYMENT_CHECKLIST.md` - Complete deployment checklist (780 lines)
+- `apprunner.yaml` - App Runner build/run configuration
