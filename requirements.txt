@@ -1,3 +1,4 @@
+# tableicty production dependencies - AWS App Runner deployment Dec 2025
 Django==4.2.7
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.0
