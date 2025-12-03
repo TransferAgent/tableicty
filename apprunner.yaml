@@ -5,12 +5,12 @@ build:
     pre-build:
       - python3 -m pip install --upgrade pip
     build:
-      - python3 -m pip install -r requirements.txt --target /app/vendor
+      - python3 -m pip install -r requirements.txt
     post-build:
-      - PYTHONPATH=/app/vendor python3 manage.py collectstatic --noinput
+      - python3 manage.py collectstatic --noinput
 run:
   runtime-version: 3.11
-  command: PYTHONPATH=/app/vendor python3 -m gunicorn --bind 0.0.0.0:8000 --workers 3 --threads 2 --timeout 120 config.wsgi:application
+  command: python3 -m gunicorn --bind 0.0.0.0:8000 --workers 3 --threads 2 --timeout 120 config.wsgi:application
   network:
     port: 8000
     env: APP_PORT
