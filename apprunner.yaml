@@ -5,12 +5,12 @@ build:
     pre-build:
       - python3 -m pip install --upgrade pip
     build:
-      - python3 -m pip install -r requirements.txt
+      - python3 -m pip install -r requirements.txt --target /app/vendor
     post-build:
-      - python3 manage.py collectstatic --noinput
+      - PYTHONPATH=/app/vendor python3 manage.py collectstatic --noinput
 run:
   runtime-version: 3.11
-  command: python3 -m gunicorn --bind 0.0.0.0:8000 --workers 3 --threads 2 --timeout 120 config.wsgi:application
+  command: PYTHONPATH=/app/vendor python3 -m gunicorn --bind 0.0.0.0:8000 --workers 3 --threads 2 --timeout 120 config.wsgi:application
   network:
     port: 8000
     env: APP_PORT
@@ -37,4 +37,3 @@ run:
       value: arn:aws:ssm:us-east-1:783790254091:parameter/tableicty/production/DATABASE_URL
     - name: REDIS_URL
       value: arn:aws:ssm:us-east-1:783790254091:parameter/tableicty/production/REDIS_URL
-
