@@ -29,3 +29,11 @@ run:
       value: "True"
     - name: CSRF_COOKIE_SECURE
       value: "True"
+    - name: PGCRYPTO_KEY
+      value: arn:aws:ssm:us-east-1:783790254091:parameter/tableicty/production/PGCRYPTO_KEY
+    - name: SECRET_KEY
+      value: arn:aws:ssm:us-east-1:783790254091:parameter/tableicty/production/SECRET_KEY
+    - name: DATABASE_URL
+      value: arn:aws:ssm:us-east-1:783790254091:parameter/tableicty/production/DATABASE_URL
+    - name: REDIS_URL
+      value: arn:aws:ssm:us-east-1:783790254091:parameter/tableicty/production/REDIS_URL
