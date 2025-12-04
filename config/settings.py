@@ -10,6 +10,86 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
+# ==============================================================================
+# SSM Parameter Resolution Helper (AWS App Runner Fallback)
+# ==============================================================================
+# This function detects if an environment variable contains an SSM ARN and
+# automatically fetches the actual secret value from AWS Systems Manager.
+# This is a fallback for when App Runner's SSM resolution doesn't work.
+# ==============================================================================
+
+def resolve_ssm_parameter(env_var_name, default=''):
+    """
+    Fetch environment variable and resolve it if it's an SSM ARN.
+    
+    Args:
+        env_var_name: Name of the environment variable
+        default: Default value if not found
+    
+    Returns:
+        Resolved value (from SSM if ARN, or direct value)
+    """
+    value = os.environ.get(env_var_name, default)
+    
+    if not value or not isinstance(value, str):
+        return value
+    
+    # Check if this is an SSM ARN
+    if value.startswith('arn:aws:ssm:'):
+        try:
+            import boto3
+            from botocore.exceptions import ClientError
+            
+            # Parse ARN: arn:aws:ssm:REGION:ACCOUNT:parameter/PATH
+            arn_parts = value.split(':')
+            if len(arn_parts) < 6:
+                return value
+            
+            region = arn_parts[3]
+            # Everything after 'parameter' is the path
+            parameter_path = ':'.join(arn_parts[5:]).replace('parameter', '', 1)
+            
+            # Fetch from SSM Parameter Store
+            ssm = boto3.client('ssm', region_name=region)
+            response = ssm.get_parameter(
+                Name=parameter_path,
+                WithDecryption=True
+            )
+            
+            return response['Parameter']['Value']
+            
+        except Exception as e:
+            raise Exception(f"Failed to resolve SSM parameter {env_var_name}: {str(e)}")
+    
+    # Not an ARN, return as-is
+    return value
+
+
+# ==============================================================================
+# Resolve Critical Environment Variables from SSM if needed
+# ==============================================================================
+IS_PRODUCTION = env('IS_PRODUCTION', default=False)
+
+if IS_PRODUCTION:
+    # In production, resolve from SSM if ARNs are present
+    _resolved_secret_key = resolve_ssm_parameter('SECRET_KEY')
+    _resolved_database_url = resolve_ssm_parameter('DATABASE_URL')
+    _resolved_pgcrypto_key = resolve_ssm_parameter('PGCRYPTO_KEY')
+    _resolved_redis_url = resolve_ssm_parameter('REDIS_URL', default='')
+    
+    # Validate critical values were resolved
+    if _resolved_database_url.startswith('arn:'):
+        raise Exception("DATABASE_URL still contains ARN after resolution!")
+    if _resolved_secret_key.startswith('arn:'):
+        raise Exception("SECRET_KEY still contains ARN after resolution!")
+    
+    # Set resolved values in environment for django-environ to use
+    os.environ['SECRET_KEY'] = _resolved_secret_key
+    os.environ['DATABASE_URL'] = _resolved_database_url
+    os.environ['PGCRYPTO_KEY'] = _resolved_pgcrypto_key
+    if _resolved_redis_url:
+        os.environ['REDIS_URL'] = _resolved_redis_url
+
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
 DEBUG = env('DEBUG', default=True)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[
@@ -21,8 +101,6 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[
     '.tableicty.com',
     '.awsapprunner.com',
 ])
-
-IS_PRODUCTION = env('IS_PRODUCTION', default=False)
 
 REFRESH_TOKEN_COOKIE_SETTINGS = {
     'key': 'refresh_token',
