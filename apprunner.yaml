@@ -4,20 +4,23 @@ runtime: python311
 build:
   commands:
     build:
-      - echo "Build phase - skipping package installation"
-      - python3 manage.py collectstatic --noinput
+      - echo "Build phase - preparing source code"
+      - test -f requirements.txt && echo "✅ requirements.txt found"
+      - test -f manage.py && echo "✅ manage.py found"
+      - test -d config && echo "✅ config directory found"
 
 run:
   runtime-version: 3.11
   
   pre-run:
-    - echo "Installing packages in runtime environment..."
-    - python3 -m pip install --upgrade pip --target /app/.packages
-    - python3 -m pip install -r requirements.txt --target /app/.packages
-    - export PYTHONPATH="/app/.packages:$PYTHONPATH"
-    - echo "✅ Packages installed to /app/.packages"
+    - echo "=== PRE-RUN: Installing dependencies in runtime environment ==="
+    - python3 -m pip install --upgrade pip --user
+    - python3 -m pip install -r requirements.txt --user
+    - echo "✅ All packages installed with --user flag"
+    - python3 manage.py collectstatic --noinput
+    - echo "✅ Static files collected"
   
-  command: python3 -m gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 2 --timeout 120
+  command: python3 -m gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 2 --timeout 120 --log-level info
   
   network:
     port: 8000
@@ -39,6 +42,7 @@ run:
       value: "True"
     - name: CSRF_COOKIE_SECURE
       value: "True"
+
 
 
 
