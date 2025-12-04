@@ -1,24 +1,57 @@
 version: 1.0
 runtime: python311
+
 build:
   commands:
     pre-build:
-      - python3 -m pip install --upgrade pip
+      # Pre-build: Validate requirements file exists
+      - echo "Validating requirements.txt..."
+      - test -f requirements.txt && echo "✅ requirements.txt found"
+    
     build:
-      - python3 -m pip install -r requirements.txt
+      # Build: We don't install packages here for Python 3.11
+      # (they would be lost due to environment reset)
+      - echo "Build phase - skipping package installation (will install in pre-run)"
+    
+    post-build:
+      # Post-build: Verify Django project structure
+      - echo "Verifying Django project structure..."
+      - test -f manage.py && echo "✅ manage.py found"
+      - test -d config && echo "✅ config directory found"
+
 run:
   runtime-version: 3.11
-  command: python3 -m gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 2 --timeout 120
+  
+  # PRE-RUN: Install dependencies HERE (critical for Python 3.11!)
+  pre-run:
+    - echo "Installing Python dependencies in pre-run phase..."
+    - python3 -m pip install --upgrade pip --quiet
+    - python3 -m pip install -r requirements.txt --quiet
+    - echo "✅ All dependencies installed"
+    - python3 manage.py collectstatic --noinput
+    - echo "✅ Static files collected"
+  
+  # START COMMAND: Launch Gunicorn
+  command: python3 -m gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 2 --timeout 120 --access-logfile - --error-logfile -
+  
+  # NETWORK: Explicit port configuration
   network:
     port: 8000
     env: APP_PORT
+  
+  # ENVIRONMENT VARIABLES
   env:
+    # Django Configuration
     - name: PYTHONUNBUFFERED
+      value: "1"
+    - name: PYTHONDONTWRITEBYTECODE
       value: "1"
     - name: DEBUG
       value: "False"
     - name: IS_PRODUCTION
       value: "True"
+    
+    # Security & CORS
     - name: ALLOWED_HOSTS
       value: "tableicty.com,api.tableicty.com,.awsapprunner.com"
     - name: CORS_ALLOWED_ORIGINS
@@ -27,6 +60,8 @@ run:
       value: "True"
     - name: CSRF_COOKIE_SECURE
       value: "True"
+    
+    # SSM Parameter Store Secrets (ARN format)
     - name: PGCRYPTO_KEY
       value: arn:aws:ssm:us-east-1:783790254091:parameter/tableicty/production/PGCRYPTO_KEY
     - name: SECRET_KEY
@@ -35,5 +70,6 @@ run:
       value: arn:aws:ssm:us-east-1:783790254091:parameter/tableicty/production/DATABASE_URL
     - name: REDIS_URL
       value: arn:aws:ssm:us-east-1:783790254091:parameter/tableicty/production/REDIS_URL
+
 
 
