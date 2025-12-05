@@ -58,9 +58,17 @@ echo "--- Python & Package Check ---"
 python3 --version
 echo ""
 
-echo "--- Installing Python Dependencies ---"
-python3 -m pip install --no-cache-dir -r requirements.txt
-echo "Dependencies installed successfully"
+echo "--- Checking Python Dependencies ---"
+if python3 -c "import django" 2>/dev/null; then
+    echo "✅ Packages already installed (from build stage)"
+else
+    echo "⚠️  Packages not found, attempting to install..."
+    python3 -m pip install --no-cache-dir -r requirements.txt || {
+        echo "❌ Failed to install packages (network issue)"
+        echo "Checking if packages are available locally..."
+        python3 -c "import django" || exit 1
+    }
+fi
 echo ""
 
 echo "--- Testing Django Configuration ---"
