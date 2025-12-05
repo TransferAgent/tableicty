@@ -58,6 +58,11 @@ echo "--- Python & Package Check ---"
 python3 --version
 echo ""
 
+echo "--- Installing Python Dependencies ---"
+python3 -m pip install --no-cache-dir -r requirements.txt
+echo "Dependencies installed successfully"
+echo ""
+
 echo "--- Testing Django Configuration ---"
 python3 manage.py check
 echo ""
