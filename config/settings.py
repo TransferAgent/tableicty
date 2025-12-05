@@ -68,7 +68,7 @@ def resolve_ssm_parameter(env_var_name, default=''):
 # ==============================================================================
 # Resolve Critical Environment Variables from SSM if needed
 # ==============================================================================
-IS_PRODUCTION = env('IS_PRODUCTION', default=False)
+IS_PRODUCTION = env.bool('IS_PRODUCTION', default=False)
 
 if IS_PRODUCTION:
     # In production, resolve from SSM if ARNs are present
@@ -91,7 +91,7 @@ if IS_PRODUCTION:
         os.environ['REDIS_URL'] = _resolved_redis_url
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
-DEBUG = env('DEBUG', default=True)
+DEBUG = env.bool('DEBUG', default=True)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[
     'localhost', 
     '127.0.0.1', 
