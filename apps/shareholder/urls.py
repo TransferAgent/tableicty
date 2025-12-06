@@ -19,8 +19,9 @@ def health_check(request):
 
 
 urlpatterns = [
-    # Health check for App Runner
+    # Health check for App Runner (both with and without trailing slash)
     path('health/', health_check, name='health-check'),
+    path('health', health_check, name='health-check-no-slash'),
     
     # Authentication endpoints
     path('auth/register/', views.ShareholderRegisterView.as_view(), name='register'),
