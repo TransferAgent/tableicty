@@ -102,6 +102,8 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[
     '.awsapprunner.com',
 ])
 
+APPEND_SLASH = True
+
 REFRESH_TOKEN_COOKIE_SETTINGS = {
     'key': 'refresh_token',
     'path': '/',
