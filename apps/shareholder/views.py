@@ -1,9 +1,11 @@
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
+from django.core.management import call_command
 from django.conf import settings
 from django.utils.crypto import get_random_string
 from django.db import models
+from django.http import JsonResponse
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
@@ -281,3 +283,39 @@ def profile_management_view(request):
         # Return the updated profile data directly (REST standard)
         response_serializer = ShareholderProfileSerializer(shareholder)
         return Response(response_serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def seed_production_data(request):
+    """
+    TEMPORARY ENDPOINT - REMOVE AFTER SEEDING!
+    
+    Seeds production database with test shareholder data.
+    Call with: POST /api/v1/shareholder/admin/seed/
+    """
+    try:
+        call_command('seed_data')
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Production database seeded successfully!',
+            'test_accounts_created': {
+                'individual': 'individual000@example.com through individual034@example.com',
+                'entity': 'entity000@example.com through entity009@example.com',
+                'joint': 'joint000@example.com through joint004@example.com'
+            },
+            'test_credentials': {
+                'email': 'individual000@example.com',
+                'password': 'Tableicty2024!',
+                'invite_token': 'test-invite-123'
+            },
+            'warning': 'REMOVE THIS ENDPOINT IMMEDIATELY AFTER TESTING!'
+        }, status=200)
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Failed to seed database: {str(e)}',
+            'error_type': type(e).__name__
+        }, status=500)

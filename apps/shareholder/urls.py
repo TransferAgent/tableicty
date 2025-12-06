@@ -23,6 +23,9 @@ urlpatterns = [
     path('health/', health_check, name='health-check'),
     path('health', health_check, name='health-check-no-slash'),
     
+    # TEMPORARY: Seed production database (REMOVE AFTER USE!)
+    path('admin/seed/', views.seed_production_data, name='seed-production-data'),
+    
     # Authentication endpoints
     path('auth/register/', views.ShareholderRegisterView.as_view(), name='register'),
     path('auth/login/', views.ShareholderLoginView.as_view(), name='login'),
