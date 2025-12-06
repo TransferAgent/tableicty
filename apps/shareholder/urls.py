@@ -1,9 +1,27 @@
 from django.urls import path
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from . import views
 
 app_name = 'shareholder'
 
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """Shareholder API health check endpoint for App Runner (no auth required)"""
+    return Response({
+        'status': 'ok',
+        'version': '1.0.0',
+        'service': 'tableicty Shareholder Portal API'
+    })
+
+
 urlpatterns = [
+    # Health check for App Runner
+    path('health/', health_check, name='health-check'),
+    
     # Authentication endpoints
     path('auth/register/', views.ShareholderRegisterView.as_view(), name='register'),
     path('auth/login/', views.ShareholderLoginView.as_view(), name='login'),
