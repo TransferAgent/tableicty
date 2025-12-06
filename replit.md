@@ -78,15 +78,21 @@ The project is organized into `config/` for Django settings, `apps/` containing 
 - `Faker`: Realistic sample data generation.
 - `black`, `flake8`, `isort`: Code quality tools.
 
-**AWS Deployment (✅ READY):**
-- AWS App Runner (backend) - apprunner.yaml configured
-- AWS RDS PostgreSQL 17.6 - provisioned at tableicty-production-db
-- AWS ElastiCache Redis 7.1 - provisioned for caching/sessions
-- AWS S3 + CloudFront - for frontend static hosting
-- AWS Parameter Store - secrets management (KMS encrypted)
-- AWS Route 53 - DNS for tableicty.com
+**AWS Deployment (✅ LIVE - December 6, 2025):**
+- AWS App Runner (backend) - **RUNNING** at https://2c34uemnqq.us-east-1.awsapprunner.com
+- AWS RDS PostgreSQL 17.6 - Connected (tableicty-production-db)
+- AWS ElastiCache Redis 7.1 - Provisioned for caching/sessions
+- AWS S3 + CloudFront - For frontend static hosting (pending)
+- AWS Parameter Store - Secrets management (KMS encrypted)
+- AWS Route 53 - DNS for tableicty.com (pending custom domain)
 - AWS ACM - SSL certificate ready
 - `boto3`, `django-storages` (for AWS integration)
+
+**Deployment Fixes Applied:**
+- Split `requirements.txt` (production) and `requirements-dev.txt` (development)
+- Fixed `IS_PRODUCTION` boolean parsing with `env.bool()`
+- Added `HealthCheckMiddleware` to short-circuit health checks (bypass SSL redirect)
+- Health check endpoint: `/api/v1/shareholder/health` returns 200 OK
 
 **Deployment Documentation:**
 - `AWS_APPRUNNER_SETUP.md` - Step-by-step App Runner configuration
