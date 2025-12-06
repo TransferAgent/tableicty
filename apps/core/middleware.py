@@ -1,30 +1,32 @@
 """
 Custom middleware for tableicty Transfer Agent platform.
 """
+from django.http import HttpResponse
 
 
-class HealthCheckBypassSSLRedirectMiddleware:
+class HealthCheckMiddleware:
     """
-    Middleware to bypass SSL redirect for health check endpoints.
+    Middleware to handle health check endpoints for App Runner.
     
-    App Runner's health checker uses plain HTTP and doesn't follow redirects.
-    This middleware prevents SecurityMiddleware from redirecting the health
-    check to HTTPS, allowing the probe to receive a 200 response.
+    This middleware short-circuits health check requests and returns an
+    immediate 200 OK response BEFORE SecurityMiddleware can redirect to HTTPS.
+    
+    App Runner's health checker uses plain HTTP and doesn't follow redirects,
+    so we need to respond before any redirect logic runs.
     """
     
-    HEALTH_CHECK_PATHS = [
+    HEALTH_CHECK_PATHS = (
         '/api/v1/shareholder/health',
         '/api/v1/shareholder/health/',
         '/api/v1/health',
         '/api/v1/health/',
-    ]
+    )
     
     def __init__(self, get_response):
         self.get_response = get_response
     
     def __call__(self, request):
-        if request.path in self.HEALTH_CHECK_PATHS:
-            request._dont_enforce_ssl_redirect = True
+        if request.path in self.HEALTH_CHECK_PATHS and request.method == 'GET':
+            return HttpResponse("OK", content_type="text/plain", status=200)
         
-        response = self.get_response(request)
-        return response
+        return self.get_response(request)
