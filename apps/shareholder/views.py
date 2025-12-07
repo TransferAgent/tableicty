@@ -291,31 +291,105 @@ def seed_production_data(request):
     """
     TEMPORARY ENDPOINT - REMOVE AFTER SEEDING!
     
-    Seeds production database with test shareholder data.
+    Seeds production database with minimal test data (no faker required).
     Call with: POST /api/v1/shareholder/admin/seed/
     """
+    from apps.core.models import Issuer, SecurityClass, Shareholder as ShareholderModel
+    from decimal import Decimal
+    from datetime import date
+    
     try:
-        call_command('seed_data')
+        issuer, _ = Issuer.objects.get_or_create(
+            company_name='Green Energy Corporation',
+            defaults={
+                'ticker_symbol': 'GREN',
+                'cusip': '395234109',
+                'cik': '1234567',
+                'incorporation_state': 'DE',
+                'incorporation_country': 'US',
+                'incorporation_date': date(2020, 1, 15),
+                'total_authorized_shares': Decimal('100000000'),
+                'par_value': Decimal('0.0001'),
+                'agreement_start_date': date(2024, 1, 1),
+                'annual_fee': Decimal('10000'),
+                'tavs_enabled': True,
+                'otc_tier': 'OTCQB',
+                'primary_contact_name': 'John Smith',
+                'primary_contact_email': 'contact@greenenergy.com',
+                'primary_contact_phone': '555-123-4567',
+                'is_active': True
+            }
+        )
+        
+        security_class, _ = SecurityClass.objects.get_or_create(
+            issuer=issuer,
+            security_type='COMMON',
+            class_designation='Common Stock',
+            defaults={
+                'shares_authorized': Decimal('100000000'),
+                'par_value': Decimal('0.0001'),
+                'voting_rights': True,
+                'votes_per_share': Decimal('1.0'),
+                'dividend_rights': True,
+                'is_active': True
+            }
+        )
+        
+        test_shareholders = []
+        for i in range(5):
+            email = f"individual{i:03d}@example.com"
+            shareholder, created = ShareholderModel.objects.get_or_create(
+                email=email,
+                defaults={
+                    'account_type': 'INDIVIDUAL',
+                    'first_name': f'Test{i}',
+                    'last_name': f'User{i}',
+                    'address_line1': f'{100 + i} Main Street',
+                    'city': 'New York',
+                    'state': 'NY',
+                    'zip_code': '10001',
+                    'country': 'US',
+                    'phone': f'555-000-{i:04d}',
+                    'tax_id_type': 'NONE',
+                    'accredited_investor': False,
+                    'kyc_verified': True,
+                    'is_active': True
+                }
+            )
+            if created:
+                test_shareholders.append(email)
+                Holding.objects.create(
+                    shareholder=shareholder,
+                    issuer=issuer,
+                    security_class=security_class,
+                    share_quantity=Decimal(str((i + 1) * 10000)),
+                    acquisition_date=date(2024, 1, 15),
+                    acquisition_price=Decimal('0.50'),
+                    holding_type='DRS',
+                    is_restricted=False
+                )
         
         return JsonResponse({
             'status': 'success',
             'message': 'Production database seeded successfully!',
-            'test_accounts_created': {
-                'individual': 'individual000@example.com through individual034@example.com',
-                'entity': 'entity000@example.com through entity009@example.com',
-                'joint': 'joint000@example.com through joint004@example.com'
+            'data_created': {
+                'issuer': issuer.company_name,
+                'security_class': security_class.class_designation,
+                'shareholders_created': test_shareholders if test_shareholders else 'Already existed'
             },
             'test_credentials': {
                 'email': 'individual000@example.com',
-                'password': 'Tableicty2024!',
-                'invite_token': 'test-invite-123'
+                'password': 'Use any strong password (8+ chars)',
+                'invite_token': 'any-non-empty-value'
             },
             'warning': 'REMOVE THIS ENDPOINT IMMEDIATELY AFTER TESTING!'
         }, status=200)
         
     except Exception as e:
+        import traceback
         return JsonResponse({
             'status': 'error',
             'message': f'Failed to seed database: {str(e)}',
-            'error_type': type(e).__name__
+            'error_type': type(e).__name__,
+            'traceback': traceback.format_exc()
         }, status=500)
