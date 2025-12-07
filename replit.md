@@ -107,3 +107,22 @@ The project is organized into `config/` for Django settings, `apps/` containing 
 - `AWS_APPRUNNER_SETUP.md` - Step-by-step App Runner configuration
 - `DEPLOYMENT_CHECKLIST.md` - Complete deployment checklist (780 lines)
 - `apprunner.yaml` - App Runner build/run configuration
+
+## Chapter 2: Scaling to Paying Customers (In Progress)
+
+**Task 1: Smoke Testing (✅ COMPLETE - December 7, 2025)**
+- All 6 shareholder workflows tested and verified
+- 1 critical bug found and fixed (certificate conversion serializer mismatch)
+- Created `PRODUCTION_SMOKE_TEST_RESULTS.md` with comprehensive documentation
+- 86 tests passing (40 backend + 46 frontend), 76% coverage
+- Platform ready for customer onboarding
+
+**Task 2: Custom Domain Setup (PENDING)**
+- Configure api.tableicty.com → App Runner
+- Update CORS and ALLOWED_HOSTS
+
+**Task 3: Admin Console MVP (PENDING)**
+- Issuer authentication & access control
+- Shareholder management UI
+- Transfer processing UI
+- Dashboard analytics
