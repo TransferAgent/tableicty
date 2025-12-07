@@ -134,12 +134,12 @@ describe('API Client', () => {
 
     it('should submit certificate conversion request', async () => {
       const requestData = {
-        holding_id: 1,
-        conversion_type: 'CERT_TO_BOOK',
+        holding_id: 'd4fec9e8-2150-46ec-aacb-111e23798c81',
+        conversion_type: 'DRS_TO_CERT',
         share_quantity: 100,
         mailing_address: '123 Main St',
       };
-      const mockResponse = { id: 1, ...requestData, status: 'PENDING' };
+      const mockResponse = { id: '1', ...requestData, status: 'PENDING' };
       mockAxiosInstance.post.mockResolvedValueOnce({ data: mockResponse });
 
       const result = await apiClient.submitCertificateConversion(requestData);

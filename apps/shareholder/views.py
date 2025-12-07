@@ -227,8 +227,8 @@ def certificate_conversion_request_view(request):
     
     shareholder = request.user.shareholder
     data = serializer.validated_data
+    holding = data['holding']
     
-    certificate_id = str(data['certificate'].id) if 'certificate' in data else ''
     request_id = str(uuid.uuid4())
     
     from apps.core.signals import set_audit_signal_flag, clear_audit_signal_flag
@@ -236,7 +236,7 @@ def certificate_conversion_request_view(request):
     try:
         AuditLog.objects.create(
             model_name='CERTIFICATE_CONVERSION',
-            object_id=certificate_id,
+            object_id=str(holding.id),
             action_type='CREATE',
             user=request.user,
             user_email=request.user.email,
@@ -244,10 +244,11 @@ def certificate_conversion_request_view(request):
             new_value={
                 'request_id': request_id,
                 'conversion_type': data['conversion_type'],
-                'certificate_number': data['certificate_number'],
-                'issuer_id': str(data['issuer_id']),
+                'holding_id': str(holding.id),
+                'issuer_name': holding.issuer.company_name,
+                'share_quantity': data['share_quantity'],
                 'shareholder_id': str(shareholder.id),
-                'notes': data.get('notes', '')
+                'mailing_address': data.get('mailing_address', '')
             },
             ip_address=request.META.get('REMOTE_ADDR'),
             user_agent=request.META.get('HTTP_USER_AGENT', '')[:255]
