@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from apps.core.models import Shareholder, Transfer, Certificate, AuditLog
+from apps.core.models import Shareholder, Transfer, Certificate, AuditLog, Holding
 from decimal import Decimal
 
 
@@ -247,8 +247,7 @@ class TaxDocumentSerializer(serializers.Serializer):
 
 
 class CertificateConversionRequestSerializer(serializers.Serializer):
-    certificate_number = serializers.CharField(required=True)
-    issuer_id = serializers.UUIDField(required=True)
+    holding_id = serializers.UUIDField(required=True)
     conversion_type = serializers.ChoiceField(
         choices=[
             ('CERT_TO_DRS', 'Convert Physical Certificate to DRS'),
@@ -256,25 +255,33 @@ class CertificateConversionRequestSerializer(serializers.Serializer):
         ],
         required=True
     )
-    notes = serializers.CharField(required=False, allow_blank=True)
+    share_quantity = serializers.IntegerField(required=True, min_value=1)
+    mailing_address = serializers.CharField(required=False, allow_blank=True)
     
     def validate(self, attrs):
         request = self.context.get('request')
         shareholder = request.user.shareholder
         
-        if attrs['conversion_type'] == 'CERT_TO_DRS':
-            try:
-                cert = Certificate.objects.get(
-                    certificate_number=attrs['certificate_number'],
-                    issuer_id=attrs['issuer_id'],
-                    shareholder=shareholder,
-                    status='OUTSTANDING'
-                )
-                attrs['certificate'] = cert
-            except Certificate.DoesNotExist:
-                raise serializers.ValidationError(
-                    "Certificate not found or not eligible for conversion"
-                )
+        try:
+            holding = Holding.objects.get(
+                id=attrs['holding_id'],
+                shareholder=shareholder
+            )
+            attrs['holding'] = holding
+        except Holding.DoesNotExist:
+            raise serializers.ValidationError(
+                "Holding not found or does not belong to this shareholder"
+            )
+        
+        if attrs['share_quantity'] > holding.share_quantity:
+            raise serializers.ValidationError(
+                f"Cannot convert more than {int(holding.share_quantity)} shares"
+            )
+        
+        if attrs['conversion_type'] == 'DRS_TO_CERT' and not attrs.get('mailing_address'):
+            raise serializers.ValidationError(
+                "Mailing address is required for physical certificate requests"
+            )
         
         return attrs
 

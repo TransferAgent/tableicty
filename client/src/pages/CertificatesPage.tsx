@@ -45,9 +45,15 @@ export function CertificatesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (formData.conversion_type === 'DRS_TO_CERT' && !formData.mailing_address.trim()) {
+      toast.error('Mailing address is required for physical certificate requests');
+      return;
+    }
+    
     try {
       await apiClient.submitCertificateConversion({
-        holding_id: parseInt(formData.holding_id),
+        holding_id: formData.holding_id,
         conversion_type: formData.conversion_type,
         share_quantity: parseInt(formData.share_quantity),
         mailing_address: formData.mailing_address || undefined,

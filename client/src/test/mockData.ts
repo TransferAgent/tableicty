@@ -120,8 +120,8 @@ export const mockTaxDocuments: TaxDocument[] = [
 export const mockCertificateRequests: CertificateRequest[] = [
   {
     id: '1',
-    holding_id: 1,
-    conversion_type: 'CERT_TO_BOOK',
+    holding_id: 'd4fec9e8-2150-46ec-aacb-111e23798c81',
+    conversion_type: 'CERT_TO_DRS',
     share_quantity: 100,
     status: 'PENDING',
     requested_date: '2024-01-15',
@@ -129,8 +129,8 @@ export const mockCertificateRequests: CertificateRequest[] = [
   },
   {
     id: '2',
-    holding_id: 2,
-    conversion_type: 'BOOK_TO_CERT',
+    holding_id: 'd4fec9e8-2150-46ec-aacb-111e23798c82',
+    conversion_type: 'DRS_TO_CERT',
     share_quantity: 50,
     status: 'COMPLETED',
     requested_date: '2024-01-01',

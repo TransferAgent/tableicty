@@ -155,7 +155,7 @@ class APIClient {
     return response.data;
   }
 
-  async submitCertificateConversion(data: { holding_id: number; conversion_type: string; share_quantity: number; mailing_address?: string }): Promise<any> {
+  async submitCertificateConversion(data: { holding_id: string; conversion_type: string; share_quantity: number; mailing_address?: string }): Promise<any> {
     const response = await this.client.post('/certificate-conversion/', data);
     return response.data;
   }

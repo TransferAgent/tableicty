@@ -99,15 +99,8 @@ export interface AuthResponse {
   message?: string;
 }
 
-export interface CertificateConversionRequest {
-  certificate_number: string;
-  issuer_id: string;
-  conversion_type: 'CERT_TO_DRS' | 'DRS_TO_CERT';
-  notes?: string;
-}
-
 export interface CertificateConversionSubmission {
-  holding_id: number;
+  holding_id: string;
   conversion_type: 'CERT_TO_DRS' | 'DRS_TO_CERT';
   share_quantity: number;
   mailing_address?: string;
@@ -115,7 +108,7 @@ export interface CertificateConversionSubmission {
 
 export interface CertificateRequest {
   id: string;
-  holding_id: number;
+  holding_id: string;
   conversion_type: string;
   share_quantity: number;
   status: string;
