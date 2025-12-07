@@ -78,21 +78,30 @@ The project is organized into `config/` for Django settings, `apps/` containing 
 - `Faker`: Realistic sample data generation.
 - `black`, `flake8`, `isort`: Code quality tools.
 
-**AWS Deployment (✅ LIVE - December 6, 2025):**
-- AWS App Runner (backend) - **RUNNING** at https://2c34uemnqq.us-east-1.awsapprunner.com
+**AWS Deployment (✅ LIVE - December 7, 2025):**
+- AWS App Runner (backend) - **RUNNING** at https://2c34uemnqg.us-east-1.awsapprunner.com
 - AWS RDS PostgreSQL 17.6 - Connected (tableicty-production-db)
-- AWS ElastiCache Redis 7.1 - Provisioned for caching/sessions
-- AWS S3 + CloudFront - For frontend static hosting (pending)
+- AWS S3 Static Hosting - **LIVE** at http://tableicty-frontend.s3-website-us-east-1.amazonaws.com
 - AWS Parameter Store - Secrets management (KMS encrypted)
+- AWS ElastiCache Redis 7.1 - Provisioned for caching/sessions (optional)
 - AWS Route 53 - DNS for tableicty.com (pending custom domain)
 - AWS ACM - SSL certificate ready
 - `boto3`, `django-storages` (for AWS integration)
+
+**Production Status:**
+- ✅ Backend API running with health checks passing (200 OK every 10 seconds)
+- ✅ Frontend deployed to S3 with correct API URL configured
+- ✅ CORS configured for S3 origin
+- ✅ User registration and login working end-to-end
+- ✅ Database seeded with test accounts (individual000-004@example.com)
+- ✅ Seed endpoint removed for security (December 7, 2025)
 
 **Deployment Fixes Applied:**
 - Split `requirements.txt` (production) and `requirements-dev.txt` (development)
 - Fixed `IS_PRODUCTION` boolean parsing with `env.bool()`
 - Added `HealthCheckMiddleware` to short-circuit health checks (bypass SSL redirect)
-- Health check endpoint: `/api/v1/shareholder/health` returns 200 OK
+- Simplified seed endpoint without faker dependency (removed after use)
+- Fixed frontend API URL typo (uemnqq → uemnqg)
 
 **Deployment Documentation:**
 - `AWS_APPRUNNER_SETUP.md` - Step-by-step App Runner configuration
