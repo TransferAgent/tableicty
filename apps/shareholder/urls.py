@@ -41,6 +41,7 @@ urlpatterns = [
     path('tax-documents/', views.tax_documents_view, name='tax_documents'),
     
     # Certificate conversion requests
+    path('certificate-requests/', views.certificate_requests_list_view, name='certificate_requests_list'),
     path('certificate-conversion/', views.certificate_conversion_request_view, name='certificate_conversion'),
     
     # Profile management
