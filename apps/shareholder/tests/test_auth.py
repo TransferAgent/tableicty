@@ -158,7 +158,7 @@ class TestShareholderAuthentication:
         assert logout_response.data['message'] == 'Logout successful'
     
     def test_logout_without_token(self, api_client, registered_user_and_shareholder):
-        """Test logout fails without refresh token cookie"""
+        """Test logout succeeds even without refresh token cookie (graceful logout)"""
         login_response = api_client.post('/api/v1/shareholder/auth/login/', {
             'username': 'testuser@example.com',
             'password': 'TestPass123!'
@@ -169,8 +169,8 @@ class TestShareholderAuthentication:
         api_client.cookies.clear()
         logout_response = api_client.post('/api/v1/shareholder/auth/logout/', {})
         
-        assert logout_response.status_code == status.HTTP_400_BAD_REQUEST
-        assert 'error' in logout_response.data
+        assert logout_response.status_code == status.HTTP_200_OK
+        assert 'message' in logout_response.data
     
     def test_logout_unauthenticated(self, api_client):
         """Test logout fails when not authenticated"""

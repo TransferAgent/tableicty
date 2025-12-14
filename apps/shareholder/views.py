@@ -102,27 +102,25 @@ class ShareholderLogoutView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
+        response = Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
+        cookie_settings = settings.REFRESH_TOKEN_COOKIE_SETTINGS
+        
         try:
             refresh_token = request.COOKIES.get("refresh_token")
             
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()
-                
-                response = Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
-                
-                cookie_settings = settings.REFRESH_TOKEN_COOKIE_SETTINGS
-                response.delete_cookie(
-                    key=cookie_settings['key'],
-                    path=cookie_settings['path'],
-                    domain=cookie_settings['domain'],
-                    samesite=cookie_settings['samesite']
-                )
-                return response
-                
-            return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            pass
+        
+        response.delete_cookie(
+            key=cookie_settings['key'],
+            path=cookie_settings['path'],
+            domain=cookie_settings['domain'],
+            samesite=cookie_settings['samesite']
+        )
+        return response
 
 
 @api_view(['GET'])
