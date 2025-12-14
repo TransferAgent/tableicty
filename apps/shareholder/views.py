@@ -263,6 +263,36 @@ def certificate_conversion_request_view(request):
     }, status=status.HTTP_201_CREATED)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsShareholderOwner])
+def certificate_requests_list_view(request):
+    """List certificate conversion requests for the authenticated shareholder"""
+    shareholder = request.user.shareholder
+    
+    # Get certificate conversion requests from AuditLog
+    from apps.core.models import AuditLog
+    audit_logs = AuditLog.objects.filter(
+        model_name='CERTIFICATE_CONVERSION',
+        user=request.user
+    ).order_by('-timestamp')
+    
+    requests = []
+    for log in audit_logs:
+        new_value = log.new_value or {}
+        requests.append({
+            'id': new_value.get('request_id', str(log.id)),
+            'created_at': log.timestamp.isoformat(),
+            'conversion_type': new_value.get('conversion_type', ''),
+            'share_quantity': new_value.get('share_quantity', 0),
+            'issuer_name': new_value.get('issuer_name', ''),
+            'security_type': 'Common Stock',
+            'status': 'PENDING',
+            'mailing_address': new_value.get('mailing_address', '')
+        })
+    
+    return Response(requests)
+
+
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated, IsShareholderOwner])
 def profile_management_view(request):
