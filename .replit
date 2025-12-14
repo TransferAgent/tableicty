@@ -22,25 +22,25 @@ args = "React Frontend"
 name = "Django Transfer Agent Server"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python manage.py runserver 0.0.0.0:5000"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
+args = "python manage.py runserver 0.0.0.0:8000"
+waitForPort = 8000
 
 [[workflows.workflow]]
 name = "React Frontend"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd client && npm run dev -- --host"
-waitForPort = 5173
-
-[workflows.workflow.metadata]
-outputType = "console"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000
@@ -53,6 +53,10 @@ externalPort = 5173
 [[ports]]
 localPort = 5174
 externalPort = 3000
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
 
 [nix]
 packages = ["postgresql_14", "openssh", "git"]
