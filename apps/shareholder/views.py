@@ -312,3 +312,108 @@ def profile_management_view(request):
         return Response(response_serializer.data)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsShareholderOwner])
+def seed_user_data_view(request):
+    """
+    Secure endpoint to seed test data for the authenticated user's shareholder account.
+    Only creates data for the requesting user - cannot seed for others.
+    """
+    from apps.core.models import Issuer, SecurityClass
+    from decimal import Decimal
+    from datetime import date, timedelta
+    import random
+    
+    shareholder = request.user.shareholder
+    
+    # Check if user already has holdings (prevent duplicate seeding)
+    existing_holdings = Holding.objects.filter(shareholder=shareholder).count()
+    if existing_holdings > 0:
+        return Response({
+            'error': 'User already has data. Cannot seed again.',
+            'existing_holdings': existing_holdings
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Get existing issuers and security classes
+    issuers = list(Issuer.objects.filter(is_active=True)[:3])
+    if not issuers:
+        return Response({
+            'error': 'No issuers found in database. Please seed issuers first.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    holdings_created = 0
+    transfers_created = 0
+    
+    # Create holdings for each issuer
+    for issuer in issuers:
+        security_classes = SecurityClass.objects.filter(issuer=issuer, is_active=True)
+        for sec_class in security_classes[:1]:  # One holding per issuer
+            share_qty = Decimal(random.randint(1000, 50000))
+            holding = Holding.objects.create(
+                shareholder=shareholder,
+                issuer=issuer,
+                security_class=sec_class,
+                share_quantity=share_qty,
+                acquisition_date=date.today() - timedelta(days=random.randint(30, 365)),
+                acquisition_price=Decimal(str(round(random.uniform(0.50, 5.00), 4))),
+                holding_type=random.choice(['DRS', 'CERTIFICATE']),
+                is_restricted=False
+            )
+            holdings_created += 1
+            
+            # Create transfer records for this holding
+            for i in range(random.randint(2, 4)):
+                transfer_qty = Decimal(random.randint(100, int(share_qty / 5)))
+                transfer = Transfer.objects.create(
+                    issuer=issuer,
+                    security_class=sec_class,
+                    from_shareholder=None,
+                    to_shareholder=shareholder,
+                    share_quantity=transfer_qty,
+                    transfer_type=random.choice(['PURCHASE', 'GIFT', 'INHERITANCE']),
+                    transfer_date=date.today() - timedelta(days=random.randint(1, 180)),
+                    price_per_share=Decimal(str(round(random.uniform(0.50, 5.00), 4))),
+                    status='COMPLETED',
+                    approved_by='System',
+                    approved_date=date.today() - timedelta(days=random.randint(1, 30))
+                )
+                transfers_created += 1
+    
+    # Create tax document audit log entries
+    tax_docs_created = 0
+    for year in [2023, 2024]:
+        from apps.core.signals import set_audit_signal_flag, clear_audit_signal_flag
+        set_audit_signal_flag()
+        try:
+            AuditLog.objects.create(
+                model_name='TAX_DOCUMENT',
+                object_id=str(uuid.uuid4()),
+                action_type='CREATE',
+                user=request.user,
+                user_email=request.user.email,
+                object_repr=f"1099-DIV {year}",
+                new_value={
+                    'document_type': '1099-DIV',
+                    'tax_year': year,
+                    'status': 'AVAILABLE',
+                    'generated_date': f"{year}-01-31",
+                    'shareholder_id': str(shareholder.id)
+                },
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')[:255]
+            )
+            tax_docs_created += 1
+        finally:
+            clear_audit_signal_flag()
+    
+    return Response({
+        'message': 'Test data seeded successfully',
+        'data_created': {
+            'holdings': holdings_created,
+            'transfers': transfers_created,
+            'tax_documents': tax_docs_created
+        },
+        'shareholder_email': shareholder.email
+    }, status=status.HTTP_201_CREATED)
+
+

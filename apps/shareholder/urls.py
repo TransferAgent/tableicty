@@ -46,4 +46,7 @@ urlpatterns = [
     
     # Profile management
     path('profile/', views.profile_management_view, name='profile'),
+    
+    # Admin seed endpoint (TEMPORARY - remove after use)
+    path('admin/seed-user-data/', views.seed_user_data_view, name='seed_user_data'),
 ]
