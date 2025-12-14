@@ -61,3 +61,8 @@ externalPort = 8000
 [nix]
 packages = ["postgresql_14", "openssh", "git"]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+ADMIN_SETUP_SECRET = "tableicty-admin-2024-setup"

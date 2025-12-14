@@ -417,3 +417,53 @@ def seed_user_data_view(request):
     }, status=status.HTTP_201_CREATED)
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_shareholder_view(request):
+    """
+    TEMPORARY endpoint to create a Shareholder record before registration.
+    Requires a secret key for security. REMOVE AFTER USE.
+    """
+    import os
+    ADMIN_SECRET = os.environ.get('ADMIN_SETUP_SECRET', '')
+    
+    if not ADMIN_SECRET:
+        return Response({'error': 'Admin secret not configured'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    
+    secret = request.data.get('secret')
+    if secret != ADMIN_SECRET:
+        return Response({'error': 'Invalid secret key'}, status=status.HTTP_403_FORBIDDEN)
+    
+    email = request.data.get('email')
+    first_name = request.data.get('first_name', 'Admin')
+    last_name = request.data.get('last_name', 'User')
+    account_type = request.data.get('account_type', 'INDIVIDUAL')
+    
+    if not email:
+        return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if Shareholder.objects.filter(email=email).exists():
+        existing = Shareholder.objects.get(email=email)
+        return Response({
+            'status': 'already_exists',
+            'shareholder_id': str(existing.id),
+            'email': existing.email,
+            'message': 'Shareholder already exists. You can proceed to register.'
+        }, status=status.HTTP_200_OK)
+    
+    shareholder = Shareholder.objects.create(
+        email=email,
+        account_type=account_type,
+        first_name=first_name,
+        last_name=last_name,
+        is_active=True
+    )
+    
+    return Response({
+        'status': 'success',
+        'shareholder_id': str(shareholder.id),
+        'email': shareholder.email,
+        'message': 'Shareholder created. You can now register on the frontend.'
+    }, status=status.HTTP_201_CREATED)
+
+
