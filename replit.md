@@ -119,13 +119,17 @@ The project is organized into `config/` for Django settings, `apps/` containing 
 - All 40 backend tests passing, 74% coverage
 - Architect reviewed and approved
 
-**Phase 2: Auth & Isolation (NEXT)**
-- Activate django-otp MFA (already installed)
-- Add tenant_id to JWT tokens
-- Build TenantMiddleware for automatic scoping
-- Implement role-based access control
+**Phase 2: Auth & Isolation (✅ COMPLETE - December 15, 2025)**
+- MFA endpoints in `apps/shareholder/mfa.py` - TOTP setup, verification, disable (requires password + TOTP code)
+- Custom JWT with tenant claims in `apps/shareholder/jwt.py` - tenant_id, role, mfa_verified claims
+- TenantMiddleware in `apps/core/middleware.py` - Uses DB lookups (not JWT claims) for security
+- 9 role-based permission classes in `apps/core/permissions.py` for RBAC hierarchy
+- TenantQuerySetMixin in `apps/core/mixins.py` for automatic queryset filtering
+- 34 tenant isolation tests in `apps/shareholder/tests/test_tenant_isolation.py`
+- All 74 backend tests passing, 76% coverage
+- Architect reviewed and security fixes applied
 
-**Phase 3: Tenant-Aware APIs (PENDING)**
+**Phase 3: Tenant-Aware APIs (NEXT)**
 - Update all endpoints for tenant context
 - Tenant self-registration API
 - Shareholder invite API
