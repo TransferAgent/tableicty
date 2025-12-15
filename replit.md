@@ -108,21 +108,34 @@ The project is organized into `config/` for Django settings, `apps/` containing 
 - `DEPLOYMENT_CHECKLIST.md` - Complete deployment checklist (780 lines)
 - `apprunner.yaml` - App Runner build/run configuration
 
-## Chapter 2: Scaling to Paying Customers (In Progress)
+## Chapter 2: Multi-Tenant SaaS Transformation (In Progress)
 
-**Task 1: Smoke Testing (✅ COMPLETE - December 7, 2025)**
-- All 6 shareholder workflows tested and verified
-- 1 critical bug found and fixed (certificate conversion serializer mismatch)
-- Created `PRODUCTION_SMOKE_TEST_RESULTS.md` with comprehensive documentation
-- 86 tests passing (40 backend + 46 frontend), 76% coverage
-- Platform ready for customer onboarding
+**Phase 1: Data Model Foundation (✅ COMPLETE - December 15, 2025)**
+- Created 5 new multi-tenant models: Tenant, TenantMembership, SubscriptionPlan, Subscription, TenantInvitation
+- Added tenant ForeignKey to all 6 existing models (Issuer, Shareholder, Holding, Certificate, Transfer, AuditLog)
+- Created 3 subscription tiers: Starter ($49/mo), Growth ($199/mo), Enterprise ($499/mo)
+- Implemented 4-role RBAC: PLATFORM_ADMIN, TENANT_ADMIN, TENANT_STAFF, SHAREHOLDER
+- Management command `setup_default_tenant` for backfilling existing data
+- All 40 backend tests passing, 74% coverage
+- Architect reviewed and approved
 
-**Task 2: Custom Domain Setup (PENDING)**
-- Configure api.tableicty.com → App Runner
-- Update CORS and ALLOWED_HOSTS
+**Phase 2: Auth & Isolation (NEXT)**
+- Activate django-otp MFA (already installed)
+- Add tenant_id to JWT tokens
+- Build TenantMiddleware for automatic scoping
+- Implement role-based access control
 
-**Task 3: Admin Console MVP (PENDING)**
-- Issuer authentication & access control
-- Shareholder management UI
-- Transfer processing UI
-- Dashboard analytics
+**Phase 3: Tenant-Aware APIs (PENDING)**
+- Update all endpoints for tenant context
+- Tenant self-registration API
+- Shareholder invite API
+
+**Phase 4: Frontend Updates (PENDING)**
+- MFA setup/verification UI
+- Tenant onboarding wizard
+- Role-based route guards
+
+**Phase 5: Billing & Stripe (PENDING)**
+- Stripe integration (Customer ↔ Tenant mapping)
+- Subscription webhooks
+- In-app billing settings
