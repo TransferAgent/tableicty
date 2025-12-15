@@ -1,6 +1,126 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog
+from .models import (
+    Tenant, TenantMembership, SubscriptionPlan, Subscription, TenantInvitation,
+    Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog
+)
+
+
+@admin.register(Tenant)
+class TenantAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug', 'status', 'primary_email', 'created_at']
+    list_filter = ['status', 'country']
+    search_fields = ['name', 'slug', 'primary_email']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    prepopulated_fields = {'slug': ('name',)}
+    fieldsets = (
+        ('Tenant Identity', {
+            'fields': ('id', 'name', 'slug', 'status')
+        }),
+        ('Contact Information', {
+            'fields': ('primary_email', 'phone', 'website')
+        }),
+        ('Address', {
+            'fields': ('address_line1', 'address_line2', 'city', 'state', 'zip_code', 'country')
+        }),
+        ('Billing', {
+            'fields': ('stripe_customer_id',),
+            'classes': ('collapse',)
+        }),
+        ('Settings', {
+            'fields': ('settings',),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(TenantMembership)
+class TenantMembershipAdmin(admin.ModelAdmin):
+    list_display = ['user', 'tenant', 'role', 'is_primary_contact', 'created_at']
+    list_filter = ['role', 'is_primary_contact', 'tenant']
+    search_fields = ['user__email', 'user__username', 'tenant__name']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    autocomplete_fields = ['tenant', 'user']
+
+
+@admin.register(SubscriptionPlan)
+class SubscriptionPlanAdmin(admin.ModelAdmin):
+    list_display = ['name', 'tier', 'price_monthly', 'price_yearly', 'max_shareholders', 'is_active', 'display_order']
+    list_filter = ['tier', 'is_active']
+    search_fields = ['name', 'slug']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    prepopulated_fields = {'slug': ('name',)}
+    fieldsets = (
+        ('Plan Identity', {
+            'fields': ('id', 'name', 'slug', 'tier', 'description')
+        }),
+        ('Pricing', {
+            'fields': ('price_monthly', 'price_yearly')
+        }),
+        ('Stripe Integration', {
+            'fields': ('stripe_product_id', 'stripe_price_id_monthly', 'stripe_price_id_yearly'),
+            'classes': ('collapse',)
+        }),
+        ('Limits', {
+            'fields': ('max_shareholders', 'max_transfers_per_month', 'max_users')
+        }),
+        ('Features', {
+            'fields': ('features',)
+        }),
+        ('Display', {
+            'fields': ('is_active', 'display_order')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ['tenant', 'plan', 'status', 'billing_cycle', 'current_period_end']
+    list_filter = ['status', 'billing_cycle', 'plan']
+    search_fields = ['tenant__name', 'stripe_subscription_id']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    autocomplete_fields = ['tenant', 'plan']
+    fieldsets = (
+        ('Subscription Details', {
+            'fields': ('id', 'tenant', 'plan', 'status', 'billing_cycle')
+        }),
+        ('Stripe', {
+            'fields': ('stripe_subscription_id',),
+            'classes': ('collapse',)
+        }),
+        ('Trial Period', {
+            'fields': ('trial_start', 'trial_end'),
+            'classes': ('collapse',)
+        }),
+        ('Billing Period', {
+            'fields': ('current_period_start', 'current_period_end')
+        }),
+        ('Cancellation', {
+            'fields': ('cancelled_at', 'cancel_at_period_end'),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(TenantInvitation)
+class TenantInvitationAdmin(admin.ModelAdmin):
+    list_display = ['email', 'tenant', 'role', 'status', 'expires_at', 'created_at']
+    list_filter = ['status', 'role', 'tenant']
+    search_fields = ['email', 'tenant__name']
+    readonly_fields = ['id', 'token', 'created_at', 'accepted_at']
+    autocomplete_fields = ['tenant', 'invited_by', 'accepted_by']
 
 
 @admin.register(Issuer)
