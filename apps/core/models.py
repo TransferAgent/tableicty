@@ -7,12 +7,258 @@ from pgcrypto import fields as pgcrypto_fields
 import uuid
 
 
+# ==============================================================================
+# MULTI-TENANT MODELS
+# ==============================================================================
+
+class Tenant(models.Model):
+    """
+    Represents a company/organization using the platform.
+    Each pre-seed OTCID company is a separate tenant with isolated data.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    name = models.CharField(max_length=255, help_text="Company/organization name")
+    slug = models.SlugField(max_length=100, unique=True, help_text="URL-friendly identifier")
+    
+    primary_email = models.EmailField(help_text="Primary contact email")
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+    
+    address_line1 = models.CharField(max_length=255, blank=True)
+    address_line2 = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True)
+    state = models.CharField(max_length=50, blank=True)
+    zip_code = models.CharField(max_length=20, blank=True)
+    country = models.CharField(max_length=2, default='US')
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Activation'),
+        ('ACTIVE', 'Active'),
+        ('SUSPENDED', 'Suspended'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    
+    stripe_customer_id = models.CharField(max_length=255, blank=True, null=True, help_text="Stripe Customer ID")
+    
+    settings = models.JSONField(default=dict, blank=True, help_text="Tenant-specific settings")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['slug']),
+            models.Index(fields=['status']),
+            models.Index(fields=['stripe_customer_id']),
+        ]
+        verbose_name = "Tenant"
+        verbose_name_plural = "Tenants"
+    
+    def __str__(self):
+        return self.name
+
+
+class TenantMembership(models.Model):
+    """
+    Links users to tenants with specific roles.
+    A user can belong to multiple tenants with different roles.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='memberships')
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='tenant_memberships')
+    
+    ROLE_CHOICES = [
+        ('PLATFORM_ADMIN', 'Platform Administrator'),  # Tableicty staff - can access all tenants
+        ('TENANT_ADMIN', 'Tenant Administrator'),      # Company admin - full access to their tenant
+        ('TENANT_STAFF', 'Tenant Staff'),              # Company staff - limited admin access
+        ('SHAREHOLDER', 'Shareholder'),                # Shareholder - view-only access to their holdings
+    ]
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='SHAREHOLDER')
+    
+    is_primary_contact = models.BooleanField(default=False, help_text="Primary contact for the tenant")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['tenant', 'user']
+        ordering = ['tenant', 'role', 'user']
+        indexes = [
+            models.Index(fields=['user', 'role']),
+            models.Index(fields=['tenant', 'role']),
+        ]
+        verbose_name = "Tenant Membership"
+        verbose_name_plural = "Tenant Memberships"
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.tenant.name} ({self.get_role_display()})"
+
+
+class SubscriptionPlan(models.Model):
+    """
+    Defines the available subscription tiers.
+    Three tiers: Starter (self-service), Growth (managed), Enterprise (DTCC-ready)
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
+    
+    TIER_CHOICES = [
+        ('STARTER', 'Starter'),      # Self-service cap table management
+        ('GROWTH', 'Growth'),        # + Transfer processing, compliance reports
+        ('ENTERPRISE', 'Enterprise'), # + Full TA services, DTCC integration
+    ]
+    tier = models.CharField(max_length=20, choices=TIER_CHOICES, unique=True)
+    
+    price_monthly = models.DecimalField(max_digits=10, decimal_places=2)
+    price_yearly = models.DecimalField(max_digits=10, decimal_places=2, help_text="Annual price (usually discounted)")
+    
+    stripe_price_id_monthly = models.CharField(max_length=255, blank=True, null=True)
+    stripe_price_id_yearly = models.CharField(max_length=255, blank=True, null=True)
+    stripe_product_id = models.CharField(max_length=255, blank=True, null=True)
+    
+    max_shareholders = models.IntegerField(default=100, help_text="Maximum shareholders allowed")
+    max_transfers_per_month = models.IntegerField(default=10, help_text="Maximum transfers per month")
+    max_users = models.IntegerField(default=3, help_text="Maximum admin users")
+    
+    features = models.JSONField(default=list, blank=True, help_text="List of feature flags enabled")
+    
+    is_active = models.BooleanField(default=True)
+    display_order = models.IntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['display_order', 'price_monthly']
+        verbose_name = "Subscription Plan"
+        verbose_name_plural = "Subscription Plans"
+    
+    def __str__(self):
+        return f"{self.name} (${self.price_monthly}/mo)"
+
+
+class Subscription(models.Model):
+    """
+    Active subscription for a tenant.
+    Tracks billing status and feature access.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE, related_name='subscription')
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT, related_name='subscriptions')
+    
+    STATUS_CHOICES = [
+        ('TRIALING', 'Trial Period'),
+        ('ACTIVE', 'Active'),
+        ('PAST_DUE', 'Past Due'),
+        ('CANCELLED', 'Cancelled'),
+        ('PAUSED', 'Paused'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='TRIALING')
+    
+    BILLING_CYCLE_CHOICES = [
+        ('MONTHLY', 'Monthly'),
+        ('YEARLY', 'Yearly'),
+    ]
+    billing_cycle = models.CharField(max_length=10, choices=BILLING_CYCLE_CHOICES, default='MONTHLY')
+    
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
+    
+    trial_start = models.DateTimeField(blank=True, null=True)
+    trial_end = models.DateTimeField(blank=True, null=True)
+    current_period_start = models.DateTimeField(blank=True, null=True)
+    current_period_end = models.DateTimeField(blank=True, null=True)
+    
+    cancelled_at = models.DateTimeField(blank=True, null=True)
+    cancel_at_period_end = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['stripe_subscription_id']),
+        ]
+        verbose_name = "Subscription"
+        verbose_name_plural = "Subscriptions"
+    
+    def __str__(self):
+        return f"{self.tenant.name} - {self.plan.name} ({self.status})"
+
+
+class TenantInvitation(models.Model):
+    """
+    Invitation for a user to join a tenant.
+    Used for onboarding new shareholders and staff.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='invitations')
+    invited_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='sent_invitations')
+    
+    email = models.EmailField()
+    role = models.CharField(max_length=20, choices=TenantMembership.ROLE_CHOICES, default='SHAREHOLDER')
+    
+    token = models.CharField(max_length=100, unique=True)
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('ACCEPTED', 'Accepted'),
+        ('EXPIRED', 'Expired'),
+        ('REVOKED', 'Revoked'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    
+    expires_at = models.DateTimeField()
+    accepted_at = models.DateTimeField(blank=True, null=True)
+    accepted_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='accepted_invitations')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['token']),
+            models.Index(fields=['email', 'status']),
+            models.Index(fields=['tenant', 'status']),
+        ]
+        verbose_name = "Tenant Invitation"
+        verbose_name_plural = "Tenant Invitations"
+    
+    def __str__(self):
+        return f"Invite to {self.tenant.name} for {self.email}"
+    
+    def is_valid(self):
+        return self.status == 'PENDING' and self.expires_at > timezone.now()
+
+
+# ==============================================================================
+# TRANSFER AGENT MODELS
+# ==============================================================================
+
 class Issuer(models.Model):
     """
     Represents a client company using our transfer agent services.
     These are the OTCID/OTCQB companies we serve.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    tenant = models.ForeignKey(
+        Tenant, 
+        on_delete=models.CASCADE, 
+        related_name='issuers',
+        null=True,  # Nullable for migration - will be required after backfill
+        blank=True,
+        help_text="Tenant this issuer belongs to"
+    )
     
     company_name = models.CharField(max_length=255, unique=True, help_text="Full legal company name")
     ticker_symbol = models.CharField(max_length=10, blank=True, null=True, help_text="OTC Markets ticker symbol")
@@ -131,6 +377,16 @@ class SecurityClass(models.Model):
 class Shareholder(models.Model):
     """Beneficial owner of securities."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    tenant = models.ForeignKey(
+        Tenant, 
+        on_delete=models.CASCADE, 
+        related_name='shareholders',
+        null=True,  # Nullable for migration - will be required after backfill
+        blank=True,
+        help_text="Tenant this shareholder belongs to"
+    )
+    
     user = models.OneToOneField('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='shareholder')
     
     ACCOUNT_TYPE_CHOICES = [
@@ -208,6 +464,15 @@ class Holding(models.Model):
     """Shareholder's position in a specific security class."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
+    tenant = models.ForeignKey(
+        Tenant, 
+        on_delete=models.CASCADE, 
+        related_name='holdings',
+        null=True,  # Nullable for migration - will be required after backfill
+        blank=True,
+        help_text="Tenant this holding belongs to"
+    )
+    
     shareholder = models.ForeignKey(Shareholder, on_delete=models.PROTECT, related_name='holdings')
     issuer = models.ForeignKey(Issuer, on_delete=models.PROTECT, related_name='holdings')
     security_class = models.ForeignKey(SecurityClass, on_delete=models.PROTECT, related_name='holdings')
@@ -250,6 +515,15 @@ class Holding(models.Model):
 class Certificate(models.Model):
     """Physical stock certificate or book-entry certificate."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    tenant = models.ForeignKey(
+        Tenant, 
+        on_delete=models.CASCADE, 
+        related_name='certificates',
+        null=True,  # Nullable for migration - will be required after backfill
+        blank=True,
+        help_text="Tenant this certificate belongs to"
+    )
     
     issuer = models.ForeignKey(Issuer, on_delete=models.PROTECT, related_name='certificates')
     security_class = models.ForeignKey(SecurityClass, on_delete=models.PROTECT, related_name='certificates')
@@ -295,6 +569,15 @@ class Certificate(models.Model):
 class Transfer(models.Model):
     """Transfer of shares from one shareholder to another."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    tenant = models.ForeignKey(
+        Tenant, 
+        on_delete=models.CASCADE, 
+        related_name='transfers',
+        null=True,  # Nullable for migration - will be required after backfill
+        blank=True,
+        help_text="Tenant this transfer belongs to"
+    )
     
     issuer = models.ForeignKey(Issuer, on_delete=models.PROTECT, related_name='transfers')
     security_class = models.ForeignKey(SecurityClass, on_delete=models.PROTECT, related_name='transfers')
@@ -364,6 +647,15 @@ class Transfer(models.Model):
 class AuditLog(models.Model):
     """Immutable audit trail for all database changes."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    tenant = models.ForeignKey(
+        Tenant, 
+        on_delete=models.SET_NULL,  # Don't cascade delete audit logs 
+        related_name='audit_logs',
+        null=True,  # Nullable - some audit logs may be system-level
+        blank=True,
+        help_text="Tenant this audit log belongs to (null for system-level logs)"
+    )
     
     user = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True)
     user_email = models.CharField(max_length=255)
