@@ -37,7 +37,12 @@ export function TaxDocumentsPage() {
   const handleDownload = async (doc: TaxDocument) => {
     try {
       toast.success(`Downloading ${doc.document_type}...`);
-      const response = await fetch(`/api/v1/shareholder/tax-documents/${doc.id}/download/`, {
+      
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL 
+        ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/shareholder`
+        : '/api/v1/shareholder';
+      
+      const response = await fetch(`${apiBaseUrl}/tax-documents/${doc.id}/download/`, {
         headers: {
           'Authorization': `Bearer ${sessionStorage.getItem('access_token')}`
         }
