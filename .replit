@@ -65,4 +65,3 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-ADMIN_SETUP_SECRET = "tableicty-admin-2024-setup"
