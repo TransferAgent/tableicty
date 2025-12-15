@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from . import views
+from . import mfa
 
 app_name = 'shareholder'
 
@@ -48,4 +49,11 @@ urlpatterns = [
     # Profile management
     path('profile/', views.profile_management_view, name='profile'),
     
+    # MFA (Multi-Factor Authentication) endpoints
+    path('auth/mfa/status/', mfa.mfa_status_view, name='mfa_status'),
+    path('auth/mfa/setup/', mfa.mfa_setup_view, name='mfa_setup'),
+    path('auth/mfa/verify-setup/', mfa.mfa_verify_setup_view, name='mfa_verify_setup'),
+    path('auth/mfa/verify/', mfa.mfa_verify_login_view, name='mfa_verify'),
+    path('auth/mfa/disable/', mfa.mfa_disable_view, name='mfa_disable'),
+    path('auth/mfa/backup-codes/', mfa.mfa_backup_codes_view, name='mfa_backup_codes'),
 ]
