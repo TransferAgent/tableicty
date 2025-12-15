@@ -39,6 +39,7 @@ urlpatterns = [
     
     # Tax documents
     path('tax-documents/', views.tax_documents_view, name='tax_documents'),
+    path('tax-documents/<str:doc_id>/download/', views.tax_document_download_view, name='tax_document_download'),
     
     # Certificate conversion requests
     path('certificate-requests/', views.certificate_requests_list_view, name='certificate_requests_list'),

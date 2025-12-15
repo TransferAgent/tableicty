@@ -37,8 +37,25 @@ export function TaxDocumentsPage() {
   const handleDownload = async (doc: TaxDocument) => {
     try {
       toast.success(`Downloading ${doc.document_type}...`);
-      // Actual download logic would go here
-      console.log('Downloading document:', doc.document_type);
+      const response = await fetch(`/api/v1/shareholder/tax-documents/${doc.id}/download/`, {
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('access_token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `1099-DIV_${doc.tax_year}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (err) {
       toast.error('Failed to download document');
     }
