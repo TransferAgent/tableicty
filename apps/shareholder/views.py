@@ -217,6 +217,79 @@ def tax_documents_view(request):
     })
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsShareholderOwner])
+def tax_document_download_view(request, doc_id):
+    """Download a tax document as PDF"""
+    from django.http import HttpResponse
+    from datetime import date
+    
+    shareholder = request.user.shareholder
+    
+    try:
+        parts = doc_id.rsplit('-', 1)
+        if len(parts) != 2:
+            return Response({'error': 'Invalid document ID'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        issuer_id, year_str = parts
+        year = int(year_str)
+    except (ValueError, IndexError):
+        return Response({'error': 'Invalid document ID format'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    holding = Holding.objects.filter(
+        shareholder=shareholder,
+        issuer_id=issuer_id
+    ).select_related('issuer').first()
+    
+    if not holding:
+        return Response({'error': 'Document not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    current_year = date.today().year
+    if year >= current_year:
+        return Response({'error': 'Document not yet available'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    content = f"""
+================================================================================
+                            FORM 1099-DIV
+                    Dividends and Distributions
+                          Tax Year {year}
+================================================================================
+
+PAYER'S Information:
+  Name: {holding.issuer.company_name}
+  Ticker: {holding.issuer.ticker_symbol or 'N/A'}
+
+RECIPIENT'S Information:
+  Name: {shareholder.first_name} {shareholder.last_name}
+  Account: ****{str(shareholder.id)[-4:]}
+
+================================================================================
+
+Box 1a - Total ordinary dividends:             $0.00
+Box 1b - Qualified dividends:                  $0.00
+Box 2a - Total capital gain distributions:     $0.00
+Box 3  - Nondividend distributions:            $0.00
+
+================================================================================
+
+Shares Held: {holding.share_quantity}
+
+--------------------------------------------------------------------------------
+This is a placeholder document for demonstration purposes.
+Actual 1099-DIV forms are generated annually by the transfer agent
+and will be available in late January following the tax year.
+--------------------------------------------------------------------------------
+
+Generated: {date.today().isoformat()}
+Document ID: {doc_id}
+================================================================================
+"""
+    
+    response = HttpResponse(content, content_type='text/plain')
+    response['Content-Disposition'] = f'attachment; filename="1099-DIV_{year}_{holding.issuer.ticker_symbol or "STOCK"}.txt"'
+    return response
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsShareholderOwner])
 def certificate_conversion_request_view(request):
