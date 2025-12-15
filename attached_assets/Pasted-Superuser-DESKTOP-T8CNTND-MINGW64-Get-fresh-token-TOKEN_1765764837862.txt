@@ -1,0 +1,47 @@
+Superuser@DESKTOP-T8CNTND MINGW64 ~
+$ # Get fresh token
+TOKEN=$(curl -s -X POST https://2c34uemnqg.us-east-1.awsapprunner.com/api/v1/shareholder/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "info@inlandvalleyautomall.com", "password": "Whereisdad@1"}' \
+  | grep -o '"access":"[^"]*"' | cut -d'"' -f4)
+
+# Try to download 2023 tax document
+curl -v https://2c34uemnqg.us-east-1.awsapprunner.com/api/v1/shareholder/tax-documents/10e362b5-d6da-448c-a00f-ffe8bd38919e-2023/download/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -o test_download.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0   0     0   0     0     0     0  --:--:-- --:--:-- --:--:--     0* Host 2c34uemnqg.us-east-1.awsapprunner.com:443 was resolved.
+* IPv6: (none)
+* IPv4: 54.159.93.208, 54.156.31.188, 3.223.113.93, 23.20.140.11, 3.221.57.82
+*   Trying 54.159.93.208:443...
+* schannel: disabled automatic use of client certificate
+* ALPN: curl offers http/1.1
+* ALPN: server did not agree on a protocol. Uses default.
+* Established connection to 2c34uemnqg.us-east-1.awsapprunner.com (54.159.93.208 port 443) from 192.168.4.60 port 59969
+  0     0   0     0   0     0     0     0  --:--:-- --:--:-- --:--:--     0* using HTTP/1.x
+> GET /api/v1/shareholder/tax-documents/10e362b5-d6da-448c-a00f-ffe8bd38919e-2023/download/ HTTP/1.1
+> Host: 2c34uemnqg.us-east-1.awsapprunner.com
+> User-Agent: curl/8.17.0
+> Accept: */*
+> Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY1NzY0MDEzLCJpYXQiOjE3NjU3NjMxMTMsImp0aSI6IjgzN2Q5ZDI3ZWQzYTQzMDNhZmZmMmVlZGI1YjY4ZTQ3IiwidXNlcl9pZCI6M30.ZXKmj8vHweVwPPjEGDleh_9Srz3b95nvAH1g6zCU-lo
+>
+* Request completely sent off
+< HTTP/1.1 404 Not Found
+< content-length: 179
+< content-type: text/html; charset=utf-8
+< cross-origin-opener-policy: same-origin
+< date: Mon, 15 Dec 2025 01:45:14 GMT
+< referrer-policy: same-origin
+< server: envoy
+< strict-transport-security: max-age=31536000; includeSubDomains; preload
+< vary: origin
+< x-content-type-options: nosniff
+< x-frame-options: DENY
+< x-envoy-upstream-service-time: 3
+<
+{ [179 bytes data]
+100   179 100   179   0     0   409     0  --:--:-- --:--:-- --:--:--   409
+* Connection #0 to host 2c34uemnqg.us-east-1.awsapprunner.com:443 left intact
+
+Superuser@DESKTOP-T8CNTND MINGW64 ~
