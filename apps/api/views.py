@@ -1,17 +1,21 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from apps.core.models import Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog
+from apps.core.mixins import TenantQuerySetMixin
+from apps.core.permissions import IsTenantStaff, CanProcessTransfers, TenantScopedPermission
 from .serializers import (
     IssuerSerializer, SecurityClassSerializer, ShareholderSerializer,
     HoldingSerializer, CertificateSerializer, TransferSerializer, AuditLogSerializer
 )
 
 
-class IssuerViewSet(viewsets.ModelViewSet):
+class IssuerViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     queryset = Issuer.objects.all()
     serializer_class = IssuerSerializer
+    permission_classes = [IsAuthenticated, TenantScopedPermission]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['otc_tier', 'tavs_enabled', 'is_active', 'blockchain_enabled']
     search_fields = ['company_name', 'ticker_symbol', 'cusip', 'cik']
@@ -60,18 +64,20 @@ class IssuerViewSet(viewsets.ModelViewSet):
         })
 
 
-class SecurityClassViewSet(viewsets.ModelViewSet):
+class SecurityClassViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     queryset = SecurityClass.objects.all()
     serializer_class = SecurityClassSerializer
+    permission_classes = [IsAuthenticated, TenantScopedPermission]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['issuer', 'security_type', 'voting_rights', 'is_active']
     search_fields = ['class_designation', 'issuer__company_name']
     ordering = ['issuer', 'security_type']
 
 
-class ShareholderViewSet(viewsets.ModelViewSet):
+class ShareholderViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     queryset = Shareholder.objects.all()
     serializer_class = ShareholderSerializer
+    permission_classes = [IsAuthenticated, IsTenantStaff]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['account_type', 'accredited_investor', 'kyc_verified', 'is_active', 'country']
     search_fields = ['first_name', 'last_name', 'entity_name', 'email']
@@ -86,27 +92,30 @@ class ShareholderViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class HoldingViewSet(viewsets.ModelViewSet):
+class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     queryset = Holding.objects.all()
     serializer_class = HoldingSerializer
+    permission_classes = [IsAuthenticated, TenantScopedPermission]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['shareholder', 'issuer', 'security_class', 'holding_type', 'is_restricted']
     search_fields = ['shareholder__first_name', 'shareholder__last_name', 'issuer__company_name']
     ordering = ['issuer', '-share_quantity']
 
 
-class CertificateViewSet(viewsets.ModelViewSet):
+class CertificateViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     queryset = Certificate.objects.all()
     serializer_class = CertificateSerializer
+    permission_classes = [IsAuthenticated, TenantScopedPermission]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['issuer', 'shareholder', 'status', 'has_legend']
     search_fields = ['certificate_number', 'issuer__company_name']
     ordering = ['-issue_date']
 
 
-class TransferViewSet(viewsets.ModelViewSet):
+class TransferViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     queryset = Transfer.objects.all()
     serializer_class = TransferSerializer
+    permission_classes = [IsAuthenticated, CanProcessTransfers]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['issuer', 'from_shareholder', 'to_shareholder', 'status', 'transfer_type']
     search_fields = ['from_shareholder__first_name', 'to_shareholder__first_name', 'issuer__company_name']
@@ -258,9 +267,10 @@ class TransferViewSet(viewsets.ModelViewSet):
             )
 
 
-class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
+class AuditLogViewSet(TenantQuerySetMixin, viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all()
     serializer_class = AuditLogSerializer
+    permission_classes = [IsAuthenticated, IsTenantStaff]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['action_type', 'model_name', 'user']
     search_fields = ['user_email', 'object_repr']

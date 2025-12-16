@@ -12,7 +12,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 import uuid
 
-from apps.core.models import Shareholder, Holding, Transfer, AuditLog
+from apps.core.models import Shareholder, Holding, Transfer, AuditLog, TenantMembership
 from .serializers import (
     ShareholderRegistrationSerializer,
     ShareholderProfileSerializer,
@@ -126,8 +126,30 @@ class ShareholderLogoutView(generics.GenericAPIView):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def current_user_view(request):
-    serializer = UserSerializer(request.user)
-    return Response(serializer.data)
+    user_data = UserSerializer(request.user).data
+    
+    tenant = getattr(request, 'tenant', None)
+    role = getattr(request, 'tenant_role', None)
+    mfa_verified = getattr(request, 'mfa_verified', False)
+    
+    user_data['tenant'] = {
+        'id': str(tenant.id) if tenant else None,
+        'name': tenant.name if tenant else None,
+        'slug': tenant.slug if tenant else None,
+    } if tenant else None
+    user_data['role'] = role
+    user_data['mfa_verified'] = mfa_verified
+    
+    if not tenant:
+        memberships = TenantMembership.objects.filter(user=request.user).select_related('tenant')
+        user_data['available_tenants'] = [{
+            'id': str(m.tenant.id),
+            'name': m.tenant.name,
+            'slug': m.tenant.slug,
+            'role': m.role
+        } for m in memberships]
+    
+    return Response(user_data)
 
 
 @api_view(['GET'])
