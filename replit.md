@@ -153,7 +153,18 @@ The project is organized into `config/` for Django settings, `apps/` containing 
 - Subscription plans API endpoint for public access
 - All 46 frontend tests passing, all 92+ backend tests passing
 
-**Phase 5: Billing & Stripe (PENDING)**
-- Stripe integration (Customer ↔ Tenant mapping)
-- Subscription webhooks
-- In-app billing settings
+**Phase 5: Billing & Stripe (✅ COMPLETE - December 22, 2025)**
+- Stripe SDK integration with secure key management (production uses SSM Parameter Store)
+- Stripe helper module in `apps/core/stripe.py` for client management
+- Billing service in `apps/core/services/billing.py` - Customer creation, Checkout sessions, Portal sessions
+- Webhook handler in `apps/core/webhooks.py` - handles checkout.session.completed, subscription lifecycle, payment failures
+- Billing API endpoints: GET /billing/, POST /billing/checkout/, POST /billing/portal/, POST /billing/cancel/
+- Frontend Billing page at `/dashboard/billing` with subscription status, plan selection, upgrade/downgrade UI
+- Admin-only access controls for billing management
+- All 92 backend tests passing, 46 frontend tests passing, 76% coverage
+
+**Required Environment Variables for Stripe:**
+- `STRIPE_SECRET_KEY` - Stripe secret key (sk_live_... or sk_test_...)
+- `STRIPE_PUBLISHABLE_KEY` - Stripe publishable key (pk_live_... or pk_test_...)
+- `STRIPE_WEBHOOK_SECRET` - Webhook signing secret (whsec_...)
+- `FRONTEND_URL` - Frontend URL for Stripe redirects (default: http://localhost:5000)
