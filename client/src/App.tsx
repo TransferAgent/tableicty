@@ -13,6 +13,7 @@ import { TaxDocumentsPage } from './pages/TaxDocumentsPage';
 import { CertificatesPage } from './pages/CertificatesPage';
 import { SecurityPage } from './pages/SecurityPage';
 import { AdminPage } from './pages/AdminPage';
+import BillingPage from './pages/BillingPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TenantOnboarding } from './components/tenant/TenantOnboarding';
 
@@ -44,6 +45,7 @@ function App() {
                 <Route path="tax-documents" element={<TaxDocumentsPage />} />
                 <Route path="certificates" element={<CertificatesPage />} />
                 <Route path="admin" element={<AdminPage />} />
+                <Route path="billing" element={<BillingPage />} />
               </Route>
             </Routes>
           </TenantProvider>

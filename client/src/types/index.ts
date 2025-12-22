@@ -170,6 +170,19 @@ export interface SubscriptionPlan {
   max_users: number;
 }
 
+export interface BillingStatus {
+  stripe_configured: boolean;
+  stripe_publishable_key: string | null;
+  subscription: {
+    id: string;
+    status: string;
+    billing_cycle: string;
+    plan: SubscriptionPlan | null;
+    trial_end: string | null;
+    current_period_end: string | null;
+  } | null;
+}
+
 export interface TenantRegistrationData {
   tenant_name: string;
   tenant_slug: string;

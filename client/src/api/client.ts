@@ -17,6 +17,7 @@ import type {
   Tenant,
   TenantInvitation,
   SubscriptionPlan,
+  BillingStatus,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
@@ -305,6 +306,68 @@ class APIClient {
         ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
       },
     });
+    return response.data;
+  }
+
+  async getBillingStatus(): Promise<BillingStatus> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.get(`${tenantBaseUrl}/billing/`, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+      },
+    });
+    return response.data;
+  }
+
+  async createCheckoutSession(planId: string, billingCycle: 'monthly' | 'yearly'): Promise<{ session_id: string; url: string }> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.post(`${tenantBaseUrl}/billing/checkout/`, 
+      { plan_id: planId, billing_cycle: billingCycle },
+      {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+        },
+      }
+    );
+    return response.data;
+  }
+
+  async createBillingPortalSession(): Promise<{ url: string }> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.post(`${tenantBaseUrl}/billing/portal/`, {}, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+      },
+    });
+    return response.data;
+  }
+
+  async cancelSubscription(atPeriodEnd: boolean = true): Promise<{ status: string; at_period_end: boolean }> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.post(`${tenantBaseUrl}/billing/cancel/`, 
+      { at_period_end: atPeriodEnd },
+      {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+        },
+      }
+    );
     return response.data;
   }
 }

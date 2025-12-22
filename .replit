@@ -59,7 +59,7 @@ localPort = 8000
 externalPort = 8000
 
 [nix]
-packages = ["postgresql_14", "openssh", "git"]
+packages = ["git", "openssh", "postgresql_14"]
 channel = "stable-25_05"
 
 [userenv]

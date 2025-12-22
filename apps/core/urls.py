@@ -12,7 +12,12 @@ from apps.core.tenant_views import (
     accept_invitation,
     current_tenant_view,
     subscription_plans_view,
+    billing_status_view,
+    create_checkout_session_view,
+    create_portal_session_view,
+    cancel_subscription_view,
 )
+from apps.core.webhooks import stripe_webhook
 
 router = DefaultRouter()
 router.register(r'members', TenantMembershipViewSet, basename='tenant-members')
@@ -25,5 +30,10 @@ urlpatterns = [
     path('subscription-plans/', subscription_plans_view, name='subscription-plans'),
     path('invitations/validate/<str:token>/', validate_invitation, name='validate-invitation'),
     path('invitations/accept/<str:token>/', accept_invitation, name='accept-invitation'),
+    path('billing/', billing_status_view, name='billing-status'),
+    path('billing/checkout/', create_checkout_session_view, name='billing-checkout'),
+    path('billing/portal/', create_portal_session_view, name='billing-portal'),
+    path('billing/cancel/', cancel_subscription_view, name='billing-cancel'),
+    path('webhooks/stripe/', stripe_webhook, name='stripe-webhook'),
     path('', include(router.urls)),
 ]

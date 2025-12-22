@@ -342,6 +342,17 @@ AXES_COOLOFF_TIME = 0.5
 
 PGCRYPTO_KEY = env('PGCRYPTO_KEY', default='development-encryption-key-32char')
 
+if IS_PRODUCTION:
+    STRIPE_SECRET_KEY = resolve_ssm_parameter('STRIPE_SECRET_KEY', default='')
+    STRIPE_PUBLISHABLE_KEY = resolve_ssm_parameter('STRIPE_PUBLISHABLE_KEY', default='')
+    STRIPE_WEBHOOK_SECRET = resolve_ssm_parameter('STRIPE_WEBHOOK_SECRET', default='')
+else:
+    STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default='')
+    STRIPE_PUBLISHABLE_KEY = env('STRIPE_PUBLISHABLE_KEY', default='')
+    STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='')
+
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5000')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
