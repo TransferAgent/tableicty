@@ -9,6 +9,14 @@ import type {
   RegisterData,
   AuthResponse,
   Shareholder,
+  MFAStatus,
+  MFASetupResponse,
+  MFAVerifyResponse,
+  CurrentTenantResponse,
+  TenantRegistrationData,
+  Tenant,
+  TenantInvitation,
+  SubscriptionPlan,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
@@ -167,6 +175,136 @@ class APIClient {
 
   async updateProfile(data: Partial<Shareholder>): Promise<{ message: string; profile: Shareholder }> {
     const response = await this.client.patch('/profile/', data);
+    return response.data;
+  }
+
+  async getMFAStatus(): Promise<MFAStatus> {
+    const response = await this.client.get('/auth/mfa/status/');
+    return response.data;
+  }
+
+  async setupMFA(): Promise<MFASetupResponse> {
+    const response = await this.client.post('/auth/mfa/setup/', {});
+    return response.data;
+  }
+
+  async verifyMFASetup(code: string): Promise<MFAVerifyResponse> {
+    const response = await this.client.post('/auth/mfa/verify-setup/', { code });
+    return response.data;
+  }
+
+  async verifyMFALogin(code: string): Promise<MFAVerifyResponse> {
+    const response = await this.client.post('/auth/mfa/verify/', { code });
+    if (response.data.access) {
+      this.setAccessToken(response.data.access);
+    }
+    return response.data;
+  }
+
+  async disableMFA(password: string, code: string): Promise<MFAVerifyResponse> {
+    const response = await this.client.post('/auth/mfa/disable/', { password, code });
+    if (response.data.access) {
+      this.setAccessToken(response.data.access);
+    }
+    return response.data;
+  }
+
+  async getBackupCodes(): Promise<{ message: string; backup_codes: string[] }> {
+    const response = await this.client.get('/auth/mfa/backup-codes/');
+    return response.data;
+  }
+
+  async getCurrentTenant(): Promise<CurrentTenantResponse> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.get(`${tenantBaseUrl}/current/`, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+      },
+    });
+    return response.data;
+  }
+
+  async registerTenant(data: TenantRegistrationData): Promise<{ tenant: Tenant; user: User; access: string }> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.post(`${tenantBaseUrl}/register/`, data, {
+      withCredentials: true,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (response.data.access) {
+      this.setAccessToken(response.data.access);
+    }
+    return response.data;
+  }
+
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.get(`${tenantBaseUrl}/subscription-plans/`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  }
+
+  async getTenantSettings(): Promise<Tenant> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.get(`${tenantBaseUrl}/settings/`, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+      },
+    });
+    return response.data;
+  }
+
+  async updateTenantSettings(data: Partial<Tenant>): Promise<Tenant> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.put(`${tenantBaseUrl}/settings/`, data, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+      },
+    });
+    return response.data;
+  }
+
+  async getTenantMembers(): Promise<{ id: string; user_email: string; role: string; joined_at: string }[]> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.get(`${tenantBaseUrl}/members/`, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+      },
+    });
+    return response.data;
+  }
+
+  async createInvitation(email: string, role: string): Promise<TenantInvitation> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.post(`${tenantBaseUrl}/invitations/`, { email, role }, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+      },
+    });
     return response.data;
   }
 }

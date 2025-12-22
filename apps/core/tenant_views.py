@@ -409,3 +409,26 @@ def current_tenant_view(request):
             'trial_end': subscription.trial_end.isoformat() if subscription and subscription.trial_end else None
         } if subscription else None
     })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def subscription_plans_view(request):
+    """
+    Public endpoint to list available subscription plans.
+    Used during tenant onboarding to display pricing options.
+    """
+    plans = SubscriptionPlan.objects.filter(is_active=True).order_by('price_monthly')
+    
+    plans_data = [{
+        'id': str(plan.id),
+        'name': plan.name,
+        'tier': plan.tier,
+        'price_monthly': str(plan.price_monthly),
+        'price_yearly': str(plan.price_yearly),
+        'max_shareholders': plan.max_shareholders,
+        'max_transfers_per_month': plan.max_transfers_per_month,
+        'max_users': plan.max_users,
+    } for plan in plans]
+    
+    return Response(plans_data)

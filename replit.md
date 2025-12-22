@@ -142,10 +142,16 @@ The project is organized into `config/` for Django settings, `apps/` containing 
 - All 92 backend tests passing, 76% coverage
 - Architect reviewed and approved
 
-**Phase 4: Frontend Updates (PENDING)**
-- MFA setup/verification UI
-- Tenant onboarding wizard
-- Role-based route guards
+**Phase 4: Frontend Updates (✅ COMPLETE - December 22, 2025)**
+- MFA setup/verification UI in `client/src/components/mfa/` - QR code display, verification form, disable with password+TOTP
+- Tenant onboarding wizard in `client/src/components/tenant/TenantOnboarding.tsx` - 3-step wizard with company info, admin account, plan selection
+- Role-based route guards in `client/src/components/auth/RoleBasedRoute.tsx` - AdminRoute, StaffRoute, RoleBasedRoute components
+- TenantContext in `client/src/contexts/TenantContext.tsx` - tenant state management, role detection, tenant switching
+- Security page at `/dashboard/security` - MFA management UI
+- Admin page at `/dashboard/admin` - organization settings, member management
+- Updated DashboardLayout with tenant display and admin navigation link
+- Subscription plans API endpoint for public access
+- All 46 frontend tests passing, all 92+ backend tests passing
 
 **Phase 5: Billing & Stripe (PENDING)**
 - Stripe integration (Customer ↔ Tenant mapping)

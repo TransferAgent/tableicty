@@ -11,6 +11,7 @@ from apps.core.tenant_views import (
     validate_invitation,
     accept_invitation,
     current_tenant_view,
+    subscription_plans_view,
 )
 
 router = DefaultRouter()
@@ -21,6 +22,7 @@ urlpatterns = [
     path('register/', TenantRegistrationView.as_view(), name='tenant-register'),
     path('current/', current_tenant_view, name='current-tenant'),
     path('settings/', TenantDetailView.as_view(), name='tenant-settings'),
+    path('subscription-plans/', subscription_plans_view, name='subscription-plans'),
     path('invitations/validate/<str:token>/', validate_invitation, name='validate-invitation'),
     path('invitations/accept/<str:token>/', accept_invitation, name='accept-invitation'),
     path('', include(router.urls)),

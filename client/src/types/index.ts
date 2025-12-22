@@ -115,3 +115,76 @@ export interface CertificateRequest {
   requested_date: string;
   mailing_address: string;
 }
+
+export interface MFAStatus {
+  mfa_enabled: boolean;
+  mfa_pending_setup: boolean;
+  device_count: number;
+}
+
+export interface MFASetupResponse {
+  message: string;
+  provisioning_uri: string;
+  device_name: string;
+  qr_code_base64?: string;
+}
+
+export interface MFAVerifyResponse {
+  message: string;
+  mfa_enabled?: boolean;
+  mfa_verified?: boolean;
+  access?: string;
+}
+
+export interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  primary_email: string;
+  phone: string;
+  status: 'active' | 'suspended' | 'pending';
+  logo_url: string | null;
+  created_at: string;
+}
+
+export interface TenantMembership {
+  tenant: Tenant;
+  role: 'PLATFORM_ADMIN' | 'TENANT_ADMIN' | 'TENANT_STAFF' | 'SHAREHOLDER';
+  joined_at: string;
+}
+
+export interface CurrentTenantResponse {
+  current_tenant: Tenant | null;
+  current_role: string | null;
+  available_tenants: TenantMembership[];
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  tier: 'STARTER' | 'GROWTH' | 'ENTERPRISE';
+  price_monthly: string;
+  price_yearly: string;
+  max_shareholders: number;
+  max_transfers_per_month: number;
+  max_users: number;
+}
+
+export interface TenantRegistrationData {
+  tenant_name: string;
+  tenant_slug: string;
+  admin_email: string;
+  admin_password: string;
+  admin_first_name: string;
+  admin_last_name: string;
+  plan_tier?: string;
+}
+
+export interface TenantInvitation {
+  id: string;
+  email: string;
+  role: string;
+  token: string;
+  expires_at: string;
+  accepted: boolean;
+}
