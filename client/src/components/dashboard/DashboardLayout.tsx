@@ -1,9 +1,11 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LayoutDashboard, User, FileText, Receipt, FileCheck, LogOut } from 'lucide-react';
+import { useTenant } from '../../contexts/TenantContext';
+import { LayoutDashboard, User, FileText, Receipt, FileCheck, LogOut, Shield, Settings } from 'lucide-react';
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { currentTenant, currentRole, isAdmin } = useTenant();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -15,10 +17,22 @@ export function DashboardLayout() {
   const navItems = [
     { path: '/dashboard', label: 'Portfolio', icon: LayoutDashboard },
     { path: '/dashboard/profile', label: 'Profile', icon: User },
+    { path: '/dashboard/security', label: 'Security', icon: Shield },
     { path: '/dashboard/transactions', label: 'Transactions', icon: FileText },
     { path: '/dashboard/tax-documents', label: 'Tax Documents', icon: Receipt },
     { path: '/dashboard/certificates', label: 'Certificates', icon: FileCheck },
   ];
+
+  if (isAdmin) {
+    navItems.push({ path: '/dashboard/admin', label: 'Admin', icon: Settings });
+  }
+
+  const roleLabels: Record<string, string> = {
+    'PLATFORM_ADMIN': 'Platform Admin',
+    'TENANT_ADMIN': 'Admin',
+    'TENANT_STAFF': 'Staff',
+    'SHAREHOLDER': 'Shareholder',
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -28,6 +42,16 @@ export function DashboardLayout() {
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
                 <h1 className="text-xl font-bold text-indigo-600">tableicty</h1>
+                {currentTenant && (
+                  <div className="ml-4 flex items-center gap-2 pl-4 border-l border-gray-200">
+                    <span className="text-sm font-medium text-gray-700">{currentTenant.name}</span>
+                    {currentRole && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        {roleLabels[currentRole] || currentRole}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 {navItems.map((item) => {
