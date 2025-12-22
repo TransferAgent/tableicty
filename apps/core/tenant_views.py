@@ -361,10 +361,22 @@ def accept_invitation(request, token):
 @permission_classes([IsAuthenticated])
 def current_tenant_view(request):
     """Get the current user's tenant information."""
-    tenant = getattr(request, 'tenant', None)
-    role = getattr(request, 'tenant_role', None)
+    tenant_lazy = getattr(request, 'tenant', None)
+    role_lazy = getattr(request, 'tenant_role', None)
     
-    if not tenant:
+    try:
+        tenant = tenant_lazy.id if tenant_lazy else None
+        if tenant:
+            tenant = tenant_lazy
+    except AttributeError:
+        tenant = None
+    
+    try:
+        role = str(role_lazy) if role_lazy and str(role_lazy) else None
+    except (AttributeError, TypeError):
+        role = None
+    
+    if not tenant or not hasattr(tenant, 'id'):
         memberships = TenantMembership.objects.filter(user=request.user).select_related('tenant')
         
         if not memberships.exists():

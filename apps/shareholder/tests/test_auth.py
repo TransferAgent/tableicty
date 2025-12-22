@@ -2,7 +2,7 @@ import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
-from apps.core.models import Shareholder
+from apps.core.models import Shareholder, Tenant, TenantMembership
 
 
 @pytest.fixture
@@ -12,14 +12,27 @@ def api_client():
 
 
 @pytest.fixture
-def registered_user_and_shareholder(db):
-    """Create a user and separate shareholder record (no FK relationship)"""
+def test_tenant(db):
+    """Create a test tenant."""
+    return Tenant.objects.create(
+        name='Test Tenant',
+        slug='test-tenant',
+        primary_email='admin@test-tenant.com',
+        status='ACTIVE'
+    )
+
+
+@pytest.fixture
+def registered_user_and_shareholder(db, test_tenant):
+    """Create a user with linked shareholder record and tenant membership."""
     user = User.objects.create_user(
         username='testuser@example.com',
         email='testuser@example.com',
         password='TestPass123!'
     )
     shareholder = Shareholder.objects.create(
+        user=user,
+        tenant=test_tenant,
         email='testuser@example.com',
         first_name='Test',
         last_name='User',
@@ -29,6 +42,11 @@ def registered_user_and_shareholder(db):
         state='TS',
         zip_code='12345',
         country='US'
+    )
+    TenantMembership.objects.create(
+        tenant=test_tenant,
+        user=user,
+        role='SHAREHOLDER'
     )
     return {'user': user, 'shareholder': shareholder}
 

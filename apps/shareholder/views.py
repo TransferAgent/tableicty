@@ -128,17 +128,34 @@ class ShareholderLogoutView(generics.GenericAPIView):
 def current_user_view(request):
     user_data = UserSerializer(request.user).data
     
-    tenant = getattr(request, 'tenant', None)
-    role = getattr(request, 'tenant_role', None)
+    tenant_lazy = getattr(request, 'tenant', None)
+    role_lazy = getattr(request, 'tenant_role', None)
     mfa_verified = getattr(request, 'mfa_verified', False)
     
-    user_data['tenant'] = {
-        'id': str(tenant.id) if tenant else None,
-        'name': tenant.name if tenant else None,
-        'slug': tenant.slug if tenant else None,
-    } if tenant else None
+    try:
+        tenant = tenant_lazy.id if tenant_lazy else None
+        if tenant:
+            tenant = tenant_lazy
+    except AttributeError:
+        tenant = None
+    
+    try:
+        role = str(role_lazy) if role_lazy and str(role_lazy) else None
+    except (AttributeError, TypeError):
+        role = None
+    
+    if tenant and hasattr(tenant, 'id'):
+        user_data['tenant'] = {
+            'id': str(tenant.id),
+            'name': tenant.name,
+            'slug': tenant.slug,
+        }
+    else:
+        user_data['tenant'] = None
+        tenant = None
+    
     user_data['role'] = role
-    user_data['mfa_verified'] = mfa_verified
+    user_data['mfa_verified'] = bool(mfa_verified)
     
     if not tenant:
         memberships = TenantMembership.objects.filter(user=request.user).select_related('tenant')
