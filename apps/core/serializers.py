@@ -31,6 +31,8 @@ class TenantRegistrationSerializer(serializers.Serializer):
 
 class SubscriptionPlanSerializer(serializers.ModelSerializer):
     """Serializer for subscription plans."""
+    id = serializers.CharField(read_only=True)
+    
     class Meta:
         model = SubscriptionPlan
         fields = ['id', 'name', 'slug', 'tier', 'price_monthly', 'price_yearly',
@@ -40,12 +42,13 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     """Serializer for subscriptions."""
+    id = serializers.CharField(read_only=True)
     plan = SubscriptionPlanSerializer(read_only=True)
     
     class Meta:
         model = Subscription
-        fields = ['id', 'plan', 'status', 'trial_ends_at', 'current_period_start',
-                  'current_period_end', 'cancel_at_period_end']
+        fields = ['id', 'plan', 'status', 'trial_start', 'trial_end',
+                  'current_period_start', 'current_period_end', 'cancel_at_period_end']
         read_only_fields = fields
 
 

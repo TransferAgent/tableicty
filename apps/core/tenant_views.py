@@ -70,14 +70,16 @@ class TenantRegistrationView(generics.CreateAPIView):
         
         starter_plan = SubscriptionPlan.objects.filter(name='Starter').first()
         if starter_plan:
-            trial_end = timezone.now() + timezone.timedelta(days=14)
+            trial_start = timezone.now()
+            trial_end_date = trial_start + timezone.timedelta(days=14)
             Subscription.objects.create(
                 tenant=tenant,
                 plan=starter_plan,
                 status='TRIALING',
-                trial_ends_at=trial_end,
-                current_period_start=timezone.now(),
-                current_period_end=trial_end
+                trial_start=trial_start,
+                trial_end=trial_end_date,
+                current_period_start=trial_start,
+                current_period_end=trial_end_date
             )
         
         user = User.objects.create_user(
@@ -392,6 +394,6 @@ def current_tenant_view(request):
         'subscription': {
             'plan': subscription.plan.name if subscription and subscription.plan else None,
             'status': subscription.status if subscription else None,
-            'trial_ends_at': subscription.trial_ends_at.isoformat() if subscription and subscription.trial_ends_at else None
+            'trial_end': subscription.trial_end.isoformat() if subscription and subscription.trial_end else None
         } if subscription else None
     })
