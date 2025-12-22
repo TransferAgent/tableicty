@@ -129,10 +129,18 @@ The project is organized into `config/` for Django settings, `apps/` containing 
 - All 74 backend tests passing, 76% coverage
 - Architect reviewed and security fixes applied
 
-**Phase 3: Tenant-Aware APIs (NEXT)**
-- Update all endpoints for tenant context
-- Tenant self-registration API
-- Shareholder invite API
+**Phase 3: Tenant-Aware APIs (✅ COMPLETE - December 22, 2025)**
+- All 7 admin API viewsets updated with TenantQuerySetMixin and TenantScopedPermission for automatic tenant isolation
+- Tenant self-registration API in `apps/core/tenant_views.py` - creates tenant, admin user, 14-day trial subscription
+- Tenant settings management - GET/PUT for tenant details (admin only)
+- Member management API - list, remove members with role-based access
+- Invitation system - create/validate/accept invitations with role restrictions
+- Current tenant endpoint - returns tenant context or available tenants for multi-tenant users
+- Fixed SimpleLazyObject serialization in current_user_view and current_tenant_view
+- Updated serializers to match model fields (trial_end, primary_email, etc.)
+- 18 new tenant API tests in `apps/core/tests/test_tenant_api.py`
+- All 92 backend tests passing, 76% coverage
+- Architect reviewed and approved
 
 **Phase 4: Frontend Updates (PENDING)**
 - MFA setup/verification UI
