@@ -432,3 +432,211 @@ def subscription_plans_view(request):
     } for plan in plans]
     
     return Response(plans_data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def billing_status_view(request):
+    """
+    Get current billing/subscription status for the tenant.
+    """
+    from django.conf import settings
+    from apps.core.stripe import is_stripe_configured
+    
+    tenant = getattr(request, 'tenant', None)
+    if not tenant:
+        return Response(
+            {'error': 'No tenant context'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    subscription = Subscription.objects.filter(tenant=tenant).select_related('plan').first()
+    
+    response_data = {
+        'stripe_configured': is_stripe_configured(),
+        'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY if is_stripe_configured() else None,
+        'subscription': None,
+    }
+    
+    if subscription:
+        response_data['subscription'] = {
+            'id': str(subscription.id),
+            'status': subscription.status,
+            'billing_cycle': subscription.billing_cycle,
+            'plan': {
+                'id': str(subscription.plan.id),
+                'name': subscription.plan.name,
+                'tier': subscription.plan.tier,
+                'price_monthly': str(subscription.plan.price_monthly),
+                'price_yearly': str(subscription.plan.price_yearly),
+                'max_shareholders': subscription.plan.max_shareholders,
+                'max_transfers_per_month': subscription.plan.max_transfers_per_month,
+                'max_users': subscription.plan.max_users,
+            } if subscription.plan else None,
+            'trial_end': subscription.trial_end.isoformat() if subscription.trial_end else None,
+            'current_period_end': subscription.current_period_end.isoformat() if subscription.current_period_end else None,
+        }
+    
+    return Response(response_data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_checkout_session_view(request):
+    """
+    Create a Stripe Checkout session for subscribing to a plan.
+    Requires TENANT_ADMIN role.
+    """
+    from apps.core.services.billing import billing_service
+    from apps.core.stripe import is_stripe_configured
+    
+    if not is_stripe_configured():
+        return Response(
+            {'error': 'Stripe is not configured'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+    
+    tenant = getattr(request, 'tenant', None)
+    role = getattr(request, 'tenant_role', None)
+    
+    if not tenant:
+        return Response(
+            {'error': 'No tenant context'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if role not in ['PLATFORM_ADMIN', 'TENANT_ADMIN']:
+        return Response(
+            {'error': 'Only admins can manage billing'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    plan_id = request.data.get('plan_id')
+    billing_cycle = request.data.get('billing_cycle', 'monthly')
+    
+    if not plan_id:
+        return Response(
+            {'error': 'plan_id is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+    except SubscriptionPlan.DoesNotExist:
+        return Response(
+            {'error': 'Invalid plan'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    try:
+        result = billing_service.create_checkout_session(
+            tenant=tenant,
+            plan=plan,
+            billing_cycle=billing_cycle,
+        )
+        return Response(result)
+    except ValueError as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        return Response(
+            {'error': 'Failed to create checkout session'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_portal_session_view(request):
+    """
+    Create a Stripe Billing Portal session for managing subscription.
+    Requires TENANT_ADMIN role.
+    """
+    from apps.core.services.billing import billing_service
+    from apps.core.stripe import is_stripe_configured
+    
+    if not is_stripe_configured():
+        return Response(
+            {'error': 'Stripe is not configured'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+    
+    tenant = getattr(request, 'tenant', None)
+    role = getattr(request, 'tenant_role', None)
+    
+    if not tenant:
+        return Response(
+            {'error': 'No tenant context'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if role not in ['PLATFORM_ADMIN', 'TENANT_ADMIN']:
+        return Response(
+            {'error': 'Only admins can manage billing'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    if not tenant.stripe_customer_id:
+        return Response(
+            {'error': 'No billing account set up. Subscribe to a plan first.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        result = billing_service.create_billing_portal_session(tenant)
+        return Response(result)
+    except Exception as e:
+        return Response(
+            {'error': 'Failed to create portal session'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cancel_subscription_view(request):
+    """
+    Cancel the tenant's subscription.
+    Requires TENANT_ADMIN role.
+    """
+    from apps.core.services.billing import billing_service
+    from apps.core.stripe import is_stripe_configured
+    
+    if not is_stripe_configured():
+        return Response(
+            {'error': 'Stripe is not configured'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+    
+    tenant = getattr(request, 'tenant', None)
+    role = getattr(request, 'tenant_role', None)
+    
+    if not tenant:
+        return Response(
+            {'error': 'No tenant context'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if role not in ['PLATFORM_ADMIN', 'TENANT_ADMIN']:
+        return Response(
+            {'error': 'Only admins can manage billing'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    at_period_end = request.data.get('at_period_end', True)
+    
+    try:
+        result = billing_service.cancel_subscription(tenant, at_period_end=at_period_end)
+        return Response(result)
+    except ValueError as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        return Response(
+            {'error': 'Failed to cancel subscription'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -1,7 +1,7 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTenant } from '../../contexts/TenantContext';
-import { LayoutDashboard, User, FileText, Receipt, FileCheck, LogOut, Shield, Settings } from 'lucide-react';
+import { LayoutDashboard, User, FileText, Receipt, FileCheck, LogOut, Shield, Settings, CreditCard } from 'lucide-react';
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();
@@ -25,6 +25,7 @@ export function DashboardLayout() {
 
   if (isAdmin) {
     navItems.push({ path: '/dashboard/admin', label: 'Admin', icon: Settings });
+    navItems.push({ path: '/dashboard/billing', label: 'Billing', icon: CreditCard });
   }
 
   const roleLabels: Record<string, string> = {
