@@ -13,7 +13,7 @@ interface Member {
 }
 
 export function AdminPage() {
-  const { currentTenant, isAdmin, isPlatformAdmin } = useTenant();
+  const { isAdmin, isPlatformAdmin } = useTenant();
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
