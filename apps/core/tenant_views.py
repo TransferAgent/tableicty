@@ -400,9 +400,23 @@ def current_tenant_view(request):
     
     subscription = Subscription.objects.filter(tenant=tenant).first()
     
+    memberships = TenantMembership.objects.filter(user=request.user).select_related('tenant')
+    available_tenants = [{
+        'id': str(m.tenant.id),
+        'name': m.tenant.name,
+        'slug': m.tenant.slug,
+        'role': m.role,
+        'tenant': {
+            'id': str(m.tenant.id),
+            'name': m.tenant.name,
+            'slug': m.tenant.slug,
+        }
+    } for m in memberships]
+    
     return Response({
-        'tenant': TenantSerializer(tenant).data,
-        'role': role,
+        'current_tenant': TenantSerializer(tenant).data,
+        'current_role': role,
+        'available_tenants': available_tenants,
         'subscription': {
             'plan': subscription.plan.name if subscription and subscription.plan else None,
             'status': subscription.status if subscription else None,
