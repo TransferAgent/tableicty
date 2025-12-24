@@ -233,7 +233,18 @@ class APIClient {
     const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
       ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
       : '/api/v1/tenant';
-    const response = await axios.post(`${tenantBaseUrl}/register/`, data, {
+    
+    // Transform frontend field names to backend expected names
+    const backendData = {
+      company_name: data.tenant_name,
+      company_slug: data.tenant_slug,
+      email: data.admin_email,
+      password: data.admin_password,
+      first_name: data.admin_first_name,
+      last_name: data.admin_last_name,
+    };
+    
+    const response = await axios.post(`${tenantBaseUrl}/register/`, backendData, {
       withCredentials: true,
       headers: { 'Content-Type': 'application/json' },
     });
