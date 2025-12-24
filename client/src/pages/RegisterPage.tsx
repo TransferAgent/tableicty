@@ -135,10 +135,18 @@ export function RegisterPage() {
             </button>
           </div>
 
-          <div className="text-sm text-center">
-            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-              Already have an account? Sign in
-            </Link>
+          <div className="text-sm text-center space-y-2">
+            <p>
+              <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                Already have an account? Sign in
+              </Link>
+            </p>
+            <p className="text-gray-500">
+              Want to create a new company account?{' '}
+              <Link to="/onboarding" className="font-medium text-indigo-600 hover:text-indigo-500">
+                Get started here
+              </Link>
+            </p>
           </div>
         </form>
       </div>
