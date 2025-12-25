@@ -351,7 +351,10 @@ else:
     STRIPE_PUBLISHABLE_KEY = env('STRIPE_PUBLISHABLE_KEY', default='')
     STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='')
 
-FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5000')
+if IS_PRODUCTION:
+    FRONTEND_URL = env('FRONTEND_URL', default='https://tableicty.com')
+else:
+    FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5000')
 
 LOGGING = {
     'version': 1,
