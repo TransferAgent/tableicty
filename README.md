@@ -523,3 +523,31 @@ Built with:
 
 **Production Ready**: November 20, 2025
 **Status**: Step 2 Complete - 86/86 tests passing ✅
+
+# Security Documentation
+
+**Owner:** Technology Chief  
+**Last Updated:** December 25, 2025  
+**Status:** In Progress  
+
+## Overview
+Security policies, procedures, and architecture documentation for Tableicty platform.
+
+## Documents
+
+### Policies & Procedures
+- [Incident Response Plan](incident-response-plan.md) - **DRAFT** ⚠️ OVERDUE (Due: Dec 20)
+- [Vendor Management Policy](vendor-management.md) - **DRAFT**
+
+### Status Legend
+- ✅ **COMPLETE** - Reviewed and approved
+- 🟡 **DRAFT** - In progress, pending review
+- ⏸️ **PLANNED** - Not yet started
+
+## Contact
+- **Technology Chief:** [email]
+- **Security Chief:** [email]
+- **CEO:** judy@tableicty.com
+
+---
+*Documentation is confidential and proprietary to Tableicty.*
