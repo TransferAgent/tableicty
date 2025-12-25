@@ -61,6 +61,9 @@ class BillingService:
         """
         Create a Stripe Checkout session for subscription.
         
+        Uses dynamic price_data for flexibility - no pre-configured Stripe prices needed.
+        Database is the single source of truth for pricing.
+        
         Args:
             tenant: The tenant subscribing
             plan: The subscription plan
@@ -73,21 +76,42 @@ class BillingService:
         """
         customer_id = self.get_or_create_customer(tenant)
         
+        # Use pre-configured Stripe price ID if available, otherwise use dynamic price_data
         price_id = (
             plan.stripe_price_id_yearly if billing_cycle == 'yearly'
             else plan.stripe_price_id_monthly
         )
         
-        if not price_id:
-            raise ValueError(f"Plan {plan.name} does not have a Stripe price ID for {billing_cycle} billing")
+        if price_id:
+            # Use pre-configured Stripe price
+            line_items = [{
+                'price': price_id,
+                'quantity': 1,
+            }]
+        else:
+            # Use dynamic price_data (database is source of truth)
+            price = plan.price_yearly if billing_cycle == 'yearly' else plan.price_monthly
+            interval = 'year' if billing_cycle == 'yearly' else 'month'
+            
+            line_items = [{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': f"{plan.name} Plan",
+                        'description': f"tableicty {plan.name} subscription - {plan.max_shareholders} shareholders, {plan.max_users} users",
+                    },
+                    'unit_amount': int(price * 100),  # Convert dollars to cents
+                    'recurring': {
+                        'interval': interval,
+                    },
+                },
+                'quantity': 1,
+            }]
         
         session = self.stripe.checkout.Session.create(
             customer=customer_id,
             mode='subscription',
-            line_items=[{
-                'price': price_id,
-                'quantity': 1,
-            }],
+            line_items=line_items,
             success_url=success_url or f"{settings.FRONTEND_URL}/dashboard/billing?success=true",
             cancel_url=cancel_url or f"{settings.FRONTEND_URL}/dashboard/billing?canceled=true",
             metadata={
