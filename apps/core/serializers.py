@@ -83,13 +83,17 @@ class TenantMembershipSerializer(serializers.ModelSerializer):
     """Serializer for tenant memberships."""
     id = serializers.CharField(read_only=True)
     user = UserBriefSerializer(read_only=True)
-    user_email = serializers.EmailField(write_only=True, required=False)
+    user_email = serializers.SerializerMethodField(read_only=True)
+    email_input = serializers.EmailField(write_only=True, required=False, source='user_email')
     joined_at = serializers.DateTimeField(source='created_at', read_only=True)
     
     class Meta:
         model = TenantMembership
-        fields = ['id', 'user', 'user_email', 'role', 'joined_at']
-        read_only_fields = ['id', 'user', 'joined_at']
+        fields = ['id', 'user', 'user_email', 'email_input', 'role', 'joined_at']
+        read_only_fields = ['id', 'user', 'user_email', 'joined_at']
+    
+    def get_user_email(self, obj):
+        return obj.user.email if obj.user else None
     
     def validate_role(self, value):
         request = self.context.get('request')

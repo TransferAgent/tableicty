@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { useTenant } from '../contexts/TenantContext';
 import { apiClient } from '../api/client';
 import type { Tenant } from '../types';
+import { Users } from 'lucide-react';
 
 interface Member {
   id: string;
@@ -27,18 +27,21 @@ export function AdminPage() {
 
   const loadAdminData = async () => {
     try {
-      const [tenantData, membersData] = await Promise.all([
-        apiClient.getTenantSettings(),
-        apiClient.getTenantMembers(),
-      ]);
+      const tenantData = await apiClient.getTenantSettings();
       setTenant(tenantData);
-      setMembers(membersData);
     } catch (error) {
-      console.error('Failed to load admin data:', error);
-      toast.error('Failed to load admin data');
-    } finally {
-      setLoading(false);
+      console.error('Failed to load tenant settings:', error);
     }
+    
+    try {
+      const membersData = await apiClient.getTenantMembers();
+      setMembers(membersData || []);
+    } catch (error) {
+      console.error('Failed to load members:', error);
+      setMembers([]);
+    }
+    
+    setLoading(false);
   };
 
   if (!isAdmin) {
@@ -160,8 +163,12 @@ export function AdminPage() {
               </div>
             ))}
             {members.length === 0 && (
-              <div className="p-8 text-center text-gray-500">
-                No team members found. Invite your first team member to get started.
+              <div className="p-12 text-center">
+                <Users className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No team members yet</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Get started by inviting your first team member.
+                </p>
               </div>
             )}
           </div>

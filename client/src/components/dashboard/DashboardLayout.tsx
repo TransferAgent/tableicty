@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTenant } from '../../contexts/TenantContext';
-import { LayoutDashboard, User, FileText, Receipt, FileCheck, LogOut, Shield, Settings, CreditCard } from 'lucide-react';
+import { LayoutDashboard, User, FileText, Receipt, FileCheck, LogOut, Shield, Settings, CreditCard, Menu, X } from 'lucide-react';
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();
   const { currentTenant, currentRole, isAdmin } = useTenant();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -42,7 +44,9 @@ export function DashboardLayout() {
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-xl font-bold text-indigo-600">tableicty</h1>
+                <Link to="/dashboard" className="text-xl font-bold text-indigo-600 hover:text-indigo-700 transition-colors">
+                  tableicty
+                </Link>
                 {currentTenant && (
                   <div className="ml-4 flex items-center gap-2 pl-4 border-l border-gray-200">
                     <span className="text-sm font-medium text-gray-700">{currentTenant.name}</span>
@@ -54,7 +58,7 @@ export function DashboardLayout() {
                   </div>
                 )}
               </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <div className="hidden md:ml-6 md:flex md:space-x-8">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
@@ -76,21 +80,71 @@ export function DashboardLayout() {
               </div>
             </div>
             <div className="flex items-center">
-              <div className="mr-4 text-sm text-gray-700">
+              <div className="hidden sm:block mr-4 text-sm text-gray-700">
                 {user?.first_name} {user?.last_name}
               </div>
               <button
                 onClick={handleLogout}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                className="hidden sm:inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </button>
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
             </div>
           </div>
         </div>
+
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200">
+            <div className="pt-2 pb-3 space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center px-4 py-2 text-base font-medium ${
+                      isActive
+                        ? 'bg-indigo-50 border-l-4 border-indigo-500 text-indigo-700'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5 mr-3" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="pt-4 pb-3 border-t border-gray-200">
+              <div className="px-4 mb-3">
+                <p className="text-sm font-medium text-gray-700">
+                  {user?.first_name} {user?.last_name}
+                </p>
+                <p className="text-xs text-gray-500">{user?.email}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleLogout();
+                }}
+                className="flex w-full items-center px-4 py-2 text-base font-medium text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="w-5 h-5 mr-3" />
+                Logout
+              </button>
+            </div>
+          </div>
+        )}
       </nav>
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <Outlet />
       </main>
     </div>
