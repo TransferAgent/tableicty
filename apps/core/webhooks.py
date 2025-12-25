@@ -31,28 +31,44 @@ def stripe_webhook(request):
     - customer.subscription.deleted
     - invoice.payment_failed
     """
-    payload = request.body
-    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-    
-    if not settings.STRIPE_WEBHOOK_SECRET:
-        logger.error("Stripe webhook secret not configured - STRIPE_WEBHOOK_SECRET is empty")
-        return HttpResponse(status=400)
-    
-    if not sig_header:
-        logger.error("Missing Stripe-Signature header")
-        return HttpResponse(status=400)
+    logger.info("=== STRIPE WEBHOOK RECEIVED ===")
     
     try:
-        stripe_client = get_stripe_client()
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-        )
-    except ValueError as e:
-        logger.error(f"Invalid payload: {e}")
-        return HttpResponse(status=400)
-    except stripe.error.SignatureVerificationError as e:
-        logger.error(f"Invalid signature: {e} - Check STRIPE_WEBHOOK_SECRET matches Stripe Dashboard")
-        return HttpResponse(status=400)
+        payload = request.body
+        sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+        
+        logger.info(f"Webhook payload size: {len(payload)} bytes")
+        logger.info(f"Signature header present: {bool(sig_header)}")
+        
+        webhook_secret = settings.STRIPE_WEBHOOK_SECRET
+        logger.info(f"Webhook secret configured: {bool(webhook_secret)}")
+        if webhook_secret:
+            logger.info(f"Webhook secret starts with: {webhook_secret[:10]}...")
+        
+        if not webhook_secret:
+            logger.error("STRIPE_WEBHOOK_SECRET is empty or not configured")
+            return HttpResponse("Webhook secret not configured", status=400)
+        
+        if not sig_header:
+            logger.error("Missing Stripe-Signature header in request")
+            return HttpResponse("Missing signature header", status=400)
+        
+        try:
+            stripe_client = get_stripe_client()
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, webhook_secret
+            )
+            logger.info(f"Webhook signature verified successfully")
+        except ValueError as e:
+            logger.error(f"Invalid payload error: {e}", exc_info=True)
+            return HttpResponse(f"Invalid payload: {e}", status=400)
+        except stripe.error.SignatureVerificationError as e:
+            logger.error(f"Signature verification failed: {e}", exc_info=True)
+            logger.error(f"This usually means STRIPE_WEBHOOK_SECRET doesn't match Stripe Dashboard")
+            return HttpResponse(f"Signature verification failed: {e}", status=400)
+    except Exception as e:
+        logger.exception(f"Unexpected error in webhook setup: {e}")
+        return HttpResponse(f"Webhook error: {e}", status=400)
     
     event_type = event['type']
     data = event['data']['object']
