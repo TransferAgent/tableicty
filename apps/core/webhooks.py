@@ -6,6 +6,7 @@ Handles subscription lifecycle events from Stripe.
 import logging
 from datetime import datetime
 
+import stripe
 from django.conf import settings
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -34,11 +35,15 @@ def stripe_webhook(request):
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
     
     if not settings.STRIPE_WEBHOOK_SECRET:
-        logger.warning("Stripe webhook secret not configured")
+        logger.error("Stripe webhook secret not configured - STRIPE_WEBHOOK_SECRET is empty")
+        return HttpResponse(status=400)
+    
+    if not sig_header:
+        logger.error("Missing Stripe-Signature header")
         return HttpResponse(status=400)
     
     try:
-        stripe = get_stripe_client()
+        stripe_client = get_stripe_client()
         event = stripe.Webhook.construct_event(
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
@@ -46,7 +51,7 @@ def stripe_webhook(request):
         logger.error(f"Invalid payload: {e}")
         return HttpResponse(status=400)
     except stripe.error.SignatureVerificationError as e:
-        logger.error(f"Invalid signature: {e}")
+        logger.error(f"Invalid signature: {e} - Check STRIPE_WEBHOOK_SECRET matches Stripe Dashboard")
         return HttpResponse(status=400)
     
     event_type = event['type']
