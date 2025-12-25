@@ -9,7 +9,6 @@ import { SkeletonTable } from '../components/SkeletonTable';
 export function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transfer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transfer | null>(null);
   
   const [filters, setFilters] = useState({
@@ -35,13 +34,12 @@ export function TransactionsPage() {
       if (filters.year) params.year = filters.year;
       
       const response = await apiClient.getTransactions(params);
-      setTransactions(response.transfers);
-      setTotalPages(Math.ceil(response.count / pageSize));
+      setTransactions(response.transfers || []);
+      setTotalPages(Math.ceil((response.count || 0) / pageSize));
     } catch (err: any) {
-      const message = err.response?.data?.error || 'Failed to load transactions';
-      setError(message);
-      toast.error(message);
-      console.error(err);
+      console.error('Failed to load transactions:', err);
+      setTransactions([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -199,12 +197,6 @@ export function TransactionsPage() {
           </div>
         </div>
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <p className="text-sm text-red-800">{error}</p>
-        </div>
-      )}
 
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
         {loading ? (
