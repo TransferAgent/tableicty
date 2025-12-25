@@ -4,6 +4,10 @@ import { useTenant } from '../contexts/TenantContext';
 import toast from 'react-hot-toast';
 import type { BillingStatus, SubscriptionPlan } from '../types';
 
+const formatLimit = (value: number): string => {
+  return value === -1 ? 'Unlimited' : value.toLocaleString();
+};
+
 export default function BillingPage() {
   const { isAdmin } = useTenant();
   const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null);
@@ -158,15 +162,15 @@ export default function BillingPage() {
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
                   <div>
                     <p className="text-sm text-gray-500">Max Shareholders</p>
-                    <p className="text-lg font-medium">{currentPlan.max_shareholders.toLocaleString()}</p>
+                    <p className="text-lg font-medium">{formatLimit(currentPlan.max_shareholders)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Max Transfers/Month</p>
-                    <p className="text-lg font-medium">{currentPlan.max_transfers_per_month}</p>
+                    <p className="text-lg font-medium">{formatLimit(currentPlan.max_transfers_per_month)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Max Users</p>
-                    <p className="text-lg font-medium">{currentPlan.max_users}</p>
+                    <p className="text-lg font-medium">{formatLimit(currentPlan.max_users)}</p>
                   </div>
                 </div>
               )}
@@ -273,19 +277,19 @@ export default function BillingPage() {
                         <svg className="h-5 w-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
-                        Up to {plan.max_shareholders.toLocaleString()} shareholders
+                        Up to {formatLimit(plan.max_shareholders)} shareholders
                       </li>
                       <li className="flex items-center text-sm text-gray-600">
                         <svg className="h-5 w-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
-                        {plan.max_transfers_per_month} transfers/month
+                        {formatLimit(plan.max_transfers_per_month)} transfers/month
                       </li>
                       <li className="flex items-center text-sm text-gray-600">
                         <svg className="h-5 w-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
-                        {plan.max_users} team members
+                        {formatLimit(plan.max_users)} team members
                       </li>
                     </ul>
                     <button
