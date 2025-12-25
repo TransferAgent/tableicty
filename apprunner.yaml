@@ -1,0 +1,18 @@
+version: 1.0
+runtime: python311
+build:
+  commands:
+    pre-build:
+      - pip install --upgrade pip
+    build:
+      - pip install -r requirements.txt
+    post-build:
+      - python manage.py collectstatic --noinput
+run:
+  runtime-version: 3.11
+  command: gunicorn --bind=0.0.0.0:8000 --workers=4 --timeout=120 --reuse-port config.wsgi:application
+  network:
+    port: 8000
+  env:
+    - name: PYTHONUNBUFFERED
+      value: "1"
