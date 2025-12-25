@@ -1,0 +1,54 @@
+2025-12-25T07:59:27.702Z
+169.254.172.2 - - [25/Dec/2025:07:59:27 +0000] "GET /api/v1/shareholder/health HTTP/1.1" 200 2 "-" "Go-http-client/1.1"
+2025-12-25T07:59:35.609Z
+Received Stripe webhook: checkout.session.completed
+2025-12-25T07:59:35.634Z
+Error handling webhook checkout.session.completed: Subscription() got unexpected keyword arguments: 'stripe_customer_id'
+2025-12-25T07:59:35.634Z
+Traceback (most recent call last):
+2025-12-25T07:59:35.634Z
+File "/app/apps/core/webhooks.py", line 59, in stripe_webhook
+2025-12-25T07:59:35.634Z
+handle_checkout_completed(data)
+2025-12-25T07:59:35.634Z
+File "/app/apps/core/webhooks.py", line 115, in handle_checkout_completed
+2025-12-25T07:59:35.634Z
+Subscription.objects.create(
+2025-12-25T07:59:35.634Z
+File "/usr/local/lib/python3.11/site-packages/django/db/models/manager.py", line 87, in manager_method
+2025-12-25T07:59:35.634Z
+return getattr(self.get_queryset(), name)(*args, **kwargs)
+2025-12-25T07:59:35.634Z
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-25T07:59:35.634Z
+File "/usr/local/lib/python3.11/site-packages/django/db/models/query.py", line 656, in create
+2025-12-25T07:59:35.634Z
+obj = self.model(**kwargs)
+2025-12-25T07:59:35.634Z
+^^^^^^^^^^^^^^^^^^^^
+2025-12-25T07:59:35.634Z
+File "/usr/local/lib/python3.11/site-packages/django/db/models/base.py", line 567, in __init__
+2025-12-25T07:59:35.634Z
+raise TypeError(
+2025-12-25T07:59:35.634Z
+TypeError: Subscription() got unexpected keyword arguments: 'stripe_customer_id'
+2025-12-25T07:59:35.635Z
+Internal Server Error: /api/v1/tenant/webhooks/stripe/
+2025-12-25T07:59:35.635Z
+169.254.172.2 - - [25/Dec/2025:07:59:35 +0000] "POST /api/v1/tenant/webhooks/stripe/ HTTP/1.1" 500 0 "-" "Stripe/1.0 (+https://stripe.com/docs/webhooks)"
+2025-12-25T07:59:37.701Z
+169.254.172.2 - - [25/Dec/2025:07:59:37 +0000] "GET /api/v1/shareholder/health HTTP/1.1" 200 2 "-" "Go-http-client/1.1"
+2025-12-25T07:59:41.167Z
+Invalid signature: No signatures found matching the expected signature for payload
+2025-12-25T07:59:41.167Z
+Bad Request: /api/v1/tenant/webhooks/stripe/
+2025-12-25T07:59:41.167Z
+169.254.172.2 - - [25/Dec/2025:07:59:41 +0000] "POST /api/v1/tenant/webhooks/stripe/ HTTP/1.1" 400 0 "-" "Stripe/1.0 (+https://stripe.com/docs/webhooks)"
+2025-12-25T07:59:47.701Z
+169.254.172.2 - - [25/Dec/2025:07:59:47 +0000] "GET /api/v1/shareholder/health HTTP/1.1" 200 2 "-" "Go-http-client/1.1"
+2025-12-25T07:59:54.693Z
+Invalid signature: No signatures found matching the expected signature for payload
+2025-12-25T07:59:54.693Z
+Bad Request: /api/v1/tenant/webhooks/stripe/
+2025-12-25T07:59:54.693Z
+169.254.172.2 - - [25/Dec/2025:07:59:54 +0000] "POST /api/v1/tenant/webhooks/stripe/ HTTP/1.1" 400 0 "-" "Stripe/1.0 (+https://stripe.com/docs/webhooks)"

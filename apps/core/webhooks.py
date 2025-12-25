@@ -130,17 +130,17 @@ def handle_checkout_completed(session):
             subscription.billing_cycle = billing_cycle.upper()
             subscription.status = 'ACTIVE'
             subscription.stripe_subscription_id = subscription_id
-            subscription.stripe_customer_id = customer_id
             subscription.save()
+            logger.info(f"Updated subscription {subscription.id} to plan {plan.name}")
         else:
-            Subscription.objects.create(
+            subscription = Subscription.objects.create(
                 tenant=tenant,
                 plan=plan,
                 billing_cycle=billing_cycle.upper(),
                 status='ACTIVE',
                 stripe_subscription_id=subscription_id,
-                stripe_customer_id=customer_id,
             )
+            logger.info(f"Created subscription {subscription.id} for tenant {tenant_id}")
     
     logger.info(f"Checkout completed for tenant {tenant_id}")
 
