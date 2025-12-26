@@ -1,0 +1,1112 @@
+TABLEICTY PLATFORM ASSESSMENT
+Security, Architecture & Multi-Tenant Readiness Review
+Assessment Date: December 15, 2025
+Reviewed By: Judy - Jr. Engineer, DTCC Integration Middleware
+Platform Version: Step 2 Complete (86/86 tests passing)
+Mission: Transform single-tenant application to multi-tenant SaaS platform with 2FA and DTCC-ready architecture
+
+📊 EXECUTIVE SUMMARY
+Current State Assessment
+Platform: Django 4.2 + React 18 + PostgreSQL 15
+Status: Production-ready single-tenant application
+Security Posture: ⭐⭐⭐⭐☆ (4/5 - Good but needs enhancement)
+Multi-Tenant Readiness: ⚠️ 30% - Significant refactoring required
+DTCC Integration Readiness: ⚠️ 25% - Foundation exists but missing critical components
+
+Key Findings
+✅ Strengths Identified:
+
+Strong security foundation (httpOnly cookies, PII encryption, audit trails)
+Clean API-first architecture
+Comprehensive test coverage (86/86 tests, 75% coverage)
+Modern tech stack (Django REST Framework, React + TypeScript)
+🚨 Critical Gaps:
+
+No multi-tenancy architecture (tenant isolation missing)
+No 2FA/MFA implementation (framework ready but not activated)
+Single-user authentication (no role-based access for multiple issuers)
+No tenant-aware routing or data segregation
+Missing DTCC middleware layer (Phase 1 requirement)
+Recommendations Priority
+IMMEDIATE (Weeks 1-2): Implement multi-tenancy data model + 2FA
+HIGH (Weeks 3-4): Build tenant isolation layer + RBAC
+MEDIUM (Weeks 5-8): DTCC middleware integration (Task A1-C deliverables)
+ONGOING: Security hardening + compliance preparation
+🔍 DETAILED ARCHITECTURE ANALYSIS
+Current Architecture (Single-Tenant)
+┌─────────────────────────────────────────────────────────┐
+│                   FRONTEND (React)                      │
+│  - Shareholder Portal (Dashboard, Transactions, etc.)  │
+│  - Login/Register (JWT-based authentication)           │
+│  - Client-side routing (React Router)                  │
+└─────────────────┬───────────────────────────────────────┘
+                  │ REST API (JSON)
+                  │ httpOnly cookie auth
+┌─────────────────▼───────────────────────────────────────┐
+│              BACKEND (Django 4.2)                       │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  apps/shareholder/ (Shareholder API)            │   │
+│  │   - Authentication (Register/Login/Logout)      │   │
+│  │   - Portfolio API (Holdings, Transactions)      │   │
+│  │   - Profile Management                          │   │
+│  └─────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  apps/core/ (Business Logic)                    │   │
+│  │   - Models: Issuer, Shareholder, Holding, etc.  │   │
+│  │   - Signals: Audit log immutability             │   │
+│  └─────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  apps/api/ (Legacy API - Step 1)                │   │
+│  └─────────────────────────────────────────────────┘   │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────┐
+│           DATABASE (PostgreSQL 15)                      │
+│  - Shareholder table (users)                            │
+│  - Issuer table (companies)                             │
+│  - Holding table (shareholder positions)                │
+│  - Transfer table (transaction history)                 │
+│  - AuditLog table (immutable audit trail)               │
+│  - PII encrypted with pgcrypto (AES-256)                │
+└─────────────────────────────────────────────────────────┘
+Analysis:
+
+✅ Clean separation of concerns
+✅ API-first design (good for future expansion)
+❌ No tenant concept (all data assumes single TA)
+❌ No DTCC middleware layer
+❌ Shareholder-only portal (no issuer/admin multi-role)
+Target Architecture (Multi-Tenant + DTCC)
+┌─────────────────────────────────────────────────────────────────┐
+│                   FRONTEND (React)                              │
+│  ┌──────────────────────┐  ┌──────────────────────────────┐   │
+│  │ Shareholder Portal   │  │   Issuer/Admin Portal        │   │
+│  │ (Current)            │  │   (NEW - Step 3)             │   │
+│  └──────────────────────┘  └──────────────────────────────┘   │
+│           ↓ JWT with tenant_id                    ↓            │
+└───────────┼───────────────────────────────────────┼────────────┘
+            │                                       │
+            ├───────────────┬───────────────────────┤
+            │               │                       │
+┌───────────▼───────────────▼───────────────────────▼────────────┐
+│              BACKEND (Django 4.2 + Go Middleware)              │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  AUTHENTICATION LAYER (NEW)                             │  │
+│  │   - Multi-tenant JWT (tenant_id in claims)              │  │
+│  │   - 2FA/MFA (django-otp activation)                     │  │
+│  │   - Role-based access control (Shareholder/Issuer/Admin)│  │
+│  └─────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  TENANT ISOLATION MIDDLEWARE (NEW)                      │  │
+│  │   - Extract tenant_id from JWT                          │  │
+│  │   - Set tenant context for ORM queries                  │  │
+│  │   - Enforce tenant data isolation                       │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  apps/shareholder/ (MODIFY)                             │  │
+│  │   - Add tenant_id filtering to all queries              │  │
+│  │   - Update permissions (tenant-aware)                   │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  apps/issuer/ (NEW - Step 3)                            │  │
+│  │   - Issuer dashboard API                                │  │
+│  │   - Cap table management                                │  │
+│  │   - Transfer approval workflow                          │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  apps/tenant/ (NEW)                                     │  │
+│  │   - Tenant onboarding                                   │  │
+│  │   - Subscription management (Stripe)                    │  │
+│  │   - Billing and invoicing                               │  │
+│  └─────────────────────────────────────────────────────────┘  │
+└────────────────┬────────────────────────────────────────────────┘
+                 │
+                 │ (Future: DTCC Integration)
+                 ▼
+┌────────────────────────────────────────────────────────────────┐
+│         DTCC INTEGRATION MIDDLEWARE (Go) - PHASE 1             │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  Connection Manager (mTLS to DTCC)                      │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  Message Parser (DTCC formats → JSON)                   │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  Message Router (Tenant-aware routing)                  │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  RabbitMQ (Async message queue)                         │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  HashiCorp Vault (Certificate & secrets storage)        │  │
+│  └─────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────────────────────┐
+│           DATABASE (PostgreSQL 15) - MODIFIED                   │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  tenants table (NEW)                                    │  │
+│  │   - id, name, domain, subscription_tier, status         │  │
+│  │   - dtcc_agent_number, dtcc_certificate_id              │  │
+│  │   - created_at, updated_at                              │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  users table (NEW - replaces Shareholder for auth)     │  │
+│  │   - id, email, password_hash, role, tenant_id           │  │
+│  │   - mfa_enabled, mfa_secret, backup_codes               │  │
+│  │   - last_login, is_active                               │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  issuers table (ADD tenant_id FK)                       │  │
+│  │  shareholders table (ADD tenant_id FK)                  │  │
+│  │  holdings table (ADD tenant_id FK)                      │  │
+│  │  transfers table (ADD tenant_id FK)                     │  │
+│  │  certificates table (ADD tenant_id FK)                  │  │
+│  │  auditlog table (ADD tenant_id FK)                      │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  dtcc_transactions table (NEW - Phase 1)                │  │
+│  │   - id, tenant_id, message_type, direction              │  │
+│  │   - payload, response, status, timestamp                │  │
+│  └─────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+🔒 SECURITY ASSESSMENT
+Current Security Implementation (What Exists)
+✅ Strengths
+1. Authentication (httpOnly Cookie JWT)
+
+Implementation: JWT tokens with httpOnly cookies
+Security Benefit: Protects against XSS attacks (JavaScript cannot access tokens)
+Location: apps/shareholder/views.py - Register, Login, Logout, TokenRefresh
+Rating: ⭐⭐⭐⭐⭐ Excellent
+2. PII Encryption (PostgreSQL pgcrypto)
+
+Implementation: AES-256 encryption for tax IDs and sensitive data
+Key Management: Environment variable PGCRYPTO_KEY
+Location: apps/core/models.py - Shareholder model
+Rating: ⭐⭐⭐⭐☆ Good (needs Vault integration)
+3. CSRF Protection
+
+Implementation: SameSite='Strict' cookie attribute
+Security Benefit: Prevents cross-site request forgery
+Location: config/settings.py - CSRF_COOKIE_SAMESITE
+Rating: ⭐⭐⭐⭐⭐ Excellent
+4. Data Isolation (Shareholder-level)
+
+Implementation: Custom permission class IsShareholderOwner
+Test Coverage: 8 tests verify Alice/Bob cannot access each other's data
+Location: apps/shareholder/permissions.py
+Rating: ⭐⭐⭐⭐☆ Good (but not tenant-aware)
+5. Immutable Audit Trail
+
+Implementation: AuditLog model with delete protection via signals
+Compliance: Meets SEC 17Ad-10 recordkeeping requirements
+Location: apps/core/models.py - AuditLog, apps/core/signals.py
+Rating: ⭐⭐⭐⭐⭐ Excellent
+6. Brute Force Protection
+
+Implementation: django-axes (rate limiting after failed logins)
+Location: requirements.txt dependency
+Rating: ⭐⭐⭐⭐☆ Good
+7. HTTPS/TLS (Production)
+
+Implementation: Secure cookie flag when IS_PRODUCTION=True
+Location: config/settings.py
+Rating: ⭐⭐⭐⭐☆ Good
+⚠️ Security Gaps (What's Missing)
+1. NO MULTI-FACTOR AUTHENTICATION (MFA/2FA) - CRITICAL
+Current State:
+
+django-otp installed but NOT activated
+No TOTP generation/verification
+No backup codes
+No MFA enrollment flow
+Risk Level: 🔴 CRITICAL
+
+Single point of failure (password compromise = full account access)
+Regulatory requirement for financial services (SEC, SOC 2)
+Industry standard for transfer agents
+Required Actions:
+
+Activate django-otp in settings
+Create MFA enrollment API endpoints
+Add TOTP verification to login flow
+Generate and securely store backup codes
+Build frontend MFA enrollment UI (QR code, manual entry)
+2. NO TENANT ISOLATION - CRITICAL
+Current State:
+
+All data assumes single transfer agent
+No tenant_id foreign key in any tables
+No tenant context in JWT tokens
+Shareholder permissions are user-level, not tenant-level
+Risk Level: 🔴 CRITICAL for SaaS model
+
+Data leakage between tenants (TA #1 could see TA #2's shareholders)
+Cannot scale to multi-tenant architecture without major refactor
+Compliance violation (data segregation required)
+Required Actions:
+
+Add tenants table (tenant registry)
+Add tenant_id FK to ALL data tables (issuers, shareholders, holdings, transfers, etc.)
+Create TenantMiddleware to set tenant context from JWT
+Update ORM queries with tenant filtering (.filter(tenant_id=current_tenant))
+Add tenant_id to JWT claims
+Write 20+ tests for tenant isolation (TA #1 cannot access TA #2 data)
+3. NO ROLE-BASED ACCESS CONTROL (RBAC) - HIGH
+Current State:
+
+Only "Shareholder" role exists
+No "Issuer", "Admin", "Transfer Agent" roles
+All authenticated users have same permissions
+Risk Level: 🟡 HIGH
+
+Cannot differentiate between shareholder (read-only) and issuer (admin)
+No separation of duties (compliance requirement)
+Limits product functionality (no admin console)
+Required Actions:
+
+Create users table with role field (Shareholder, Issuer, Admin, SuperAdmin)
+Implement role-based permissions (Django groups/permissions)
+Update API views with role checks (@permission_required('issuer'))
+Build permission matrix (see table below)
+4. ENCRYPTION KEY MANAGEMENT - HIGH
+Current State:
+
+PGCRYPTO_KEY stored in environment variable
+No key rotation mechanism
+No hardware security module (HSM)
+Single key for all tenants
+Risk Level: 🟡 HIGH
+
+Key compromise = all PII exposed
+No compliance with SOC 2 key management requirements
+Cannot meet DTCC security standards
+Required Actions:
+
+Integrate HashiCorp Vault for key storage
+Implement automatic key rotation (quarterly)
+Use tenant-specific encryption keys (namespace per tenant)
+Consider AWS KMS for production (HSM-backed)
+5. NO API RATE LIMITING - MEDIUM
+Current State:
+
+Brute force protection on login only (django-axes)
+No rate limiting on API endpoints
+No throttling for expensive operations (cap table export, bulk queries)
+Risk Level: 🟠 MEDIUM
+
+Denial of service (DoS) attacks possible
+Resource exhaustion (expensive queries)
+Cost explosion (excessive database queries)
+Required Actions:
+
+Implement DRF throttling (django-rest-framework)
+Per-user limits (100 requests/minute)
+Per-tenant limits (1000 requests/minute)
+Endpoint-specific limits (cap table export: 5/day)
+6. NO SECRETS MANAGEMENT - MEDIUM
+Current State:
+
+Secrets in .env file (not version-controlled, but still risky)
+Database password in DATABASE_URL
+No rotation mechanism
+Manual secret distribution
+Risk Level: 🟠 MEDIUM
+
+Secrets in plaintext on server filesystem
+No audit trail of secret access
+Manual rotation = error-prone
+Required Actions:
+
+Migrate to AWS Secrets Manager or HashiCorp Vault
+Implement automatic secret rotation (90 days)
+Use IAM roles instead of static credentials (AWS best practice)
+7. WEAK PASSWORD POLICY - MEDIUM
+Current State:
+
+Django default password validation
+No custom requirements (length, complexity, history)
+Risk Level: 🟠 MEDIUM
+
+Weak passwords = easier brute force
+No password history (users can reuse old passwords)
+Required Actions:
+
+Enforce strong password requirements:
+Minimum 12 characters
+Uppercase + lowercase + digits + special chars
+No common passwords (Django's CommonPasswordValidator)
+No password reuse (last 5 passwords)
+Implement password expiration (90 days for admin roles)
+8. NO SESSION MANAGEMENT - MEDIUM
+Current State:
+
+JWT tokens with fixed expiration (15 minutes access, 7 days refresh)
+No idle timeout
+No concurrent session limits
+No force logout on role change
+Risk Level: 🟠 MEDIUM
+
+Stale sessions = security risk
+No control over session lifecycle
+Required Actions:
+
+Implement idle timeout (30 minutes)
+Limit concurrent sessions per user (3 devices max)
+Force logout on role/permission change
+Session revocation API (admin can force logout)
+9. NO SECURITY HEADERS - LOW
+Current State:
+
+Basic CORS configuration
+No Content-Security-Policy (CSP)
+No X-Frame-Options
+No Strict-Transport-Security (HSTS)
+Risk Level: 🟢 LOW (but should be fixed)
+
+Clickjacking attacks possible
+XSS attacks easier without CSP
+Not HTTPS-enforced without HSTS
+Required Actions:
+
+Add django-csp for Content-Security-Policy
+Set X-Frame-Options: DENY
+Set Strict-Transport-Security: max-age=31536000
+Set X-Content-Type-Options: nosniff
+10. NO PENETRATION TESTING - ONGOING
+Current State:
+
+No security audit performed
+No penetration testing
+No vulnerability scanning
+Risk Level: 🟠 MEDIUM (industry standard for financial services)
+
+Required Actions:
+
+Schedule annual penetration testing
+Implement automated vulnerability scanning (Snyk, Dependabot)
+Bug bounty program (future)
+📋 MULTI-TENANT TRANSFORMATION ROADMAP
+Phase 1: Data Model Refactoring (Week 1-2)
+Task 1.1: Create Tenant Registry
+New Table: tenants
+
+CopyCREATE TABLE tenants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(100) UNIQUE NOT NULL,  -- URL-safe identifier
+    domain VARCHAR(255),  -- Custom domain (e.g., acme.tableicty.com)
+    
+    -- Subscription
+    subscription_tier VARCHAR(50) DEFAULT 'basic',  -- basic, professional, enterprise
+    subscription_status VARCHAR(50) DEFAULT 'trial',  -- trial, active, suspended, cancelled
+    trial_ends_at TIMESTAMP,
+    
+    -- DTCC Integration (Future)
+    dtcc_enabled BOOLEAN DEFAULT FALSE,
+    dtcc_agent_number VARCHAR(50),
+    dtcc_certificate_id VARCHAR(100),
+    
+    -- Metadata
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+CREATE INDEX idx_tenants_slug ON tenants(slug);
+CREATE INDEX idx_tenants_domain ON tenants(domain);
+Task 1.2: Add tenant_id to ALL Existing Tables
+Migration Required:
+
+Copy-- Add tenant_id to all data tables
+ALTER TABLE issuers ADD COLUMN tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+ALTER TABLE shareholders ADD COLUMN tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+ALTER TABLE holdings ADD COLUMN tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+ALTER TABLE transfers ADD COLUMN tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+ALTER TABLE certificates ADD COLUMN tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+ALTER TABLE auditlog ADD COLUMN tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+
+-- Create indexes for performance
+CREATE INDEX idx_issuers_tenant ON issuers(tenant_id);
+CREATE INDEX idx_shareholders_tenant ON shareholders(tenant_id);
+CREATE INDEX idx_holdings_tenant ON holdings(tenant_id);
+CREATE INDEX idx_transfers_tenant ON transfers(tenant_id);
+CREATE INDEX idx_certificates_tenant ON certificates(tenant_id);
+CREATE INDEX idx_auditlog_tenant ON auditlog(tenant_id);
+
+-- Add NOT NULL constraint after backfilling data
+ALTER TABLE issuers ALTER COLUMN tenant_id SET NOT NULL;
+ALTER TABLE shareholders ALTER COLUMN tenant_id SET NOT NULL;
+-- ... (repeat for all tables)
+Task 1.3: Create Multi-Tenant User Model
+New Table: users (replaces Shareholder for authentication)
+
+CopyCREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    
+    -- Authentication
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL,  -- shareholder, issuer, admin, superadmin
+    
+    -- MFA/2FA
+    mfa_enabled BOOLEAN DEFAULT FALSE,
+    mfa_secret VARCHAR(100),  -- TOTP secret (encrypted)
+    backup_codes JSONB,  -- Array of hashed backup codes
+    
+    -- Profile
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    phone VARCHAR(20),
+    
+    -- Security
+    last_login TIMESTAMP,
+    failed_login_attempts INT DEFAULT 0,
+    locked_until TIMESTAMP,
+    password_changed_at TIMESTAMP DEFAULT NOW(),
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    is_verified BOOLEAN DEFAULT FALSE,
+    verification_token VARCHAR(100),
+    
+    -- Metadata
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_tenant ON users(tenant_id);
+CREATE INDEX idx_users_role ON users(role);
+Relationship to Shareholder:
+
+users table: Authentication and authorization
+shareholders table: Business data (holdings, tax info, etc.)
+Link: shareholders.user_id FK to users.id (one-to-one)
+Phase 2: Authentication & Authorization (Week 2-3)
+Task 2.1: Implement 2FA/MFA
+Backend Changes:
+
+Activate django-otp
+
+Add to INSTALLED_APPS
+Run migrations for OTP tables
+Create MFA Enrollment API
+
+Copy# apps/auth/views.py
+
+@api_view(['POST'])
+@permission_required('authenticated')
+def mfa_enroll(request):
+    """Generate TOTP secret and QR code for MFA enrollment"""
+    user = request.user
+    totp = pyotp.TOTP(pyotp.random_base32())
+    qr_code_data = totp.provisioning_uri(
+        user.email,
+        issuer_name='Tableicty Transfer Agent'
+    )
+    # Store encrypted secret in user.mfa_secret
+    # Generate backup codes
+    # Return QR code + backup codes
+
+@api_view(['POST'])
+def mfa_verify(request):
+    """Verify TOTP code during enrollment"""
+    code = request.data.get('code')
+    # Verify code matches user's TOTP secret
+    # Set user.mfa_enabled = True
+Update Login Flow
+
+Copy@api_view(['POST'])
+def login(request):
+    user = authenticate(email=email, password=password)
+    if user.mfa_enabled:
+        # Return temporary token (requires MFA)
+        return Response({'requires_mfa': True, 'temp_token': ...})
+    else:
+        # Standard login (issue JWT)
+        return Response({'access': ..., 'refresh': ...})
+
+@api_view(['POST'])
+def mfa_login(request):
+    """Second step of login (MFA verification)"""
+    temp_token = request.data.get('temp_token')
+    mfa_code = request.data.get('code')
+    # Verify temp_token + MFA code
+    # Issue full JWT tokens
+Frontend Changes:
+
+MFA Enrollment UI
+
+Settings page: "Enable 2FA" button
+Display QR code (react-qr-code library)
+Manual entry option (display secret key)
+Backup codes display + download
+MFA Login UI
+
+After password entry, show MFA code input (6 digits)
+"Use backup code" option
+"Remember this device for 30 days" (optional)
+Task 2.2: Multi-Tenant JWT
+Backend Changes:
+
+Add tenant_id to JWT Claims
+
+Copy# apps/auth/serializers.py
+
+def get_token(user):
+    token = RefreshToken.for_user(user)
+    token['tenant_id'] = str(user.tenant_id)
+    token['role'] = user.role
+    return token
+Create Tenant Middleware
+
+Copy# apps/tenant/middleware.py
+
+class TenantMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        # Extract tenant_id from JWT
+        tenant_id = request.auth.get('tenant_id') if request.auth else None
+        
+        # Set threadlocal tenant context
+        if tenant_id:
+            request.tenant = Tenant.objects.get(id=tenant_id)
+            set_current_tenant(request.tenant)
+        
+        response = self.get_response(request)
+        return response
+Update ORM Queries with Tenant Filtering
+
+Copy# Option A: Manual filtering (simple, explicit)
+def list_holdings(request):
+    tenant_id = request.auth['tenant_id']
+    holdings = Holding.objects.filter(tenant_id=tenant_id)
+
+# Option B: Auto-filtering (complex, automatic)
+# Use django-tenant-schemas or custom manager
+class TenantManager(models.Manager):
+    def get_queryset(self):
+        tenant = get_current_tenant()
+        if tenant:
+            return super().get_queryset().filter(tenant_id=tenant.id)
+        return super().get_queryset()
+Task 2.3: Role-Based Access Control (RBAC)
+Backend Changes:
+
+Define Permission Matrix
+
+Copy# apps/auth/permissions.py
+
+ROLE_PERMISSIONS = {
+    'shareholder': [
+        'view_own_holdings',
+        'view_own_transactions',
+        'request_certificate_conversion',
+        'update_own_profile'
+    ],
+    'issuer': [
+        'view_tenant_shareholders',
+        'view_tenant_holdings',
+        'approve_transfers',
+        'generate_cap_table',
+        'view_audit_logs'
+    ],
+    'admin': [
+        'manage_tenant_users',
+        'configure_tenant_settings',
+        'view_billing',
+        'manage_dtcc_integration'
+    ],
+    'superadmin': ['*']  # All permissions
+}
+Create Permission Decorators
+
+Copydef require_role(*allowed_roles):
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapped_view(request, *args, **kwargs):
+            if request.user.role not in allowed_roles:
+                return Response({'error': 'Forbidden'}, status=403)
+            return view_func(request, *args, **kwargs)
+        return wrapped_view
+    return decorator
+
+# Usage:
+@require_role('issuer', 'admin')
+def approve_transfer(request, transfer_id):
+    # Only issuers and admins can approve transfers
+    ...
+Phase 3: Tenant Onboarding & Management (Week 3-4)
+Task 3.1: Tenant Registration Flow
+New API Endpoints:
+
+Copy# apps/tenant/views.py
+
+@api_view(['POST'])
+def register_tenant(request):
+    """
+    Create new tenant (transfer agent)
+    
+    Request:
+    {
+        "company_name": "ACME Transfer Agent",
+        "slug": "acme-ta",
+        "admin_email": "admin@acme.com",
+        "admin_password": "...",
+        "admin_first_name": "John",
+        "admin_last_name": "Doe"
+    }
+    
+    Response:
+    {
+        "tenant": {...},
+        "admin_user": {...},
+        "access_token": "...",
+        "refresh_token": "..."
+    }
+    """
+    # Create tenant
+    # Create admin user
+    # Send verification email
+    # Return JWT tokens
+
+@api_view(['GET'])
+@require_role('admin', 'superadmin')
+def get_tenant_settings(request):
+    """Get current tenant configuration"""
+    tenant = request.tenant
+    return Response({
+        'name': tenant.name,
+        'subscription_tier': tenant.subscription_tier,
+        'dtcc_enabled': tenant.dtcc_enabled,
+        # ...
+    })
+
+@api_view(['PUT'])
+@require_role('admin')
+def update_tenant_settings(request):
+    """Update tenant configuration"""
+    # Update tenant settings
+    # Audit log change
+Task 3.2: Tenant Isolation Testing
+Comprehensive Test Suite:
+
+Copy# apps/tenant/tests/test_isolation.py
+
+class TenantIsolationTests(APITestCase):
+    def setUp(self):
+        # Create Tenant A with users and data
+        self.tenant_a = Tenant.objects.create(name='Tenant A')
+        self.user_a = User.objects.create(tenant=self.tenant_a, ...)
+        self.shareholder_a = Shareholder.objects.create(tenant=self.tenant_a, ...)
+        
+        # Create Tenant B with users and data
+        self.tenant_b = Tenant.objects.create(name='Tenant B')
+        self.user_b = User.objects.create(tenant=self.tenant_b, ...)
+        self.shareholder_b = Shareholder.objects.create(tenant=self.tenant_b, ...)
+    
+    def test_tenant_a_cannot_access_tenant_b_shareholders(self):
+        """Verify data isolation: Tenant A cannot see Tenant B's shareholders"""
+        self.client.force_authenticate(user=self.user_a)
+        response = self.client.get('/api/v1/shareholders/')
+        
+        # Should only return Tenant A's shareholders
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['id'], str(self.shareholder_a.id))
+        self.assertNotIn(str(self.shareholder_b.id), [s['id'] for s in response.data])
+    
+    def test_tenant_b_cannot_access_tenant_a_holdings(self):
+        """Verify data isolation: Tenant B cannot see Tenant A's holdings"""
+        # Similar test for holdings
+    
+    # ... 20+ more tests covering all models
+📊 COMPREHENSIVE GAP ANALYSIS TABLE
+Security & Multi-Tenancy Readiness Matrix
+Category	Current State	Required for SaaS	Gap Severity	Effort	Priority
+AUTHENTICATION & AUTHORIZATION					
+Multi-Factor Auth (2FA/MFA)	❌ Not Implemented (django-otp installed but inactive)	✅ Required (TOTP + backup codes)	🔴 CRITICAL	2 weeks	P0
+Password Policy	🟡 Basic (Django defaults)	✅ Strong (12+ chars, complexity, history)	🟠 MEDIUM	3 days	P1
+Session Management	🟡 Fixed JWT expiry	✅ Idle timeout, concurrent limits, revocation	🟠 MEDIUM	1 week	P2
+Role-Based Access Control (RBAC)	❌ Single role (Shareholder)	✅ Multi-role (Shareholder, Issuer, Admin, SuperAdmin)	🔴 CRITICAL	2 weeks	P0
+OAuth/SSO Support	❌ Not Implemented	🟡 Nice-to-have (Google, Microsoft SSO)	🟢 LOW	2 weeks	P3
+MULTI-TENANCY					
+Tenant Data Model	❌ No tenants table	✅ Tenant registry with metadata	🔴 CRITICAL	3 days	P0
+Tenant Isolation (Database)	❌ No tenant_id in tables	✅ tenant_id FK in ALL tables	🔴 CRITICAL	1 week	P0
+Tenant Isolation (Application)	❌ No tenant middleware	✅ TenantMiddleware + ORM filtering	🔴 CRITICAL	1 week	P0
+Tenant Context in JWT	❌ No tenant_id in claims	✅ tenant_id + role in JWT	🔴 CRITICAL	2 days	P0
+Tenant Isolation Testing	❌ No tests	✅ 20+ tests verifying isolation	🔴 CRITICAL	1 week	P0
+Cross-Tenant Data Leakage Prevention	❌ Not implemented	✅ Enforced at ORM + API layer	🔴 CRITICAL	Included above	P0
+ENCRYPTION & KEY MANAGEMENT					
+PII Encryption (Database)	✅ Implemented (pgcrypto AES-256)	✅ Already compliant	✅ DONE	-	-
+Encryption Key Storage	🟡 Environment variable	✅ HashiCorp Vault or AWS KMS	🟡 HIGH	1 week	P1
+Key Rotation	❌ Manual	✅ Automatic (quarterly)	🟡 HIGH	1 week	P1
+Tenant-Specific Keys	❌ Single key for all	✅ Namespace per tenant	🟡 HIGH	3 days	P2
+Certificate Management (DTCC)	❌ Not implemented	✅ Vault storage + rotation	🟡 HIGH (Phase 1)	2 weeks	P1
+API SECURITY					
+Rate Limiting	🟡 Login only (django-axes)	✅ All endpoints (per-user, per-tenant)	🟠 MEDIUM	3 days	P1
+API Authentication	✅ JWT (httpOnly cookies)	✅ Already compliant	✅ DONE	-	-
+CORS Configuration	✅ Whitelist-based	✅ Production-ready	✅ DONE	-	-
+Input Validation	🟡 Basic DRF serializers	✅ Comprehensive (schema validation)	🟠 MEDIUM	1 week	P2
+SQL Injection Protection	✅ Django ORM	✅ Already compliant	✅ DONE	-	-
+XSS Protection	✅ httpOnly cookies	✅ Add CSP headers	🟠 MEDIUM	2 days	P2
+AUDIT & COMPLIANCE					
+Audit Trail (Immutable)	✅ Implemented	✅ Add tenant_id to logs	🟡 HIGH	2 days	P1
+Audit Log Retention	🟡 No policy	✅ 6 years (SEC 17Ad-10)	🟠 MEDIUM	1 day	P1
+Compliance Reporting	❌ Not implemented	✅ Cap table, transaction reports	🟠 MEDIUM (Step 3)	2 weeks	P2
+SOC 2 Readiness	🟡 Partial (missing key controls)	✅ Full compliance	🟡 HIGH	8 weeks	P1
+INFRASTRUCTURE					
+Secrets Management	🟡 .env file	✅ AWS Secrets Manager or Vault	🟠 MEDIUM	1 week	P1
+Database Backups	🟡 Manual	✅ Automated (daily, encrypted)	🟠 MEDIUM	3 days	P1
+Disaster Recovery	❌ No plan	✅ RTO <4 hours, multi-AZ	🟡 HIGH	2 weeks	P1
+Monitoring & Alerting	🟡 Basic (AWS CloudWatch)	✅ Comprehensive (Grafana, PagerDuty)	🟠 MEDIUM	1 week	P2
+Security Headers	🟡 Basic CORS	✅ CSP, HSTS, X-Frame-Options	🟢 LOW	1 day	P3
+Penetration Testing	❌ Not performed	✅ Annual + automated scanning	🟠 MEDIUM	Ongoing	P2
+DTCC INTEGRATION (Phase 1)					
+DTCC Middleware Layer	❌ Not started	✅ Go middleware (Task A1-C)	🔴 CRITICAL	12 weeks	P0
+Message Parser	❌ Not started	✅ DTCC formats → JSON	🔴 CRITICAL	4 weeks	P0
+Message Router (Tenant-Aware)	❌ Not started	✅ Route by tenant_id	🔴 CRITICAL	2 weeks	P0
+RabbitMQ Integration	❌ Not started	✅ Async message queue	🔴 CRITICAL	2 weeks	P0
+HashiCorp Vault (Certs)	❌ Not started	✅ Certificate storage	🔴 CRITICAL	2 weeks	P0
+DTCC Authentication (mTLS)	❌ Not started	✅ Certificate management	🔴 CRITICAL	3 weeks	P0
+DRS Transfer Processing	❌ Not started	✅ Inbound/outbound transfers	🔴 CRITICAL	4 weeks	P0
+FAST Balance Reconciliation	❌ Not started	✅ Daily reconciliation	🔴 CRITICAL	3 weeks	P0
+SAAS FEATURES					
+Tenant Onboarding	❌ Not implemented	✅ Self-service registration	🔴 CRITICAL	1 week	P0
+Subscription Management	❌ Not implemented	✅ Stripe integration	🟡 HIGH (Step 4)	2 weeks	P1
+Usage-Based Billing	❌ Not implemented	✅ Per-shareholder metering	🟡 HIGH (Step 4)	1 week	P1
+Tenant Dashboard (Admin)	❌ Not implemented	✅ Settings, users, billing	🔴 CRITICAL (Step 3)	3 weeks	P0
+Multi-Tenant Subdomain Routing	❌ Not implemented	🟡 Nice-to-have (acme.tableicty.com)	🟢 LOW	1 week	P3
+Priority Legend
+P0 (CRITICAL): Required for multi-tenant launch - Cannot ship without
+P1 (HIGH): Required for production readiness - Ship ASAP after P0
+P2 (MEDIUM): Required for security/compliance - Within 90 days
+P3 (LOW): Nice-to-have - Future enhancement
+Effort Legend
+1-3 days: Quick implementation
+1 week: Standard feature development
+2-4 weeks: Complex feature requiring design + testing
+8-12 weeks: Major initiative (e.g., DTCC integration)
+🎯 RECOMMENDED IMPLEMENTATION SEQUENCE
+PHASE 1: MULTI-TENANT FOUNDATION (Weeks 1-4)
+Goal: Transform single-tenant to multi-tenant with 2FA
+
+Week 1: Data Model Refactoring
+ Create tenants table
+ Add tenant_id FK to ALL tables (8 migrations)
+ Create users table (authentication separate from Shareholder business data)
+ Backfill existing data with default tenant (migration script)
+ Create database indexes for tenant queries
+Deliverables:
+
+Migration files (10+)
+Database schema documentation
+Rollback plan
+Week 2: Authentication Upgrade
+ Implement 2FA/MFA (django-otp activation)
+TOTP generation + QR codes
+Backup codes (10 per user, hashed)
+MFA enrollment API endpoints
+MFA verification in login flow
+ Add tenant_id + role to JWT claims
+ Create TenantMiddleware (set tenant context)
+ Update password policy (12+ chars, complexity)
+Deliverables:
+
+MFA enrollment UI (React components)
+Updated login flow (password → MFA code)
+Postman collection with updated auth
+Week 3: Tenant Isolation
+ Update ALL API views with tenant filtering
+Shareholders API: .filter(tenant_id=request.tenant.id)
+Holdings API: same
+Transfers API: same
+(8 API endpoints total)
+ Implement RBAC permission checks
+Create @require_role decorator
+Update views with role requirements
+ Write 20+ tenant isolation tests
+Deliverables:
+
+Updated API views (100% tenant-aware)
+Test suite: 20+ isolation tests passing
+RBAC permission matrix documentation
+Week 4: Tenant Onboarding
+ Create tenant registration API
+ Build tenant admin dashboard (React)
+Tenant settings page
+User management (invite issuers, shareholders)
+Billing info (placeholder for Stripe)
+ Implement tenant-switching UI (for superadmin)
+ Deploy to staging environment
+Deliverables:
+
+Tenant registration flow (API + UI)
+Admin dashboard (basic functionality)
+Staging deployment successful
+Milestone: ✅ Multi-tenant platform with 2FA - Ready for customer #1
+
+PHASE 2: SECURITY HARDENING (Weeks 5-8)
+Goal: Production-grade security + compliance preparation
+
+Week 5: Secrets & Key Management
+ Set up HashiCorp Vault (AWS EC2 or Vault Cloud)
+ Migrate PGCRYPTO_KEY to Vault
+ Implement automatic key rotation (quarterly)
+ Create tenant-specific key namespaces
+ Migrate database credentials to Vault
+Deliverables:
+
+Vault cluster deployed (dev + prod)
+Key rotation automation (Terraform)
+Zero secrets in .env file
+Week 6: API Security
+ Implement rate limiting (DRF throttling)
+Per-user: 100 req/min
+Per-tenant: 1000 req/min
+Expensive endpoints: 5 req/day (cap table export)
+ Add security headers (CSP, HSTS, X-Frame-Options)
+ Implement input validation (JSON schema)
+ Set up automated vulnerability scanning (Snyk)
+Deliverables:
+
+Rate limiting active on all endpoints
+Security headers verified (securityheaders.com A+ rating)
+Snyk integrated in CI/CD
+Week 7: Audit & Compliance
+ Add tenant_id to AuditLog model
+ Implement audit log retention policy (6 years)
+ Create audit log viewer UI (admin dashboard)
+ Generate compliance reports (cap table, transactions)
+ Document SOC 2 control evidence
+Deliverables:
+
+Audit log viewer (searchable, filterable)
+Compliance report generator
+SOC 2 readiness assessment document
+Week 8: Infrastructure & Monitoring
+ Migrate to AWS Secrets Manager (production)
+ Set up automated database backups (daily, encrypted)
+ Implement disaster recovery plan (multi-AZ RDS)
+ Deploy Grafana + Prometheus (monitoring)
+ Set up PagerDuty alerts (critical errors)
+ Schedule penetration testing (external vendor)
+Deliverables:
+
+Monitoring dashboard (Grafana)
+DR plan documented + tested
+Penetration test scheduled (Q1 2026)
+Milestone: ✅ Production-ready security posture - SOC 2 audit can commence
+
+PHASE 3: DTCC INTEGRATION (Weeks 9-20 | Parallel with Phase A/B/C)
+Goal: Implement DTCC middleware (Task A1-C deliverables)
+
+Weeks 9-10: Task A1 (Research & Documentation)
+ Complete DTCC Integration Requirements Document (30-40 pages)
+ Document 10+ DTCC message types
+ Design middleware architecture
+ Create infrastructure-as-code (Terraform modules)
+Deliverables: Task A1 document (due Dec 20, 2025)
+
+Weeks 11-16: Task B (Core Implementation)
+ Build Go middleware (connection manager, message parser, router)
+ Build Python business logic layer (Django integration)
+ Deploy to dev environment
+ Test in DTCC sandbox (first successful DRS transfer)
+Deliverables: Working middleware in sandbox
+
+Weeks 17-20: Task C (Production Readiness)
+ End-to-end encryption (TLS + AES-256)
+ Comprehensive audit logging
+ Circuit breaker implementation
+ Production deployment
+ Security review + penetration testing
+Deliverables: Production DTCC integration go-live
+
+Milestone: ✅ DTCC-connected platform - Can process live DRS transfers
+
+PHASE 4: SAAS FEATURES (Weeks 21-24 | Step 3-4)
+Goal: Complete SaaS platform (admin console + billing)
+
+Weeks 21-23: Admin Console (Step 3)
+ Build issuer dashboard (cap table, shareholder management)
+ Transfer approval workflow
+ Reporting & analytics
+ Audit log viewer
+Deliverables: Admin console deployed
+
+Week 24: Billing & Subscriptions (Step 4)
+ Stripe integration
+ Subscription management
+ Usage-based billing
+ Invoice generation
+Deliverables: Billing system live
+
+Milestone: ✅ Full SaaS platform - Ready for customer acquisition
+
+📈 ARCHITECTURE EVOLUTION TIMELINE
+CURRENT STATE (Dec 2025)
+┌──────────────────────────┐
+│  Single-Tenant Platform  │
+│  - Shareholder portal    │
+│  - Basic auth (JWT)      │
+│  - No MFA                │
+│  - No DTCC integration   │
+└──────────────────────────┘
+
+        ↓ Phase 1 (4 weeks)
+
+TARGET STATE #1 (Jan 2026)
+┌──────────────────────────┐
+│  Multi-Tenant + 2FA      │
+│  - Tenant isolation      │
+│  - MFA enabled           │
+│  - RBAC implemented      │
+│  - Tenant onboarding     │
+└──────────────────────────┘
+
+        ↓ Phase 2 (4 weeks)
+
+TARGET STATE #2 (Feb 2026)
+┌──────────────────────────┐
+│  Production Security     │
+│  - Vault integration     │
+│  - Rate limiting         │
+│  - Security headers      │
+│  - Monitoring/alerting   │
+└──────────────────────────┘
+
+        ↓ Phase 3 (12 weeks)
+
+TARGET STATE #3 (May 2026)
+┌──────────────────────────┐
+│  DTCC-Connected          │
+│  - Go middleware         │
+│  - DRS transfers         │
+│  - FAST reconciliation   │
+│  - Live DTCC processing  │
+└──────────────────────────┘
+
+        ↓ Phase 4 (4 weeks)
+
+FINAL STATE (Jun 2026)
+┌──────────────────────────┐
+│  Complete SaaS Platform  │
+│  - Admin console         │
+│  - Billing (Stripe)      │
+│  - Multi-tenant at scale │
+│  - DTCC-ready for all    │
+└──────────────────────────┘
+💰 ESTIMATED EFFORT & COST
+Development Time
+Phase	Duration	Team Size	Total Person-Weeks
+Phase 1: Multi-Tenant Foundation	4 weeks	2 engineers	8 person-weeks
+Phase 2: Security Hardening	4 weeks	2 engineers	8 person-weeks
+Phase 3: DTCC Integration	12 weeks	2 engineers	24 person-weeks
+Phase 4: SaaS Features	4 weeks	2 engineers	8 person-weeks
+TOTAL	24 weeks (6 months)	2 engineers	48 person-weeks
+Infrastructure Costs (Monthly)
+Service	Cost	Notes
+AWS RDS PostgreSQL (Multi-AZ)	$300	Production database
+AWS App Runner (Backend)	$200	Autoscaling Django
+AWS S3 + CloudFront (Frontend)	$50	Static hosting
+HashiCorp Vault Cloud	$150	Secrets management
+RabbitMQ (AWS AmazonMQ)	$100	DTCC message queue
+Monitoring (Grafana Cloud)	$50	Metrics + alerts
+TOTAL MONTHLY	$850	Per environment (dev + prod = $1,700)
+Third-Party Services
+Service	Cost	Frequency
+Stripe (Payment Processing)	2.9% + $0.30 per transaction	Per transaction
+Penetration Testing	$5,000	Annual
+SOC 2 Audit	$15,000 - $25,000	Annual (Type II)
+DTCC Application Fee	$2,000 - $5,000	One-time (per tenant)
+DTCC Monthly Fees	$500 - $2,000	Per tenant, varies by volume
+✅ IMMEDIATE ACTION ITEMS (This Week)
+For Security Chief / CTO:
+Approve Multi-Tenant Roadmap - Review this document, approve Phases 1-2
+Allocate Resources - Assign 2 engineers to multi-tenant refactoring
+Set Up Vault - Provision HashiCorp Vault cluster (dev environment)
+Schedule Penetration Test - Contract external security firm for Q1 2026
+For Engineering Team (Judy + App Builder):
+Create tenants Table - Write migration, create model
+Add tenant_id to All Tables - 8 migrations (careful!)
+Implement 2FA - Activate django-otp, build enrollment flow
+Write Tenant Isolation Tests - 20+ tests before refactoring queries
+For Product/Business:
+Define Subscription Tiers - Pricing model (Basic, Pro, Enterprise)
+Onboarding Flow Design - Tenant registration UX
+DTCC Application - Begin DTCC TA application process (long lead time)
+🚨 RISK ASSESSMENT
+High-Risk Areas
+Data Migration (Adding tenant_id)
+
+Risk: Data loss or corruption during backfill
+Mitigation:
+Backup production database before migration
+Test migration on staging with production data snapshot
+Write rollback script
+Deploy during maintenance window
+Tenant Isolation Bugs
+
+Risk: User A sees User B's data (data leak)
+Mitigation:
+Comprehensive test suite (20+ tests)
+Code review: ALL API views must filter by tenant_id
+Penetration testing specifically for tenant isolation
+Bug bounty program
+DTCC Integration Complexity
+
+Risk: Underestimating effort, missing message types
+Mitigation:
+Task A1 research phase (understand requirements deeply)
+DTCC sandbox testing (before production)
+Phased rollout (DRS first, then reconciliation, then corporate actions)
+2FA Lockout
+
+Risk: Users lose access if MFA device lost
+Mitigation:
+Backup codes (10 per user)
+Admin override (with audit log)
+Support process for account recovery
+📚 RECOMMENDED READING
+For Multi-Tenancy:
+"Multi-Tenancy Architecture for SaaS" (AWS whitepaper)
+Django Tenant Schemas documentation
+"Building Multi-Tenant Applications" (Microsoft Azure guide)
+For Security:
+OWASP Top 10 2023
+SEC Cybersecurity Rules for Transfer Agents
+NIST Cybersecurity Framework
+For DTCC:
+DTCC TA Services Portal (awaiting access)
+Task A1 Document (when complete)
+SEC Rule 17Ad-10 (Transfer Agent Recordkeeping)
+📞 SUPPORT & QUESTIONS
+For This Assessment:
+
+Author: Judy - Jr. Engineer, DTCC Integration Middleware
+Contact: Via Slack: #dtcc-integration, #engineering
+For Platform Architecture:
+
+Chief Engineer: [Name TBD]
+App Builder: [Name TBD]
+For Security & Compliance:
+
+Security Chief: [Name TBD]
+END OF ASSESSMENT
+
+Document Status: ✅ COMPLETE - Ready for leadership review
+Next Steps: Approval meeting, resource allocation, Phase 1 kickoff
+
+Deliverable Package Includes:
+
+This comprehensive assessment (35 pages)
+Gap analysis table (security + multi-tenancy)
+Recommended implementation sequence (24-week roadmap)
+Architecture diagrams (current vs. target)
+Risk assessment and mitigation strategies
+All files saved to: /Judy/ folder in AI Drive
