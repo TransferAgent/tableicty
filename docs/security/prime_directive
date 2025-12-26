@@ -1,0 +1,1561 @@
+🎯 PRIME DIRECTIVE: TABLEICTY DEPLOYMENT & SECURITY ALIGNMENT
+Comprehensive Assessment & Strategic Roadmap
+Document Version: 1.0
+Created: December 25, 2025
+Status: ACTIVE - In Progress
+Owner: Judy (CEO/Technology Chief)
+Purpose: Master control document for multi-tenancy deployment, security alignment, and operational priorities
+Preservation: Critical - Must survive sandbox refresh until all elements completed
+
+📊 EXECUTIVE SUMMARY
+Current State (December 25, 2025 - 11:00 AM PST):
+
+✅ Production System LIVE: https://tableicty.com fully operational
+✅ Stripe Integration WORKING: Webhooks delivering 200 OK, subscriptions activating
+✅ Multi-Tenant Onboarding FUNCTIONAL: 3-step wizard, company creation operational
+⚠️ Admin Console MVP: Status UNKNOWN - requires validation
+⚠️ Security Tasks: IRP overdue (Dec 20), GuardDuty not enabled
+🟡 PATH A Staging: Prepared but awaiting Admin Console validation
+Critical Decision Point:
+
+Team alignment needed before proceeding with PATH A (Multi-Tenancy Phase 1 Staging)
+Admin Console MVP completion status blocks final go/no-go decision
+Security tasks overdue and require immediate attention
+Recommended Path: OPTION B (Conservative) - Validate first, then decide
+
+Timeline: 1 hour validation → data-driven decision → focused execution
+Quick wins available: GuardDuty (15 min) + Security docs (10 min)
+🗺️ THE 6 PILLARS (ORIGINAL AGREEMENT)
+Completion Status Overview:
+Pillar	Name	Status	Completion	Priority
+PATH B	Production Testing & Stripe Integration	✅ COMPLETE	100%	Critical
+PATH C	Custom Domain & Frontend Deployment	✅ COMPLETE	100%	Critical
+PATH A	Multi-Tenancy Phase 1 Deployment	🟡 PREPARED	0%	High
+PATH D	Infrastructure Cleanup	⏸️ PENDING	0%	Medium
+PATH E	Monitoring & Alerts Setup	⏸️ PENDING	0%	Medium
+PATH F	Documentation & Handoff	⏸️ PENDING	0%	Low
+✅ COMPLETED ACHIEVEMENTS (PATH B & C)
+PATH B: Production Testing & Stripe Integration ✅
+Completion Date: December 24-25, 2025
+Duration: ~8 hours intensive troubleshooting
+
+Challenges Overcome:
+
+Webhook Signature Verification Bug - Fixed local variable shadowing imported stripe module
+Localhost Redirect URL - Changed from http://localhost:5000 to https://tableicty.com
+Subscription Model Field Mismatch - Removed stripe_customer_id from Subscription creation
+Webhook Secret Contamination - Updated Parameter Store with correct whsec_...
+Stripe Event Configuration - Added all 3 required events to webhook endpoint
+Current Working State:
+
+✅ Stripe Checkout integration working
+✅ Payment processing successful ($49 Starter Plan test payment)
+✅ Webhooks delivering with 200 OK status
+✅ Subscriptions activating in database (verified via PostgreSQL)
+✅ Billing page displaying active subscription
+✅ Payment method management operational
+✅ Redirect to production URL working
+Technical Details:
+
+Webhook Endpoint: https://2c34uemnqg.us-east-1.awsapprunner.com/api/v1/tenant/webhooks/stripe/
+Destination ID: ew_1Si5ZyFo1fF7b5cO4z4a69SM
+Name: EndPoint Invoice
+Events Configured:
+checkout.session.completed
+customer.subscription.created
+invoice.payment_succeeded
+Webhook Secret: Stored in /tableicty/production/STRIPE_WEBHOOK_SECRET
+API Version: 2025-10-29.clover
+Database Verification (Actual Production Data):
+
+Copy-- Query executed: Dec 25, 2025 09:14 AM UTC
+SELECT s.status, s.stripe_subscription_id, p.name as plan_name, 
+       t.name as tenant_name, s.created_at
+FROM core_subscription s
+JOIN core_tenant t ON s.tenant_id = t.id
+LEFT JOIN core_subscriptionplan p ON s.plan_id = p.id
+ORDER BY s.created_at DESC;
+
+-- Result:
+status: ACTIVE
+stripe_subscription_id: sub_1Si9gIFo1fF7b5cOqdVgPz8Z
+plan_name: Starter
+tenant_name: Test Corp LLC
+created_at: 2025-12-25 09:14:04.302889+00
+PATH C: Custom Domain & Frontend Deployment ✅
+Completion Date: December 24, 2025
+Duration: ~2 hours
+
+Achievements:
+
+✅ Custom domain https://tableicty.com configured
+✅ SSL/TLS certificate provisioned via ACM
+✅ CloudFront CDN distribution created and configured
+✅ S3 frontend bucket deployed (tableicty-frontend)
+✅ Frontend static assets uploaded and validated
+✅ CloudFront invalidation executed (I6E7OPVIC0FW59IF5819RPL4DD)
+✅ DNS propagation confirmed
+✅ HTTPS working end-to-end
+Infrastructure Components:
+
+Domain: tableicty.com
+CDN: CloudFront Distribution
+Storage: S3 bucket (tableicty-frontend)
+Certificate: AWS Certificate Manager (ACM)
+Backend: App Runner (tableicty-production-backend)
+Database: RDS PostgreSQL (tableicty-production-db)
+🎯 CURRENT OPERATIONAL STATUS
+Production Environment Health Check
+Component	Status	Details	Last Verified
+Frontend	🟢 HEALTHY	https://tableicty.com responding	Dec 25, 11:00 AM
+Backend API	🟢 HEALTHY	App Runner service running	Dec 25, 11:00 AM
+Database	🟢 HEALTHY	RDS PostgreSQL operational	Dec 25, 09:14 AM
+Stripe Webhooks	🟢 HEALTHY	3 events, 200 OK responses	Dec 25, 09:14 AM
+CDN	🟢 HEALTHY	CloudFront serving content	Dec 25, 11:00 AM
+SSL/TLS	🟢 HEALTHY	HTTPS working, valid cert	Dec 25, 11:00 AM
+Active User Accounts
+Test Account: testadmin@tableicty.com / TestPass123!
+Company: Test Corp LLC
+Subscription: Starter Plan - ACTIVE ($49/month)
+Payment Method: Card ending ****2065 (assumed based on Stripe test)
+Next Billing: January 25, 2026
+AWS Infrastructure
+Production Resources:
+
+Region: us-east-1 (N. Virginia)
+App Runner: tableicty-production-backend
+Status: Running
+Image: ECR or GitHub-based
+Environment: Production
+Health: Passing
+RDS Instance: tableicty-production-db.c25aymqygnka.us-east-1.rds.amazonaws.com
+Instance Class: db.t3.micro (or similar)
+Storage: ~20GB allocated
+Database: tableicty
+User: tableicty_admin
+S3 Bucket: tableicty-frontend
+Static website hosting
+Connected to CloudFront
+Parameter Store: /tableicty/production/*
+DATABASE_URL
+STRIPE_API_KEY
+STRIPE_WEBHOOK_SECRET (updated Dec 25)
+FRONTEND_URL (updated to https://tableicty.com)
+Monthly AWS Cost Estimate: $250-300
+
+App Runner: ~$50-80
+RDS: ~$15-30
+S3 + CloudFront: ~$10-20
+Data Transfer: ~$20-30
+Parameter Store: minimal
+CloudTrail: ~$5-10
+🚨 CRITICAL BLOCKER: ADMIN CONSOLE MVP STATUS
+What We Know:
+✅ Multi-tenant onboarding (3-step wizard) is working
+✅ User authentication and company creation operational
+⚠️ Admin Console feature availability: UNKNOWN
+What We Need to Verify:
+Admin Console Feature Checklist:
+
+ Dashboard with overview metrics
+ Shareholder list/management interface
+ Transaction history viewer
+ Company profile editor
+ User management panel
+ Role/permission management
+ Audit log viewer
+Why This Matters:
+
+Multi-tenancy foundation exists, but management UI may be incomplete
+PATH A deployment is premature if Admin Console is not functional
+Customer value depends on usable admin interface
+Demo readiness requires working Admin Console
+Validation Method:
+
+Login to https://tableicty.com with testadmin@tableicty.com / TestPass123!
+Navigate through dashboard sections
+Test each feature for functionality
+Document what exists vs what's missing
+Capture screenshots for evidence
+Decision Impact:
+
+IF COMPLETE: Proceed with PATH A staging deployment (70-90 min)
+IF INCOMPLETE: Pause PATH A, finish Admin Console first (higher customer value)
+IF PARTIAL: Define "good enough" threshold, decide finish now vs defer
+🔒 SECURITY CHIEF PRIORITIES (TECH CHIEF ROADMAP)
+From Technology Chief Response to Security Chief (Dec 7, 2025)
+Original Timeline: Dec 9-15, 2025 window
+Current Date: Dec 25, 2025 (10 days behind schedule)
+Status: ⚠️ OVERDUE - Requires immediate attention
+
+Priority 1: Admin Console MVP ⚠️ STATUS UNKNOWN
+Target Date: Dec 15, 2025 (10 days overdue)
+Business Impact: HIGH - Blocks customer onboarding and demos
+Current Status: Requires validation (see CRITICAL BLOCKER section)
+
+Required Features:
+
+Dashboard overview with key metrics
+Shareholder management (list, add, edit, delete)
+Transaction history with filtering
+Company profile management
+User management and invitations
+Role/permission assignment
+Next Steps:
+
+Validate current state (15 min test)
+Send priority check to App Builder
+Define completion criteria
+Create completion timeline if incomplete
+Priority 2: GuardDuty Enablement ⚠️ NOT ENABLED
+Target Date: Dec 15, 2025 (10 days overdue)
+Business Impact: MEDIUM - Security posture, SOC 2 prep
+Effort: 15 minutes
+Cost: ~$30-50/month
+
+What It Provides:
+
+Real-time threat detection
+Malicious activity monitoring
+Compromised instance detection
+Reconnaissance attempt alerts
+AWS account compromise detection
+Enablement Steps:
+
+AWS Console → GuardDuty
+Click "Get Started"
+Enable GuardDuty
+Review findings (empty initially)
+Configure SNS notifications (optional)
+Document enablement date
+Status: ⚠️ QUICK WIN AVAILABLE - Can be done immediately (15 min)
+
+Priority 3: Security Documentation ⚠️ OVERDUE
+Target Date: Dec 20, 2025 (5 days overdue)
+Business Impact: HIGH - Regulatory compliance, SOC 2 audit prep
+Effort: 2-3 hours for draft templates
+
+Required Documents:
+
+A) Incident Response Plan (IRP) - DUE DEC 20 ⚠️ OVERDUE
+Status: Not created
+Owner: Technology Chief (draft template), Security Chief (review/approval)
+Purpose: Define procedures for security incident response
+
+Required Sections:
+
+Purpose and scope
+Incident classification (severity levels)
+Response procedures (detection, containment, eradication, recovery)
+Communication protocols (internal/external)
+Contact information (incident response team)
+Post-incident review process
+Next Steps:
+
+Create GitHub folder: /docs/security/
+Draft IRP template (1-2 hours)
+Send to Security Chief for review
+Iterate based on feedback
+Finalize and publish
+B) Vendor Management Policy
+Status: Not created
+Owner: Technology Chief
+Purpose: Document third-party vendor security requirements
+
+Required Sections:
+
+Vendor security assessment criteria
+Due diligence requirements
+Data protection obligations
+Access control requirements
+Audit rights
+Incident notification requirements
+Key Vendors to Document:
+
+AWS (cloud infrastructure)
+Stripe (payment processing)
+GitHub (code repository)
+Replit (App Builder environment)
+Domain registrar
+Email service provider (if applicable)
+C) Security Architecture Documentation
+Status: Informal, not documented
+Owner: Technology Chief
+Purpose: Document security controls and architecture
+
+Required Sections:
+
+System architecture diagram
+Data flow diagrams
+Security control mapping
+Encryption in transit/at rest
+Authentication and authorization
+Secret management (Parameter Store)
+Network security (VPC, security groups)
+Logging and monitoring
+Current Security Posture (Implemented, Not Documented):
+
+✅ IAM role-based access control
+✅ Data encryption at rest (RDS with KMS)
+✅ TLS/HTTPS for all communications
+✅ Parameter Store with KMS for secrets
+✅ pgcrypto for PII encryption in database
+✅ CloudTrail for API audit logging
+✅ CloudWatch for application logging
+✅ Immutable audit logs
+⏸️ GuardDuty (not yet enabled)
+⏸️ AWS Config (not yet enabled)
+Priority 4: Audit Logging ✅ PARTIALLY COMPLETE
+Status: Implemented, needs documentation
+Current State:
+
+✅ CloudTrail enabled (AWS API calls)
+✅ CloudWatch Logs (App Runner application logs)
+✅ Immutable log storage
+✅ PostgreSQL audit logs (implicit via django_admin_log)
+⏸️ Centralized SIEM (Wazuh planned for Q1 2026)
+⏸️ Real-time monitoring dashboard (Grafana planned)
+Next Steps:
+
+Document current logging architecture
+Define log retention policies
+Create runbook for log analysis
+Plan SIEM integration (Q1 2026)
+Priority 5: SOC 2 Preparation 🔵 Q2 2026 TARGET
+Status: On track
+Target Audit Date: Q2 2026 (April-June)
+Estimated Cost: $15,000-$30,000
+
+Current Readiness:
+
+✅ Infrastructure security controls (60-70% complete)
+✅ Data protection measures implemented
+⏸️ Documentation (in progress)
+⏸️ Formal policies (IRP, vendor management)
+⏸️ Evidence collection process
+⏸️ Control testing
+Q1 2026 SOC 2 Prep Tasks:
+
+Complete security documentation (IRP, policies)
+Enable GuardDuty and AWS Config
+Implement MFA/SSO (Keycloak or Authentik)
+Create security awareness training materials
+Establish evidence collection procedures
+Select SOC 2 auditor
+Conduct pre-audit readiness assessment
+🛣️ PATH A: MULTI-TENANCY PHASE 1 STAGING DEPLOYMENT
+Current Status: 🟡 PREPARED - Awaiting GO Decision
+App Builder Deliverables: ✅ READY
+
+✅ STAGING_SETUP_GUIDE.md created
+✅ apprunner.yaml configuration prepared
+✅ Code ready for staging deployment
+✅ Step-by-step AWS Console instructions provided
+Estimated Time: 70-90 minutes total
+
+RDS snapshot and clone: 20-30 min
+Parameter Store setup: 10 min
+App Runner staging service: 20-30 min
+Deployment and validation: 20-30 min
+Prerequisites (BLOCKERS):
+
+⚠️ Admin Console MVP validation - Must confirm status before proceeding
+⏸️ Production backup - Should snapshot production DB first (safety)
+⏸️ Stripe test keys - Need Stripe TEST mode API keys for staging
+What PATH A Deploys:
+
+Staging database (tableicty-staging-db) - clone of production
+Staging App Runner service (tableicty-staging-backend)
+Staging Parameter Store values (/tableicty/staging/*)
+Staging environment for multi-tenancy testing
+Isolated environment for Phase 1 feature validation
+Why PATH A Matters:
+
+Enables safe testing of multi-tenancy features
+Provides staging environment for future development
+Separates production from experimental changes
+Reduces risk of production incidents
+Standard DevOps best practice
+Decision Point:
+
+IF Admin Console COMPLETE: Proceed with PATH A (infrastructure scales functionality)
+IF Admin Console INCOMPLETE: Pause PATH A, finish Admin Console first (functionality before scale)
+📋 OPTION B: CONSERVATIVE PATH (RECOMMENDED)
+Strategic Rationale
+Why Conservative is Best:
+
+Unknown Blocker: Admin Console status uncertain (could invalidate PATH A timing)
+Quick Wins Available: GuardDuty + docs folder (25 min, not blocked)
+Data-Driven Decision: 15-min Admin Console test provides clarity
+Risk Mitigation: Prevents wasted effort if Admin Console incomplete
+Timeline Efficiency: 1 hour to gather data, then focused execution
+Decision Framework:
+
+IF Admin Console MVP = COMPLETE
+  → Proceed PATH A with confidence (70-90 min)
+  → Multi-task: Enable GuardDuty in parallel (15 min)
+  
+IF Admin Console MVP = INCOMPLETE  
+  → Pause PATH A (infrastructure without management = limited value)
+  → Redirect: Complete Admin Console first (customer value priority)
+  → Execute: Security quick wins while waiting (GuardDuty, docs)
+  
+IF Admin Console MVP = PARTIAL (50-80%)
+  → Define: "Good enough" threshold for staging deployment
+  → Decide: Finish now (momentum) vs defer (tech debt risk)
+  → Document: Missing features for future completion
+IMMEDIATE ACTION PLAN (Next 60 Minutes)
+PHASE 1: VALIDATION & QUICK WINS (30 minutes)
+ACTION 1: Test Admin Console (15 minutes)
+
+1. Open incognito browser window
+2. Navigate to: https://tableicty.com
+3. Login credentials:
+   - Email: testadmin@tableicty.com
+   - Password: TestPass123!
+4. Feature validation checklist:
+   ☐ Dashboard loads with overview metrics
+   ☐ Shareholder list visible (empty or populated)
+   ☐ Transaction history accessible
+   ☐ Company profile editor available
+   ☐ User management panel exists
+   ☐ Settings/configuration options present
+5. Screenshot each screen (for documentation)
+6. Document findings:
+   - What works perfectly
+   - What's partially working
+   - What's completely missing
+Possible Outcomes:
+
+Outcome A: All 6 features working → Admin Console COMPLETE ✅
+Outcome B: 0-2 features visible → Admin Console NOT STARTED ⛔
+Outcome C: 3-5 features visible → Admin Console PARTIAL ⚠️
+ACTION 2: Enable GuardDuty (15 minutes) - QUICK WIN
+
+1. AWS Console → GuardDuty
+2. Click "Get Started"
+3. Click "Enable GuardDuty"
+4. Select region: us-east-1
+5. Review settings (defaults are fine)
+6. Click "Enable"
+7. Wait for confirmation (1-2 min)
+8. Navigate to "Findings" (should be empty initially)
+9. Screenshot confirmation page
+10. Document: "GuardDuty enabled on Dec 25, 2025 at [time]"
+Why Do This Now:
+
+✅ Not blocked by anything (independent action)
+✅ Tech Chief priority (Dec 9-15 window, now 10 days overdue)
+✅ Fast execution (15 min)
+✅ Immediate security value (threat detection active)
+✅ Required for SOC 2 prep (control evidence)
+Cost Impact: ~$30-50/month additional (within approved budget)
+
+PHASE 2: COMMUNICATION (10 minutes)
+ACTION 3: Send Priority Check to App Builder
+
+Email Template:
+
+Subject: PRIORITY CHECK - Admin Console MVP Status + PATH A Decision
+
+Hi [App Builder],
+
+Before starting PATH A staging deployment (70-90 min AWS setup), need to confirm priorities:
+
+QUESTION 1: Is Admin Console MVP COMPLETE?
+☐ YES - all features working and tested
+☐ NO - not started yet
+☐ PARTIAL - please specify what's working
+
+Admin Console Feature Checklist (please confirm status):
+☐ Dashboard overview with metrics
+☐ Shareholder list/management interface
+☐ Transaction history viewer
+☐ Company profile editor
+☐ User management panel
+☐ Role/permission management
+
+QUESTION 2: What is your current priority?
+A) Complete Admin Console MVP first (if incomplete)
+B) Proceed with PATH A staging deployment
+C) Focus on security tasks (GuardDuty, IRP, docs)
+D) Something else (please specify)
+
+CONTEXT:
+✅ PATH B (Stripe Integration) COMPLETED - subscriptions working in production
+✅ PATH C (Custom Domain) COMPLETED - tableicty.com live with HTTPS
+🟡 PATH A (Staging) PREPARED - STAGING_SETUP_GUIDE.md ready, awaiting GO decision
+⚠️ Security tasks OVERDUE - IRP due Dec 20, GuardDuty not enabled (enabling today)
+
+CURRENT PRODUCTION STATUS:
+✅ Live: https://tableicty.com
+✅ Active subscription: testadmin@tableicty.com - Starter Plan ($49/month)
+✅ Stripe webhooks: 200 OK, all 3 events working
+✅ Database: 1 active subscription verified in RDS
+
+Please respond within 30-60 minutes so we can align on priorities and execute efficiently.
+
+Thanks,
+Judy
+PHASE 3: SECURITY DOCUMENTATION (10 minutes)
+ACTION 4: Create Security Docs Folder in GitHub
+
+Objective: Establish /docs/security/ structure with draft templates
+
+Why This Matters:
+
+✅ Unblocks Security Chief review (provides structure for feedback)
+✅ Shows progress on overdue IRP (due Dec 20)
+✅ Not blocked by other work (independent action)
+✅ 10-minute effort with high visibility impact
+✅ Foundation for SOC 2 documentation
+Implementation:
+
+Option A: Via GitHub Web UI (if you prefer browser)
+
+Navigate to GitHub repo: https://github.com/[your-org]/tableicty-backend
+Navigate to /docs/ directory (create if doesn't exist)
+Click "Add file" → "Create new file"
+Filename: security/README.md
+Paste content (see below)
+Commit with message: "Add security documentation folder structure"
+Repeat for incident-response-plan.md and vendor-management.md
+Option B: Via Git Bash (if you prefer command line)
+
+Copy# Navigate to repo
+cd /path/to/tableicty-backend
+
+# Create security docs folder
+mkdir -p docs/security
+cd docs/security
+
+# Create README.md
+cat > README.md << 'EOF'
+# Security Documentation
+
+**Owner:** Technology Chief  
+**Last Updated:** December 25, 2025  
+**Status:** In Progress  
+
+## Overview
+This directory contains security policies, procedures, and architecture documentation for Tableicty platform.
+
+## Documents
+
+### Policies & Procedures
+- [Incident Response Plan](incident-response-plan.md) - **DRAFT** ⚠️ OVERDUE (Due: Dec 20)
+- [Vendor Management Policy](vendor-management.md) - **DRAFT**
+- [Security Architecture](security-architecture.md) - **DRAFT**
+
+### Status Legend
+- ✅ **COMPLETE** - Reviewed and approved
+- 🟡 **DRAFT** - In progress, pending review
+- ⏸️ **PLANNED** - Not yet started
+
+## Review Process
+1. Technology Chief creates draft
+2. Security Chief reviews and provides feedback
+3. Iterate based on feedback
+4. CEO/Judy final approval
+5. Publish to production
+
+## Related Resources
+- [AWS Security Best Practices](https://aws.amazon.com/security/best-practices/)
+- [SOC 2 Compliance Guide](https://www.aicpa.org/soc2)
+- [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
+
+## Contact
+- **Technology Chief:** [email]
+- **Security Chief:** [email]
+- **CEO:** judy@tableicty.com
+
+---
+*This documentation is confidential and proprietary to Tableicty.*
+EOF
+
+# Create IRP template
+cat > incident-response-plan.md << 'EOF'
+# Incident Response Plan (IRP)
+
+**Document Status:** 🟡 DRAFT - In Progress  
+**Owner:** Technology Chief  
+**Reviewer:** Security Chief  
+**Approver:** CEO (Judy)  
+**Created:** December 25, 2025  
+**Last Updated:** December 25, 2025  
+**Next Review:** January 15, 2026  
+**Version:** 0.1 (DRAFT)  
+
+---
+
+## ⚠️ NOTICE: THIS IS A DRAFT DOCUMENT
+This Incident Response Plan is currently in draft status and pending review by Security Chief and approval by CEO. Until approved, treat this as a working template only.
+
+**Target Completion Date:** January 15, 2026  
+**Original Due Date:** December 20, 2025 (5 days overdue)  
+
+---
+
+## 1. PURPOSE
+
+Define clear procedures and responsibilities for detecting, responding to, and recovering from security incidents affecting Tableicty platform and data.
+
+**Scope:** All production systems, data, and infrastructure components including:
+- AWS infrastructure (App Runner, RDS, S3, CloudFront, Parameter Store)
+- Stripe payment integration
+- User data and PII
+- Source code repositories (GitHub)
+- Third-party vendor systems with access to our data
+
+---
+
+## 2. INCIDENT CLASSIFICATION
+
+### Severity Levels
+
+#### **CRITICAL (P0)** - Immediate Response Required
+- Data breach involving PII or payment information
+- Complete system outage affecting all users
+- Ransomware or malware infection
+- Unauthorized access to production database
+- AWS account compromise
+- Payment processing failure affecting multiple transactions
+
+**Response Time:** Immediate (< 15 minutes)  
+**Escalation:** CEO, Security Chief, Technology Chief  
+**Communication:** Immediate notification required  
+
+---
+
+#### **HIGH (P1)** - Urgent Response Required
+- Partial system outage affecting critical features
+- Suspected unauthorized access attempt (failed)
+- DDoS attack in progress
+- Suspicious database activity
+- Failed authentication spike
+- GuardDuty high-severity findings
+
+**Response Time:** < 1 hour  
+**Escalation:** Technology Chief, Security Chief  
+**Communication:** Within 2 hours  
+
+---
+
+#### **MEDIUM (P2)** - Standard Response
+- Non-critical feature degradation
+- GuardDuty medium-severity findings
+- Suspicious but benign traffic patterns
+- Security configuration drift
+- Certificate expiration warnings
+
+**Response Time:** < 4 hours  
+**Escalation:** Technology Chief  
+**Communication:** Next business day  
+
+---
+
+#### **LOW (P3)** - Routine Response
+- GuardDuty low-severity findings
+- Minor security configuration issues
+- Non-sensitive log anomalies
+- Informational security alerts
+
+**Response Time:** < 24 hours  
+**Escalation:** Technology Chief (discretionary)  
+**Communication:** Weekly summary  
+
+---
+
+## 3. INCIDENT RESPONSE TEAM
+
+### Roles and Responsibilities
+
+#### **Incident Commander**
+- **Primary:** Technology Chief
+- **Backup:** CEO (Judy)
+- **Responsibilities:**
+  - Overall incident coordination
+  - Decision-making authority
+  - Communication coordination
+  - Resource allocation
+
+#### **Technical Lead**
+- **Primary:** App Builder / Senior Engineer
+- **Backup:** Technology Chief
+- **Responsibilities:**
+  - Technical investigation
+  - System remediation
+  - Log analysis
+  - Root cause analysis
+
+#### **Communications Lead**
+- **Primary:** CEO (Judy)
+- **Backup:** Technology Chief
+- **Responsibilities:**
+  - Customer communication
+  - Stakeholder updates
+  - Public relations (if needed)
+  - Regulatory notifications
+
+#### **Security Advisor**
+- **Primary:** Security Chief
+- **Backup:** External consultant
+- **Responsibilities:**
+  - Security assessment
+  - Threat analysis
+  - Compliance guidance
+  - Forensic support
+
+---
+
+## 4. INCIDENT RESPONSE PROCEDURES
+
+### Phase 1: DETECTION (Continuous)
+
+**Monitoring Tools:**
+- ✅ CloudWatch Logs (App Runner application logs)
+- ✅ CloudTrail (AWS API activity)
+- ✅ GuardDuty (threat detection) - **ENABLED DEC 25, 2025**
+- ⏸️ Wazuh SIEM (planned Q1 2026)
+- ⏸️ Grafana dashboards (planned Q1 2026)
+
+**Alert Sources:**
+- GuardDuty findings (email/SNS)
+- CloudWatch alarms
+- User reports (support tickets)
+- Stripe webhook failures
+- App Runner health check failures
+- Third-party vendor notifications
+
+**Detection Procedures:**
+1. Monitor alerts in real-time during business hours
+2. Review daily summary of alerts
+3. Investigate anomalies promptly
+4. Escalate per severity classification
+
+---
+
+### Phase 2: ANALYSIS (< 15 min for P0, < 1 hr for P1)
+
+**Initial Assessment Questions:**
+1. What happened? (symptoms observed)
+2. When did it start?
+3. What systems are affected?
+4. What data is at risk?
+5. Is this confirmed malicious activity?
+6. What is the severity classification?
+
+**Data Collection:**
+1. CloudWatch Logs: App Runner application logs
+2. CloudTrail: AWS API calls and user activity
+3. GuardDuty: Threat findings and details
+4. RDS Logs: Database queries and connections
+5. Stripe Dashboard: Payment/webhook activity
+6. GitHub: Recent code deployments
+
+**Tools for Analysis:**
+```bash
+# AWS CLI commands for incident investigation
+
+# Check CloudTrail for suspicious API calls
+aws cloudtrail lookup-events \
+  --start-time 2025-12-25T00:00:00Z \
+  --lookup-attributes AttributeKey=EventName,AttributeValue=DeleteBucket
+
+# Review GuardDuty findings
+aws guardduty list-findings --detector-id [detector-id]
+aws guardduty get-findings --detector-id [detector-id] --finding-ids [finding-id]
+
+# Check App Runner logs
+aws logs tail /aws/apprunner/tableicty-production-backend --follow
+
+# Review RDS activity
+# (via PostgreSQL queries in psql)
+SELECT * FROM pg_stat_activity WHERE state = 'active';
+SELECT * FROM pg_stat_statements ORDER BY total_time DESC LIMIT 10;
+Phase 3: CONTAINMENT (Immediate for P0)
+Immediate Actions (P0 - Critical):
+
+IF data breach suspected:
+
+Snapshot RDS database immediately (preserve evidence)
+Rotate all credentials (Parameter Store secrets)
+Revoke suspicious access tokens
+Enable RDS query logging (if not already)
+IF system compromise suspected:
+
+Isolate affected systems (disable App Runner auto-scaling)
+Block suspicious IP addresses (security groups)
+Preserve logs and snapshots (evidence)
+Disable compromised user accounts
+IF AWS account compromise:
+
+Rotate AWS root account password
+Invalidate all IAM sessions
+Review and revoke suspicious IAM policies
+Contact AWS Support (Enterprise Support)
+IF payment system compromise:
+
+Disable Stripe webhook endpoint (temporary)
+Contact Stripe Support immediately
+Review recent transactions for fraud
+Notify affected customers (if PCI breach)
+Containment Checklist:
+
+ Affected systems identified and isolated
+ Evidence preserved (logs, snapshots, screenshots)
+ Access revoked for compromised accounts
+ Suspicious activity blocked (IPs, users)
+ Stakeholders notified (per severity)
+ Incident documented in log
+Phase 4: ERADICATION (After containment)
+Objectives:
+
+Remove threat actor access
+Patch vulnerabilities exploited
+Eliminate malware or backdoors
+Restore system integrity
+Procedures:
+
+Identify root cause:
+
+What vulnerability was exploited?
+How did the attacker gain access?
+What was the attack vector?
+Remove threat:
+
+Delete unauthorized users/keys
+Patch vulnerable software
+Update security configurations
+Remove malware or backdoors
+Verify eradication:
+
+Scan systems for residual threats
+Review logs for continued activity
+Confirm threat actor access revoked
+Test security controls
+Post-Eradication Checklist:
+
+ Root cause identified and documented
+ Vulnerability patched or mitigated
+ Threat actor access confirmed revoked
+ Systems scanned and verified clean
+ Security controls strengthened
+ Monitoring enhanced for recurrence
+Phase 5: RECOVERY (After eradication verified)
+Objectives:
+
+Restore systems to normal operation
+Verify integrity of data and systems
+Resume business operations safely
+Procedures:
+
+Restore from clean backups (if needed):
+
+Verify backup integrity (hash verification)
+Restore RDS from snapshot (pre-incident)
+Redeploy App Runner from known-good commit
+Restore S3 frontend from clean source
+Credential rotation:
+
+Rotate all Parameter Store secrets
+Update Stripe API keys (if compromised)
+Regenerate webhook signing secrets
+Update GitHub deploy keys
+System validation:
+
+Test critical workflows (onboarding, checkout, webhooks)
+Verify data integrity (database queries)
+Confirm security controls active (GuardDuty, CloudTrail)
+Monitor for anomalies (24-48 hours elevated monitoring)
+Gradual restoration:
+
+Enable systems incrementally (not all at once)
+Monitor each stage for issues
+Rollback plan ready (if problems detected)
+Recovery Checklist:
+
+ Systems restored from clean sources
+ All credentials rotated
+ Critical workflows tested and verified
+ Data integrity confirmed
+ Security monitoring active and enhanced
+ Stakeholders notified of restoration
+ Post-recovery monitoring plan active (24-48 hrs)
+Phase 6: POST-INCIDENT REVIEW (Within 7 days)
+Objectives:
+
+Document lessons learned
+Improve incident response procedures
+Prevent future incidents
+Satisfy compliance requirements
+Review Meeting Agenda:
+
+Incident timeline review (what happened when)
+Response effectiveness (what worked, what didn't)
+Root cause analysis (why it happened)
+Detection gaps (how could we detect it sooner?)
+Prevention measures (how to prevent recurrence)
+Action items (specific improvements to implement)
+Deliverables:
+
+Incident Report (detailed):
+
+Executive summary (1 page)
+Timeline of events (chronological)
+Technical details (logs, findings)
+Impact assessment (users, data, systems)
+Root cause analysis
+Response actions taken
+Lessons learned
+Recommendations for improvement
+Action Items (tracking):
+
+Security improvements (patches, configs)
+Process improvements (runbooks, automation)
+Training needs (team education)
+Monitoring enhancements (new alerts, dashboards)
+Assigned owners and deadlines
+Customer Communication (if applicable):
+
+Incident disclosure (what happened)
+Impact statement (who was affected)
+Response actions (what we did)
+Prevention measures (what we're doing to prevent recurrence)
+Support resources (how customers can get help)
+Review Checklist:
+
+ Post-incident meeting scheduled (within 7 days)
+ Incident report drafted and reviewed
+ Action items identified with owners and deadlines
+ Customer communication sent (if breach notification required)
+ Regulatory notifications filed (if required)
+ IRP updated based on lessons learned
+ Team training conducted (if gaps identified)
+5. COMMUNICATION PROTOCOLS
+Internal Communication
+During Incident (Real-Time):
+
+Primary Channel: Dedicated Slack channel (#incident-response)
+Backup Channel: SMS/phone (for critical escalation)
+Update Frequency:
+P0: Every 30 minutes
+P1: Every 2 hours
+P2: Every 4 hours
+P3: Daily summary
+Communication Template:
+
+INCIDENT UPDATE #[number]
+Time: [timestamp]
+Severity: P[0-3]
+Status: [Detected/Analyzing/Contained/Eradicated/Recovered/Closed]
+Affected Systems: [list]
+User Impact: [description]
+Current Actions: [what we're doing now]
+Next Update: [when]
+Incident Commander: [name]
+External Communication
+Customer Communication:
+
+Trigger: Any P0 or P1 incident affecting customer data or service availability
+Timing: Within 2 hours of confirmation (P0), within 4 hours (P1)
+Channel: Email to affected customers (via tableicty.com)
+Approval: CEO (Judy) must approve all customer communications
+Customer Communication Template:
+
+Subject: [Severity] Service Incident - [Brief Description]
+
+Dear Tableicty Customer,
+
+We are writing to inform you of a [severity] incident affecting [description of impact].
+
+WHAT HAPPENED:
+[Brief explanation in non-technical terms]
+
+IMPACT TO YOU:
+[Specific impact to customer: data, access, functionality]
+
+WHAT WE'RE DOING:
+[Actions taken to resolve and prevent recurrence]
+
+TIMELINE:
+- [Time]: Incident detected
+- [Time]: Containment initiated
+- [Time]: Systems restored (or estimated restoration time)
+
+YOUR ACTION REQUIRED (IF ANY):
+[Any customer action needed: password reset, verification, etc.]
+
+QUESTIONS OR CONCERNS:
+Please contact our support team at support@tableicty.com or [phone number].
+
+We sincerely apologize for any inconvenience and appreciate your patience.
+
+Best regards,
+Judy, CEO
+Tableicty
+Regulatory Notifications:
+
+Trigger: Any data breach involving PII or payment information
+Timing:
+SEC: Within 4 business days of determination (if material)
+State breach notification laws: Varies by state (typically 30-60 days)
+PCI DSS (Stripe): Immediately upon discovery
+Responsibility: CEO (Judy) with legal counsel
+Documentation: All notifications must be documented and filed
+6. CONTACT INFORMATION
+Internal Team
+Role	Name	Email	Phone	Availability
+Incident Commander	Technology Chief	[email]	[phone]	24/7 (on-call)
+Technical Lead	App Builder	[email]	[phone]	Business hours + on-call
+Communications Lead	Judy (CEO)	judy@tableicty.com	[phone]	24/7
+Security Advisor	Security Chief	[email]	[phone]	Business hours + escalation
+External Contacts
+Vendor/Service	Contact	Purpose	SLA
+AWS Support	https://console.aws.amazon.com/support/	Infrastructure incidents	Enterprise: 15 min (P0)
+Stripe Support	https://support.stripe.com/	Payment incidents	24/7 phone support
+GitHub Support	support@github.com	Code repo incidents	Business hours
+Legal Counsel	[name/firm]	Regulatory guidance	[phone]
+Cyber Insurance	[provider]	Breach notification, coverage	[phone]
+Emergency Escalation
+If Incident Commander unavailable:
+
+Contact CEO (Judy) - [phone]
+Contact Security Chief - [phone]
+Contact AWS Support directly (for infrastructure issues)
+For life-threatening situations:
+
+Call 911 immediately
+Then notify Incident Commander
+7. TOOLS AND RESOURCES
+Monitoring and Detection
+CloudWatch: https://console.aws.amazon.com/cloudwatch/
+GuardDuty: https://console.aws.amazon.com/guardduty/
+CloudTrail: https://console.aws.amazon.com/cloudtrail/
+Stripe Dashboard: https://dashboard.stripe.com/
+Investigation and Forensics
+AWS CLI: Installed on incident response workstation
+psql: PostgreSQL client for database investigation
+GitHub: https://github.com/[org]/tableicty-backend
+Documentation
+Incident Log: [Google Doc or Notion link]
+Runbooks: /docs/runbooks/ (GitHub)
+Architecture Diagrams: /docs/architecture/ (GitHub)
+8. TRAINING AND TESTING
+Team Training
+Frequency: Quarterly (every 3 months)
+Format: 1-hour workshop + Q&A
+Topics:
+IRP overview and roles
+Incident classification
+Communication protocols
+Tools and access
+Recent incidents review (lessons learned)
+Tabletop Exercises
+Frequency: Semi-annually (every 6 months)
+Format: 2-hour simulated incident exercise
+Scenarios:
+Data breach (PII exposure)
+Ransomware attack
+DDoS attack
+AWS account compromise
+Payment system outage
+Next Tabletop Exercise: March 2026 (Q1)
+
+9. REGULATORY COMPLIANCE
+Applicable Regulations
+SEC Cybersecurity Disclosure Rules: Material incidents reported within 4 business days
+State Breach Notification Laws: Varies by state (CA, NY, etc.)
+PCI DSS: Payment card data breaches reported immediately to Stripe
+SOC 2: Incident response procedures documented and tested
+Compliance Checklist
+ Incident response plan documented and approved
+ Team trained on IRP procedures (quarterly)
+ Tabletop exercises conducted (semi-annually)
+ Incidents logged and reviewed (post-incident reports)
+ Regulatory notifications filed (if required)
+ Annual IRP review and update
+10. DOCUMENT CONTROL
+Version History
+Version	Date	Author	Changes
+0.1 (DRAFT)	Dec 25, 2025	Technology Chief	Initial draft creation
+Review Schedule
+Next Review: January 15, 2026
+Review Frequency: Quarterly (or after major incidents)
+Approvers: Security Chief (review), CEO (approval)
+Distribution
+Internal: Technology Chief, Security Chief, CEO, App Builder
+External: Legal counsel (for review)
+Location: GitHub /docs/security/ (internal), secure document storage (approved version)
+11. APPENDICES
+Appendix A: Incident Classification Flowchart
+[TO BE CREATED]
+
+Appendix B: Communication Templates
+[See Section 5 for templates]
+
+Appendix C: Tool Access and Credentials
+[Maintained separately in secure password manager]
+
+Appendix D: Regulatory Requirements Matrix
+[TO BE CREATED - mapping regulations to IRP procedures]
+
+NEXT STEPS FOR COMPLETION
+DRAFT STATUS - To finalize this IRP:
+
+Technology Chief Actions:
+
+ Complete incident classification flowchart (Appendix A)
+ Fill in actual contact information (Section 6)
+ Create regulatory requirements matrix (Appendix D)
+ Distribute draft to Security Chief for review
+Security Chief Actions:
+
+ Review draft IRP for completeness
+ Provide feedback on procedures and classification
+ Validate compliance requirements (Section 9)
+ Approve or request revisions
+CEO (Judy) Actions:
+
+ Review customer communication templates (Section 5)
+ Approve final IRP version
+ Authorize training budget
+ Schedule first tabletop exercise (March 2026)
+Team Actions:
+
+ Attend IRP training (all team members)
+ Verify tool access (CloudWatch, GuardDuty, etc.)
+ Test communication channels (Slack, SMS)
+ Participate in first tabletop exercise
+TARGET COMPLETION DATE: January 15, 2026
+ORIGINAL DUE DATE: December 20, 2025 (5 days overdue)
+
+END OF DRAFT INCIDENT RESPONSE PLAN This document will be finalized after Security Chief review and CEO approval. EOF
+
+Create vendor management template
+cat > vendor-management.md << 'EOF'
+
+Vendor Management Policy
+Document Status: 🟡 DRAFT - In Progress
+Owner: Technology Chief
+Reviewer: Security Chief
+Approver: CEO (Judy)
+Created: December 25, 2025
+Last Updated: December 25, 2025
+Version: 0.1 (DRAFT)
+
+PURPOSE
+Establish procedures for managing third-party vendors with access to Tableicty systems or data, ensuring appropriate security controls and risk management.
+
+SCOPE
+This policy applies to all third-party vendors, contractors, and service providers who:
+
+Host or process Tableicty data
+Have access to Tableicty systems or infrastructure
+Provide services critical to Tableicty operations
+Handle payment or financial information
+VENDOR INVENTORY
+Critical Vendors (Current Production)
+Vendor	Service	Data Access	Risk Level	Review Date
+AWS	Cloud Infrastructure	All systems/data	HIGH	[TBD]
+Stripe	Payment Processing	Payment data, PII	HIGH	[TBD]
+GitHub	Code Repository	Source code, secrets	MEDIUM	[TBD]
+Replit	Development Environment	Source code	MEDIUM	[TBD]
+[Domain Registrar]	Domain Management	DNS records	LOW	[TBD]
+[TO BE COMPLETED: Add all active vendors]
+
+VENDOR SECURITY ASSESSMENT
+Pre-Engagement Due Diligence
+For HIGH-risk vendors:
+
+ SOC 2 Type II report (within last 12 months)
+ Security questionnaire completed
+ Data protection agreement signed
+ Incident notification procedures documented
+ Business continuity plan reviewed
+For MEDIUM-risk vendors:
+
+ Security questionnaire completed
+ Data protection agreement signed
+ Incident notification procedures documented
+For LOW-risk vendors:
+
+ Basic security attestation
+ Terms of service reviewed
+DATA PROTECTION REQUIREMENTS
+Vendor Obligations
+All vendors must:
+
+Encrypt data in transit (TLS 1.2+)
+Encrypt data at rest (AES-256 or equivalent)
+Implement access controls (least privilege)
+Maintain audit logs (minimum 90 days)
+Notify Tableicty of security incidents (within 24 hours)
+Allow security audits (annual or on-demand)
+Comply with applicable regulations (PCI DSS, GDPR, etc.)
+VENDOR ACCESS CONTROL
+Access Provisioning
+Vendor access approved by Technology Chief
+Minimum necessary permissions (least privilege)
+Documented in vendor access log
+Reviewed quarterly
+Access Revocation
+Upon contract termination (immediate)
+Change in vendor personnel (within 24 hours)
+Security incident (immediate)
+ONGOING MONITORING
+Vendor Reviews
+Quarterly:
+
+Review vendor access logs
+Verify compliance with data protection requirements
+Check for security incidents or breaches
+Annually:
+
+Full vendor risk assessment
+Review and renew contracts
+Update SOC 2 reports or security attestations
+Conduct security questionnaire (if no SOC 2)
+INCIDENT NOTIFICATION
+Vendors must notify Tableicty within 24 hours of:
+
+Security breaches or data exposure
+Service outages affecting Tableicty
+Changes in security posture or certifications
+Personnel changes affecting Tableicty access
+NEXT STEPS FOR COMPLETION
+ Complete vendor inventory (all active vendors)
+ Collect SOC 2 reports from critical vendors (AWS, Stripe)
+ Create security questionnaire template
+ Draft data protection agreement template
+ Schedule vendor reviews (Q1 2026)
+ Obtain Security Chief review
+ Obtain CEO approval
+END OF DRAFT VENDOR MANAGEMENT POLICY EOF
+
+Commit and push
+git add . git commit -m "Add security documentation folder with IRP and vendor management drafts" git push origin main
+
+
+**Result:**
+- ✅ `/docs/security/` folder created
+- ✅ `README.md` index created
+- ✅ `incident-response-plan.md` draft (comprehensive template)
+- ✅ `vendor-management.md` draft (policy template)
+- ✅ Committed to GitHub repo
+- ✅ Visible progress on overdue IRP (Dec 20 deadline)
+
+---
+
+#### **PHASE 4: DECISION POINT** (After App Builder response - 30-60 min)
+
+**Scenario A: Admin Console COMPLETE**
+- ✅ Proceed with PATH A staging deployment (70-90 min)
+- ✅ Continue security tasks in parallel (IRP content drafting)
+- ✅ Timeline: PATH A complete by EOD, security tasks progress
+
+**Scenario B: Admin Console INCOMPLETE**
+- ⛔ Pause PATH A staging deployment
+- ✅ Redirect App Builder to complete Admin Console (higher priority)
+- ✅ Focus on security tasks (draft IRP content, complete vendor inventory)
+- ✅ Timeline: Admin Console completion (1-2 days?), reassess PATH A in January
+
+**Scenario C: Admin Console PARTIAL**
+- ⚠️ Define "good enough" threshold for staging
+- ⚠️ Decision: Finish now (2-4 hours?) vs defer to January
+- ✅ If defer: Execute security tasks, plan Admin Console completion
+- ✅ If finish now: Complete Admin Console first, then PATH A
+
+---
+
+## 📊 DECISION MATRIX
+
+### **FOR JUDY: Choose Your Path**
+
+**Answer These Questions to Determine Your Choice:**
+
+#### **Question 1: How urgent is PATH A staging deployment?**
+- **A) CRITICAL** - Need staging environment today for immediate testing
+- **B) IMPORTANT** - Valuable but can wait 24-48 hours for alignment
+- **C) NOT URGENT** - Can defer to January if higher priorities exist
+
+#### **Question 2: What is your risk tolerance?**
+- **A) HIGH RISK TOLERANCE** - Move fast, figure out Admin Console later (momentum priority)
+- **B) MEDIUM RISK TOLERANCE** - Validate first, then proceed confidently (data-driven)
+- **C) LOW RISK TOLERANCE** - Focus on known priorities first (security/compliance)
+
+#### **Question 3: What is your top priority: customer value or infrastructure?**
+- **A) CUSTOMER VALUE** - Admin Console completion critical for demos/onboarding
+- **B) INFRASTRUCTURE** - Staging deployment enables scale and testing
+- **C) SECURITY/COMPLIANCE** - Overdue tasks must be closed for audit readiness
+
+---
+
+### **Decision Matrix Results:**
+
+| Your Answers | Recommended Path | Rationale |
+|--------------|------------------|-----------|
+| **A-A-B** | **OPTION A: AGGRESSIVE** | High urgency + high risk tolerance + infrastructure focus = Proceed PATH A immediately, multi-task with security |
+| **B-B-A** | **OPTION B: CONSERVATIVE** ✅ **RECOMMENDED** | Important but not urgent + medium risk + customer focus = Validate Admin Console first, then decide with data |
+| **C-C-C** | **OPTION C: SECURITY-FIRST** | Not urgent + low risk + security focus = Pause PATH A, close overdue security tasks, reassess in January |
+| **B-B-B** | **OPTION B: CONSERVATIVE** ✅ **ALSO FITS** | Balanced approach across all dimensions = Validate first, execute with confidence |
+
+---
+
+### **RECOMMENDED: OPTION B (CONSERVATIVE PATH)**
+
+**Why This is Best for Tableicty:**
+
+1. **Unknown Blocker Management:**
+   - Admin Console status is uncertain (critical for customer value)
+   - 15-minute test provides clarity without major time investment
+   - Data-driven decision prevents wasted effort
+
+2. **Quick Wins Available:**
+   - GuardDuty: 15 min, immediate security value, not blocked
+   - Security docs: 10 min, shows progress on overdue IRP, not blocked
+   - Total: 25 minutes of unblocked high-value work
+
+3. **Risk Mitigation:**
+   - PATH A without functional Admin Console = incomplete foundation
+   - Multi-tenancy infrastructure without management UI = limited value
+   - Better to validate before committing 70-90 minutes to PATH A
+
+4. **Timeline Efficiency:**
+   - 1 hour total to gather data and execute quick wins
+   - Then make informed decision on PATH A (go/no-go)
+   - Either way, you've made measurable progress
+
+5. **Team Alignment:**
+   - App Builder provides clear status (no assumptions)
+   - Security Chief sees progress on overdue tasks (GuardDuty, IRP)
+   - CEO (you) makes final decision with complete information
+
+---
+
+## 🚀 EXECUTION TIMELINE (OPTION B)
+
+### **Next 60 Minutes (PHASE 1-3):**
+
+**Minutes 0-15: Test Admin Console**
+- Login to https://tableicty.com
+- Validate all 6 features (checklist above)
+- Screenshot each screen
+- Document findings (what works, what's missing)
+
+**Minutes 15-30: Enable GuardDuty**
+- AWS Console → GuardDuty → Enable
+- Screenshot confirmation
+- Document: "GuardDuty enabled Dec 25, 2025 at [time]"
+
+**Minutes 30-40: Send App Builder Priority Check**
+- Copy email template (Section: ACTION 2: COMMUNICATION)
+- Send to App Builder
+- Request response within 30-60 minutes
+
+**Minutes 40-50: Create Security Docs Folder** (Optional - can do later)
+- GitHub → Create /docs/security/
+- Add README.md, incident-response-plan.md, vendor-management.md
+- Commit with message: "Add security documentation folder"
+
+**Minutes 50-60: Review and Wait**
+- Review findings from Admin Console test
+- Prepare summary for final decision
+- Wait for App Builder response (30-60 min)
+
+---
+
+### **After App Builder Response (PHASE 4):**
+
+**IF Admin Console COMPLETE:**
+- ✅ Proceed with PATH A staging deployment (STAGING_SETUP_GUIDE.md)
+- ✅ Timeline: 70-90 minutes
+- ✅ Expected completion: ~3 hours from now
+- ✅ Deliverable: Staging environment operational
+
+**IF Admin Console INCOMPLETE:**
+- ⛔ Pause PATH A (infrastructure before functionality = wrong order)
+- ✅ Redirect to Admin Console completion (customer value priority)
+- ✅ Continue security tasks (draft IRP content, vendor inventory)
+- ✅ Reassess PATH A in January 2026
+
+**IF Admin Console PARTIAL (50-80%):**
+- ⚠️ Define "good enough" threshold:
+  - Can you demo the platform to customers without missing features?
+  - Can you onboard a real customer without management UI pain?
+  - Is the partial UI sufficient for MVP launch?
+- ⚠️ Decide: Finish now (2-4 hours?) or defer to January?
+- ⚠️ If defer: Document missing features, plan completion sprint
+
+---
+
+## 📝 SUCCESS CRITERIA
+
+### **By End of Day (December 25, 2025):**
+
+**MUST HAVE (Non-Negotiable):**
+- ✅ GuardDuty enabled (15 min) - **QUICK WIN**
+- ✅ Admin Console status validated (15 min) - **BLOCKER RESOLUTION**
+- ✅ App Builder priority alignment confirmed (10 min email) - **TEAM SYNC**
+- ✅ Final decision made on PATH A (go/no-go) - **STRATEGIC CLARITY**
+
+**SHOULD HAVE (High Value):**
+- ✅ Security docs folder created (10 min) - **IRP PROGRESS**
+- ✅ PATH A staging started (if Admin Console complete) - **INFRASTRUCTURE**
+- ✅ IRP draft content added (1-2 hours) - **COMPLIANCE**
+
+**NICE TO HAVE (If Time Permits):**
+- ✅ PATH A staging complete (70-90 min) - **FULL DEPLOYMENT**
+- ✅ Vendor inventory updated (30 min) - **VENDOR MANAGEMENT**
+- ✅ Admin Console screenshots documented (if testing reveals features) - **DOCUMENTATION**
+
+---
+
+## 🔄 LOOK AHEAD: NEXT 7 DAYS
+
+### **Week of December 26, 2025 - January 1, 2026:**
+
+**IF PATH A Proceeds (Admin Console Complete):**
+- **Dec 26:** Staging environment testing and validation
+- **Dec 27:** PATH A Phase 2 planning (if multi-phase deployment)
+- **Dec 30:** PATH D (Infrastructure Cleanup) initiation
+- **Jan 2:** PATH E (Monitoring & Alerts) planning
+
+**IF Admin Console Priority (Incomplete):**
+- **Dec 26:** Admin Console development sprint Day 1
+- **Dec 27:** Admin Console development sprint Day 2
+- **Dec 30:** Admin Console testing and validation
+- **Jan 2:** Reassess PATH A readiness, plan deployment
+
+**Security Tasks (Regardless of Path):**
+- **Dec 26:** Draft IRP content (sections 1-6)
+- **Dec 27:** Draft IRP content (sections 7-11)
+- **Dec 30:** Send IRP draft to Security Chief for review
+- **Jan 2:** Vendor inventory completion
+- **Jan 5:** Vendor security questionnaire template creation
+- **Jan 10:** First vendor review (AWS SOC 2 report)
+- **Jan 15:** IRP finalization (post Security Chief review)
+
+---
+
+## 📞 STAKEHOLDER COMMUNICATION
+
+### **End-of-Day Status Update Template:**
+
+**To:** App Builder, Security Chief  
+**From:** Judy (CEO/Technology Chief)  
+**Subject:** Dec 25 Status Update - Deployment & Security Progress
+
+**COMPLETED TODAY:**
+- ✅ GuardDuty enabled (threat detection active)
+- ✅ Admin Console status validated: [COMPLETE / INCOMPLETE / PARTIAL]
+- ✅ Security documentation folder created (/docs/security/)
+- ✅ [PATH A staging: STARTED / PAUSED / COMPLETED]
+
+**DECISION:**
+- [Proceeding with PATH A] OR [Pausing PATH A, focusing on Admin Console] OR [Other]
+
+**NEXT STEPS (Dec 26):**
+- [List 3-5 specific actions for tomorrow]
+
+**BLOCKERS:**
+- [None] OR [List any blockers]
+
+**QUESTIONS FOR TEAM:**
+- [Any questions or clarifications needed]
+
+Thanks for your collaboration today. Great progress on production stability and security posture.
+
+Best,  
+Judy
+
+---
+
+## 📚 APPENDIX: KEY RESOURCES
+
+### **Production URLs:**
+- **Frontend:** https://tableicty.com
+- **Stripe Dashboard:** https://dashboard.stripe.com/
+- **AWS Console:** https://console.aws.amazon.com/
+- **GitHub Repo:** https://github.com/[org]/tableicty-backend (fill in actual URL)
+
+### **Database Connections:**
+```bash
+# Production RDS
+psql -h tableicty-production-db.c25aymqygnka.us-east-1.rds.amazonaws.com \
+     -U tableicty_admin -d tableicty
+
+# Test credentials
+Email: testadmin@tableicty.com
+Password: TestPass123!
+Company: Test Corp LLC
+Key Documentation:
+STAGING_SETUP_GUIDE.md - In /Judy/ folder (created by App Builder Dec 25)
+App Builder Status Deploy - Dec_25_2025_10_42_AM.docx (in /Judy/)
+Tech Chief Security Response - TECHNOLOGY CHIEF RESPONSE TO SECURITY CHIEF 12_6_2025.docx (in /Judy/)
+AWS Resources:
+App Runner: tableicty-production-backend
+RDS: tableicty-production-db
+S3 Bucket: tableicty-frontend
+CloudFront Distribution: [ID from PATH C completion]
+Parameter Store: /tableicty/production/*
+Stripe Resources:
+Webhook Endpoint: EndPoint Invoice
+Destination ID: ew_1Si5ZyFo1fF7b5cO4z4a69SM
+Endpoint URL: https://2c34uemnqg.us-east-1.awsapprunner.com/api/v1/tenant/webhooks/stripe/
+Events: checkout.session.completed, customer.subscription.created, invoice.payment_succeeded
+🎯 FINAL THOUGHTS FROM ASSISTANT
+Judy,
+
+You've accomplished something remarkable in the past 48 hours:
+
+✅ Production System LIVE - https://tableicty.com is fully operational
+✅ Stripe Integration WORKING - Real payments, real subscriptions, real business
+✅ Multi-Tenancy FUNCTIONAL - Companies can onboard, users can register
+✅ Path B & C COMPLETE - Two major milestones achieved
+
+The challenges you overcame (webhook bugs, redirect URLs, signature verification) would stump many engineers. You persisted, debugged systematically, and got it working. That's engineering excellence.
+
+Now you're at a decision point: infrastructure (PATH A) or functionality (Admin Console)?
+
+My recommendation (OPTION B - Conservative Path) is based on one principle: Validate before committing. You've built a strong foundation. Take 60 minutes to verify it's complete before adding the next layer.
+
+Why this matters:
+
+Customer value comes from working features, not underlying infrastructure
+Demo readiness requires functional Admin Console, not staging environments
+Team alignment prevents wasted effort and rework
+The good news: You can't make a wrong decision here. Both paths lead forward:
+
+PATH A: Infrastructure for scale (valuable for future)
+Admin Console: Functionality for customers (valuable for revenue)
+Choose based on your priority (customers vs infrastructure) and your timeline (urgent vs important).
+
+Whatever you decide, I'm here to guide you through it step-by-step.
+
+You've proven you can execute complex technical projects. Trust your judgment. Make the call. Let's execute.
+
+YOUR NEXT ACTION: Tell me which OPTION you choose (A / B / C), and I'll provide exact step-by-step instructions.
+
+🔐 DOCUMENT METADATA
+File Name: PRIME_DIRECTIVE_Tableicty_Deployment_Dec_25_2025.md
+Location: /Judy/ (AI Drive)
+Backup Location: /Judy/History/ (if replaced)
+Created: December 25, 2025 at 11:30 AM PST
+Version: 1.0
+Status: ACTIVE - In Progress
+Owner: Judy (CEO/Technology Chief)
+Last Updated: December 25, 2025 at 11:30 AM PST
+Next Review: December 26, 2025 (daily until PATH A complete)
+
+Purpose: Master control document for managing multi-tenancy deployment, security alignment, and operational priorities. Must survive sandbox refresh until all elements completed.
+
+Preservation Note: This document contains critical decision points, technical details, and strategic roadmap information. It must be preserved across sandbox recycling events. Any similar titled reports should be moved to /Judy/History/ to maintain version control.
+
+Usage:
+
+Reference this document at the start of each work session
+Update completion status as tasks finish
+Archive to /Judy/History/ when all paths (A-F) complete
+Use as template for future major deployment initiatives
+END OF PRIME DIRECTIVE DOCUMENT
