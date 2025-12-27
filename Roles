@@ -1,0 +1,57 @@
+CORRECTED UNDERSTANDING:
+SINGLE LOGIN ENDPOINT FOR ALL ROLES:
+Everyone uses: /api/v1/shareholder/auth/login/
+Role determines access AFTER login (not different endpoints)
+THE 4 ROLES (TenantMembership.role):
+Role	Permission Level	What They See
+PLATFORM_ADMIN	Tableicty staff	ALL tenants (super admin)
+TENANT_ADMIN	Company administrator	Admin Console + their holdings
+TENANT_STAFF	Company staff	Limited admin features + their holdings
+SHAREHOLDER	Investor/end user	ONLY their own holdings (read-only)
+KEY INSIGHTS I WAS MISSING:
+Role ≠ Shareholder ownership
+
+SHAREHOLDER role = limited permissions
+Actual share ownership = separate (Shareholder model)
+TENANT_ADMIN can ALSO own shares
+testadmin@tableicty.com is:
+
+Django User ✅
+TenantMembership with role=TENANT_ADMIN ✅
+Potentially ALSO has holdings (shares) ✅
+Can access Admin Console (gear icon) ✅
+Admin Console visibility:
+
+Shows for: TENANT_ADMIN and TENANT_STAFF roles
+Hidden for: SHAREHOLDER role (even if they own shares)
+Django Superuser ≠ PLATFORM_ADMIN:
+
+Django superuser: /admin/ panel access (platform management)
+PLATFORM_ADMIN: Application role (access all tenants via frontend)
+ARCHITECTURE:
+User (Django auth)
+  └── TenantMembership (role + tenant assignment)
+        ├── role: PLATFORM_ADMIN | TENANT_ADMIN | TENANT_STAFF | SHAREHOLDER
+        └── tenant: Which company they belong to
+              └── Shareholder model: Actual stock holdings (optional)
+WHY THIS MATTERS FOR STAGING:
+✅ testadmin@tableicty.com in staging:
+
+Has TENANT_ADMIN role
+Can access Admin Console
+Login works via /api/v1/shareholder/auth/login/
+Role-based permissions apply after authentication
+✅ Django admin superuser (separate concern):
+
+Only needed for platform debugging
+Not for normal operations
+Can be created later if needed
+MY PREVIOUS CONFUSION - NOW CLEARED:
+❌ I thought: Different user types = different endpoints
+✅ Reality: Same endpoint, role determines UI/permissions
+
+❌ I thought: "Shareholder" endpoint means actual shareholders
+✅ Reality: Historical naming, serves all user roles
+
+❌ I thought: Admin users don't own shares
+✅ Reality: TENANT_ADMIN can be both admin AND shareholder
