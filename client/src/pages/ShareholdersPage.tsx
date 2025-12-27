@@ -128,6 +128,7 @@ export function ShareholdersPage() {
     is_active: true,
   };
   const [issuerFormData, setIssuerFormData] = useState<IssuerFormData>(initialIssuerData);
+  const [issuerFormErrors, setIssuerFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadData();
@@ -258,14 +259,41 @@ export function ShareholdersPage() {
     }
   };
 
+  const validateIssuerForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!issuerFormData.company_name.trim()) {
+      errors.company_name = 'Company name is required';
+    }
+    if (!issuerFormData.incorporation_state.trim()) {
+      errors.incorporation_state = 'State of incorporation is required';
+    }
+    if (!issuerFormData.total_authorized_shares || Number(issuerFormData.total_authorized_shares) <= 0) {
+      errors.total_authorized_shares = 'Total authorized shares is required';
+    }
+    if (!issuerFormData.agreement_start_date) {
+      errors.agreement_start_date = 'Agreement start date is required';
+    }
+    
+    setIssuerFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmitIssuer = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateIssuerForm()) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
     setSubmitting(true);
     try {
       await apiClient.createAdminIssuer(issuerFormData as any);
       toast.success('Issuer created successfully');
       setShowIssuerModal(false);
       setIssuerFormData(initialIssuerData);
+      setIssuerFormErrors({});
       loadData();
     } catch (error: any) {
       console.error('Error creating issuer:', error);
@@ -955,19 +983,26 @@ export function ShareholdersPage() {
             <form onSubmit={handleSubmitIssuer} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className={`block text-sm font-medium mb-1 ${issuerFormErrors.company_name ? 'text-red-600' : 'text-gray-700'}`}>
                     Company Name *
                   </label>
                   <input
                     type="text"
                     value={issuerFormData.company_name}
-                    onChange={(e) =>
-                      setIssuerFormData({ ...issuerFormData, company_name: e.target.value })
-                    }
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    onChange={(e) => {
+                      setIssuerFormData({ ...issuerFormData, company_name: e.target.value });
+                      if (issuerFormErrors.company_name) {
+                        setIssuerFormErrors({ ...issuerFormErrors, company_name: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                      issuerFormErrors.company_name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="Full legal company name"
                   />
+                  {issuerFormErrors.company_name && (
+                    <p className="mt-1 text-sm text-red-600">{issuerFormErrors.company_name}</p>
+                  )}
                 </div>
 
                 <div>
@@ -1019,20 +1054,27 @@ export function ShareholdersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className={`block text-sm font-medium mb-1 ${issuerFormErrors.incorporation_state ? 'text-red-600' : 'text-gray-700'}`}>
                     State of Incorporation *
                   </label>
                   <input
                     type="text"
                     value={issuerFormData.incorporation_state}
-                    onChange={(e) =>
-                      setIssuerFormData({ ...issuerFormData, incorporation_state: e.target.value.toUpperCase() })
-                    }
-                    required
+                    onChange={(e) => {
+                      setIssuerFormData({ ...issuerFormData, incorporation_state: e.target.value.toUpperCase() });
+                      if (issuerFormErrors.incorporation_state) {
+                        setIssuerFormErrors({ ...issuerFormErrors, incorporation_state: '' });
+                      }
+                    }}
                     maxLength={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                      issuerFormErrors.incorporation_state ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="e.g., DE"
                   />
+                  {issuerFormErrors.incorporation_state && (
+                    <p className="mt-1 text-sm text-red-600">{issuerFormErrors.incorporation_state}</p>
+                  )}
                 </div>
 
                 <div>
@@ -1052,19 +1094,26 @@ export function ShareholdersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className={`block text-sm font-medium mb-1 ${issuerFormErrors.total_authorized_shares ? 'text-red-600' : 'text-gray-700'}`}>
                     Total Authorized Shares *
                   </label>
                   <input
                     type="number"
                     value={issuerFormData.total_authorized_shares}
-                    onChange={(e) =>
-                      setIssuerFormData({ ...issuerFormData, total_authorized_shares: e.target.value })
-                    }
-                    required
+                    onChange={(e) => {
+                      setIssuerFormData({ ...issuerFormData, total_authorized_shares: e.target.value });
+                      if (issuerFormErrors.total_authorized_shares) {
+                        setIssuerFormErrors({ ...issuerFormErrors, total_authorized_shares: '' });
+                      }
+                    }}
                     min={1}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                      issuerFormErrors.total_authorized_shares ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                   />
+                  {issuerFormErrors.total_authorized_shares && (
+                    <p className="mt-1 text-sm text-red-600">{issuerFormErrors.total_authorized_shares}</p>
+                  )}
                 </div>
 
                 <div>
@@ -1084,18 +1133,25 @@ export function ShareholdersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className={`block text-sm font-medium mb-1 ${issuerFormErrors.agreement_start_date ? 'text-red-600' : 'text-gray-700'}`}>
                     Agreement Start Date *
                   </label>
                   <input
                     type="date"
                     value={issuerFormData.agreement_start_date}
-                    onChange={(e) =>
-                      setIssuerFormData({ ...issuerFormData, agreement_start_date: e.target.value })
-                    }
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    onChange={(e) => {
+                      setIssuerFormData({ ...issuerFormData, agreement_start_date: e.target.value });
+                      if (issuerFormErrors.agreement_start_date) {
+                        setIssuerFormErrors({ ...issuerFormErrors, agreement_start_date: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                      issuerFormErrors.agreement_start_date ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                   />
+                  {issuerFormErrors.agreement_start_date && (
+                    <p className="mt-1 text-sm text-red-600">{issuerFormErrors.agreement_start_date}</p>
+                  )}
                 </div>
 
                 <div>
