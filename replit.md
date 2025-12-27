@@ -168,3 +168,31 @@ The project is organized into `config/` for Django settings, `apps/` containing 
 - `STRIPE_PUBLISHABLE_KEY` - Stripe publishable key (pk_live_... or pk_test_...)
 - `STRIPE_WEBHOOK_SECRET` - Webhook signing secret (whsec_...)
 - `FRONTEND_URL` - Frontend URL for Stripe redirects (default: http://localhost:5000)
+
+**Phase 6: Shareholder Management MVP (✅ COMPLETE - December 27, 2025)**
+- **Shareholders Navigation:** Added "Shareholders" and "Cap Table" menu items to Admin Console (admin-only visibility)
+- **ShareholdersPage:** Complete CRUD for shareholders at `/dashboard/shareholders`
+  - Table view with name, type, email, location, status badges (Accredited/Insider/Affiliate)
+  - Search functionality by name or email
+  - Add Shareholder modal with full form (account type, name, contact, address, tax ID, flags)
+  - Edit Shareholder modal with pre-filled data
+  - Delete shareholder with confirmation
+  - Issue Shares button to create holdings for shareholders
+- **Issue Shares Workflow:** Modal to create holdings with issuer/security class selection
+  - Issuer dropdown (company selection)
+  - Security class filtered by selected issuer
+  - Share quantity, cost basis, acquisition date, type, holding type
+  - Restricted shares flag (Rule 144)
+  - Notes field
+- **Cap Table Page:** Summary view at `/dashboard/cap-table`
+  - Total shares, shareholder count, security class count cards
+  - Shares by Security Class table with percentage distribution bars
+  - Top 10 Shareholders table with ownership percentages
+  - Issuer selector for multi-issuer tenants
+- **Admin API Client:** New methods with proper auth (token refresh interceptors)
+  - getAdminShareholders, createAdminShareholder, updateAdminShareholder, deleteAdminShareholder
+  - getAdminHoldings, createAdminHolding, updateAdminHolding
+  - getAdminSecurityClasses, createAdminSecurityClass
+  - getAdminIssuers, createAdminIssuer, getCapTable
+- **TypeScript Interfaces:** AdminShareholder, AdminSecurityClass, AdminHolding, AdminIssuer, PaginatedResponse
+- Architect reviewed and auth integration fixed (dedicated adminClient with token refresh)
