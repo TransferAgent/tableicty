@@ -654,3 +654,151 @@ def cancel_subscription_view(request):
             {'error': 'Failed to cancel subscription'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def admin_manage_role(request):
+    """
+    Secure endpoint for managing user roles via API.
+    Requires ADMIN_SECRET_KEY header for authentication.
+    
+    Usage:
+    POST /api/v1/admin/manage-role/
+    Headers: X-Admin-Secret: <your-secret-key>
+    Body: {
+        "action": "promote" | "create-admin" | "list",
+        "email": "user@example.com",
+        "tenant_name": "Tenant Name",  # optional for promote if user has only one tenant
+        "role": "TENANT_ADMIN",  # for promote action
+        "password": "SecurePass123!",  # for create-admin action
+        "first_name": "First",  # optional for create-admin
+        "last_name": "Last"  # optional for create-admin
+    }
+    
+    IMPORTANT: Remove this endpoint after use for security!
+    """
+    import os
+    
+    admin_secret = os.environ.get('ADMIN_SECRET_KEY')
+    if not admin_secret:
+        return Response(
+            {'error': 'ADMIN_SECRET_KEY not configured on server'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+    
+    provided_secret = request.headers.get('X-Admin-Secret')
+    if not provided_secret or provided_secret != admin_secret:
+        return Response(
+            {'error': 'Invalid or missing X-Admin-Secret header'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    action = request.data.get('action')
+    
+    if action == 'list':
+        tenant_name = request.data.get('tenant_name')
+        
+        if tenant_name:
+            tenants = Tenant.objects.filter(name__icontains=tenant_name)
+            if not tenants.exists():
+                return Response({'error': f'Tenant "{tenant_name}" not found'}, status=404)
+            memberships = TenantMembership.objects.filter(tenant__in=tenants)
+        else:
+            memberships = TenantMembership.objects.all()
+        
+        result = []
+        for m in memberships.select_related('user', 'tenant').order_by('tenant__name', 'user__email'):
+            result.append({
+                'tenant': m.tenant.name,
+                'email': m.user.email or '(no email)',
+                'role': m.role
+            })
+        
+        return Response({'memberships': result})
+    
+    elif action == 'promote':
+        email = request.data.get('email')
+        role = request.data.get('role', 'TENANT_ADMIN')
+        tenant_name = request.data.get('tenant_name')
+        
+        if not email:
+            return Response({'error': 'email is required'}, status=400)
+        
+        if role not in ['PLATFORM_ADMIN', 'TENANT_ADMIN', 'TENANT_STAFF', 'SHAREHOLDER']:
+            return Response({'error': f'Invalid role: {role}'}, status=400)
+        
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': f'User "{email}" not found'}, status=404)
+        
+        memberships = TenantMembership.objects.filter(user=user)
+        
+        if not memberships.exists():
+            return Response({'error': f'User "{email}" has no tenant memberships'}, status=404)
+        
+        if tenant_name:
+            tenant = Tenant.objects.filter(name__icontains=tenant_name).first()
+            if not tenant:
+                return Response({'error': f'Tenant "{tenant_name}" not found'}, status=404)
+            membership = memberships.filter(tenant=tenant).first()
+            if not membership:
+                return Response({'error': f'User is not a member of "{tenant_name}"'}, status=404)
+        elif memberships.count() == 1:
+            membership = memberships.first()
+        else:
+            tenants = [m.tenant.name for m in memberships]
+            return Response({'error': f'User has multiple tenants. Specify tenant_name. Options: {tenants}'}, status=400)
+        
+        old_role = membership.role
+        membership.role = role
+        membership.save()
+        
+        return Response({
+            'success': True,
+            'message': f'Changed role for "{email}" in "{membership.tenant.name}": {old_role} -> {role}'
+        })
+    
+    elif action == 'create-admin':
+        email = request.data.get('email')
+        password = request.data.get('password')
+        tenant_name = request.data.get('tenant_name')
+        first_name = request.data.get('first_name', '')
+        last_name = request.data.get('last_name', '')
+        
+        if not all([email, password, tenant_name]):
+            return Response({'error': 'email, password, and tenant_name are required'}, status=400)
+        
+        if User.objects.filter(email=email).exists():
+            return Response({'error': f'User "{email}" already exists'}, status=400)
+        
+        tenant = Tenant.objects.filter(name__icontains=tenant_name).first()
+        if not tenant:
+            available = list(Tenant.objects.values_list('name', flat=True))
+            return Response({'error': f'Tenant "{tenant_name}" not found. Available: {available}'}, status=404)
+        
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name
+        )
+        
+        TenantMembership.objects.create(
+            tenant=tenant,
+            user=user,
+            role='TENANT_ADMIN',
+            is_primary_contact=False
+        )
+        
+        return Response({
+            'success': True,
+            'message': f'Created admin user "{email}" for tenant "{tenant.name}"'
+        })
+    
+    else:
+        return Response({
+            'error': 'Invalid action. Use: list, promote, or create-admin'
+        }, status=400)

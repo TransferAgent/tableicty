@@ -16,6 +16,7 @@ from apps.core.tenant_views import (
     create_checkout_session_view,
     create_portal_session_view,
     cancel_subscription_view,
+    admin_manage_role,
 )
 from apps.core.webhooks import stripe_webhook
 
@@ -35,5 +36,6 @@ urlpatterns = [
     path('billing/portal/', create_portal_session_view, name='billing-portal'),
     path('billing/cancel/', cancel_subscription_view, name='billing-cancel'),
     path('webhooks/stripe/', stripe_webhook, name='stripe-webhook'),
+    path('admin/manage-role/', admin_manage_role, name='admin-manage-role'),
     path('', include(router.urls)),
 ]
