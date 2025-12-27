@@ -6,7 +6,7 @@ class IssuerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issuer
         fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'tenant']
 
 
 class SecurityClassSerializer(serializers.ModelSerializer):
@@ -15,7 +15,7 @@ class SecurityClassSerializer(serializers.ModelSerializer):
     class Meta:
         model = SecurityClass
         fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'tenant']
 
 
 class ShareholderSerializer(serializers.ModelSerializer):
@@ -24,7 +24,7 @@ class ShareholderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shareholder
         fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'tenant']
         extra_kwargs = {
             'tax_id': {'write_only': True}
         }
@@ -43,7 +43,7 @@ class HoldingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Holding
         fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'tenant']
 
 
 class CertificateSerializer(serializers.ModelSerializer):
@@ -53,7 +53,7 @@ class CertificateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Certificate
         fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'tenant']
 
 
 class TransferSerializer(serializers.ModelSerializer):
@@ -64,7 +64,7 @@ class TransferSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transfer
         fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at', 'processed_by', 'processed_date']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'processed_by', 'processed_date', 'tenant']
 
 
 class AuditLogSerializer(serializers.ModelSerializer):
