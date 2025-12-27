@@ -38,7 +38,28 @@ type HoldingFormData = {
   notes: string;
 };
 
-const ACCOUNT_TYPES = ['INDIVIDUAL', 'JOINT', 'TRUST', 'IRA', 'ENTITY', 'ESTATE'] as const;
+type IssuerFormData = {
+  company_name: string;
+  ticker_symbol: string;
+  cusip: string;
+  cik: string;
+  incorporation_state: string;
+  incorporation_country: string;
+  total_authorized_shares: string;
+  par_value: string;
+  agreement_start_date: string;
+  annual_fee: string;
+  is_active: boolean;
+};
+
+const ACCOUNT_TYPES = [
+  { value: 'INDIVIDUAL', label: 'Individual' },
+  { value: 'JOINT_TENANTS', label: 'Joint Tenants (JTWROS)' },
+  { value: 'TENANTS_COMMON', label: 'Tenants in Common' },
+  { value: 'ENTITY', label: 'Entity (Corp/LLC/Trust)' },
+  { value: 'CUSTODIAN', label: 'Custodian (UTMA/UGMA)' },
+  { value: 'IRA', label: 'Individual Retirement Account' },
+] as const;
 const TAX_ID_TYPES = ['SSN', 'EIN', 'ITIN', 'FOREIGN'] as const;
 const ACQUISITION_TYPES = ['PURCHASE', 'GIFT', 'INHERITANCE', 'STOCK_SPLIT', 'DIVIDEND', 'TRANSFER', 'ISSUANCE'] as const;
 const HOLDING_TYPES = ['CERTIFICATE', 'DRS', 'BOOK_ENTRY'] as const;
@@ -52,6 +73,7 @@ export function ShareholdersPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showHoldingModal, setShowHoldingModal] = useState(false);
+  const [showIssuerModal, setShowIssuerModal] = useState(false);
   const [selectedShareholder, setSelectedShareholder] = useState<AdminShareholder | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -91,6 +113,21 @@ export function ShareholdersPage() {
 
   const [formData, setFormData] = useState<ShareholderFormData>(initialFormData);
   const [holdingFormData, setHoldingFormData] = useState<HoldingFormData>(initialHoldingData);
+
+  const initialIssuerData: IssuerFormData = {
+    company_name: '',
+    ticker_symbol: '',
+    cusip: '',
+    cik: '',
+    incorporation_state: 'DE',
+    incorporation_country: 'US',
+    total_authorized_shares: '100000000',
+    par_value: '0.0001',
+    agreement_start_date: new Date().toISOString().split('T')[0],
+    annual_fee: '5000.00',
+    is_active: true,
+  };
+  const [issuerFormData, setIssuerFormData] = useState<IssuerFormData>(initialIssuerData);
 
   useEffect(() => {
     loadData();
@@ -221,6 +258,25 @@ export function ShareholdersPage() {
     }
   };
 
+  const handleSubmitIssuer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await apiClient.createAdminIssuer(issuerFormData as any);
+      toast.success('Issuer created successfully');
+      setShowIssuerModal(false);
+      setIssuerFormData(initialIssuerData);
+      loadData();
+    } catch (error: any) {
+      console.error('Error creating issuer:', error);
+      const message = error.response?.data?.detail || error.response?.data?.message || 
+        Object.values(error.response?.data || {}).flat().join(', ') || 'Failed to create issuer';
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const filteredSecurityClasses = securityClasses.filter(
     (sc) => sc.issuer === holdingFormData.issuer
   );
@@ -253,6 +309,13 @@ export function ShareholdersPage() {
             {shareholders.length} total
           </span>
         </div>
+        <button
+          onClick={() => setShowIssuerModal(true)}
+          className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <Building className="w-5 h-5 mr-2" />
+          Add Issuer
+        </button>
         <button
           onClick={handleAddShareholder}
           className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
@@ -441,8 +504,8 @@ export function ShareholdersPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   >
                     {ACCOUNT_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
+                      <option key={type.value} value={type.value}>
+                        {type.label}
                       </option>
                     ))}
                   </select>
@@ -873,6 +936,216 @@ export function ShareholdersPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {showIssuerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h2 className="text-xl font-semibold text-gray-900">Add Issuer (Company)</h2>
+              <button
+                onClick={() => setShowIssuerModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitIssuer} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Company Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={issuerFormData.company_name}
+                    onChange={(e) =>
+                      setIssuerFormData({ ...issuerFormData, company_name: e.target.value })
+                    }
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Full legal company name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Ticker Symbol
+                  </label>
+                  <input
+                    type="text"
+                    value={issuerFormData.ticker_symbol}
+                    onChange={(e) =>
+                      setIssuerFormData({ ...issuerFormData, ticker_symbol: e.target.value.toUpperCase() })
+                    }
+                    maxLength={10}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., AAPL"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    CUSIP
+                  </label>
+                  <input
+                    type="text"
+                    value={issuerFormData.cusip}
+                    onChange={(e) =>
+                      setIssuerFormData({ ...issuerFormData, cusip: e.target.value.toUpperCase() })
+                    }
+                    maxLength={9}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="9-character ID"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    SEC CIK
+                  </label>
+                  <input
+                    type="text"
+                    value={issuerFormData.cik}
+                    onChange={(e) =>
+                      setIssuerFormData({ ...issuerFormData, cik: e.target.value })
+                    }
+                    maxLength={10}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Central Index Key"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    State of Incorporation *
+                  </label>
+                  <input
+                    type="text"
+                    value={issuerFormData.incorporation_state}
+                    onChange={(e) =>
+                      setIssuerFormData({ ...issuerFormData, incorporation_state: e.target.value.toUpperCase() })
+                    }
+                    required
+                    maxLength={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., DE"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Country of Incorporation
+                  </label>
+                  <input
+                    type="text"
+                    value={issuerFormData.incorporation_country}
+                    onChange={(e) =>
+                      setIssuerFormData({ ...issuerFormData, incorporation_country: e.target.value.toUpperCase() })
+                    }
+                    maxLength={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., US"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Total Authorized Shares *
+                  </label>
+                  <input
+                    type="number"
+                    value={issuerFormData.total_authorized_shares}
+                    onChange={(e) =>
+                      setIssuerFormData({ ...issuerFormData, total_authorized_shares: e.target.value })
+                    }
+                    required
+                    min={1}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Par Value
+                  </label>
+                  <input
+                    type="number"
+                    value={issuerFormData.par_value}
+                    onChange={(e) =>
+                      setIssuerFormData({ ...issuerFormData, par_value: e.target.value })
+                    }
+                    step="0.0001"
+                    min={0}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Agreement Start Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={issuerFormData.agreement_start_date}
+                    onChange={(e) =>
+                      setIssuerFormData({ ...issuerFormData, agreement_start_date: e.target.value })
+                    }
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Annual Fee ($)
+                  </label>
+                  <input
+                    type="number"
+                    value={issuerFormData.annual_fee}
+                    onChange={(e) =>
+                      setIssuerFormData({ ...issuerFormData, annual_fee: e.target.value })
+                    }
+                    step="0.01"
+                    min={0}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={issuerFormData.is_active}
+                      onChange={(e) =>
+                        setIssuerFormData({ ...issuerFormData, is_active: e.target.checked })
+                      }
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700">Active</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowIssuerModal(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                >
+                  {submitting ? 'Creating...' : 'Create Issuer'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
