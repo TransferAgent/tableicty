@@ -1,0 +1,59 @@
+
+Page not found (404)
+Request Method: 	GET
+Request URL: 	http://ghh6zmq2i6.us-east-1.awsapprunner.com/api/v1/shareholder
+
+Using the URLconf defined in config.urls, Django tried these URL patterns, in this order:
+
+    admin/
+    api/v1/ health/ [name='health-check']
+    api/v1/ reports/tavs/ [name='tavs-report']
+    api/v1/ ^issuers/$ [name='issuer-list']
+    api/v1/ ^issuers\.(?P<format>[a-z0-9]+)/?$ [name='issuer-list']
+    api/v1/ ^issuers/(?P<pk>[^/.]+)/$ [name='issuer-detail']
+    api/v1/ ^issuers/(?P<pk>[^/.]+)\.(?P<format>[a-z0-9]+)/?$ [name='issuer-detail']
+    api/v1/ ^issuers/(?P<pk>[^/.]+)/cap_table/$ [name='issuer-cap-table']
+    api/v1/ ^issuers/(?P<pk>[^/.]+)/cap_table\.(?P<format>[a-z0-9]+)/?$ [name='issuer-cap-table']
+    api/v1/ ^issuers/(?P<pk>[^/.]+)/share_summary/$ [name='issuer-share-summary']
+    api/v1/ ^issuers/(?P<pk>[^/.]+)/share_summary\.(?P<format>[a-z0-9]+)/?$ [name='issuer-share-summary']
+    api/v1/ ^security-classes/$ [name='securityclass-list']
+    api/v1/ ^security-classes\.(?P<format>[a-z0-9]+)/?$ [name='securityclass-list']
+    api/v1/ ^security-classes/(?P<pk>[^/.]+)/$ [name='securityclass-detail']
+    api/v1/ ^security-classes/(?P<pk>[^/.]+)\.(?P<format>[a-z0-9]+)/?$ [name='securityclass-detail']
+    api/v1/ ^shareholders/$ [name='shareholder-list']
+    api/v1/ ^shareholders\.(?P<format>[a-z0-9]+)/?$ [name='shareholder-list']
+    api/v1/ ^shareholders/(?P<pk>[^/.]+)/$ [name='shareholder-detail']
+    api/v1/ ^shareholders/(?P<pk>[^/.]+)\.(?P<format>[a-z0-9]+)/?$ [name='shareholder-detail']
+    api/v1/ ^shareholders/(?P<pk>[^/.]+)/holdings/$ [name='shareholder-holdings']
+    api/v1/ ^shareholders/(?P<pk>[^/.]+)/holdings\.(?P<format>[a-z0-9]+)/?$ [name='shareholder-holdings']
+    api/v1/ ^holdings/$ [name='holding-list']
+    api/v1/ ^holdings\.(?P<format>[a-z0-9]+)/?$ [name='holding-list']
+    api/v1/ ^holdings/(?P<pk>[^/.]+)/$ [name='holding-detail']
+    api/v1/ ^holdings/(?P<pk>[^/.]+)\.(?P<format>[a-z0-9]+)/?$ [name='holding-detail']
+    api/v1/ ^certificates/$ [name='certificate-list']
+    api/v1/ ^certificates\.(?P<format>[a-z0-9]+)/?$ [name='certificate-list']
+    api/v1/ ^certificates/(?P<pk>[^/.]+)/$ [name='certificate-detail']
+    api/v1/ ^certificates/(?P<pk>[^/.]+)\.(?P<format>[a-z0-9]+)/?$ [name='certificate-detail']
+    api/v1/ ^transfers/$ [name='transfer-list']
+    api/v1/ ^transfers\.(?P<format>[a-z0-9]+)/?$ [name='transfer-list']
+    api/v1/ ^transfers/(?P<pk>[^/.]+)/$ [name='transfer-detail']
+    api/v1/ ^transfers/(?P<pk>[^/.]+)\.(?P<format>[a-z0-9]+)/?$ [name='transfer-detail']
+    api/v1/ ^transfers/(?P<pk>[^/.]+)/approve/$ [name='transfer-approve']
+    api/v1/ ^transfers/(?P<pk>[^/.]+)/approve\.(?P<format>[a-z0-9]+)/?$ [name='transfer-approve']
+    api/v1/ ^transfers/(?P<pk>[^/.]+)/execute/$ [name='transfer-execute']
+    api/v1/ ^transfers/(?P<pk>[^/.]+)/execute\.(?P<format>[a-z0-9]+)/?$ [name='transfer-execute']
+    api/v1/ ^transfers/(?P<pk>[^/.]+)/reject/$ [name='transfer-reject']
+    api/v1/ ^transfers/(?P<pk>[^/.]+)/reject\.(?P<format>[a-z0-9]+)/?$ [name='transfer-reject']
+    api/v1/ ^audit-logs/$ [name='auditlog-list']
+    api/v1/ ^audit-logs\.(?P<format>[a-z0-9]+)/?$ [name='auditlog-list']
+    api/v1/ ^audit-logs/(?P<pk>[^/.]+)/$ [name='auditlog-detail']
+    api/v1/ ^audit-logs/(?P<pk>[^/.]+)\.(?P<format>[a-z0-9]+)/?$ [name='auditlog-detail']
+    api/v1/ ^$ [name='api-root']
+    api/v1/ ^\.(?P<format>[a-z0-9]+)/?$ [name='api-root']
+    api/v1/shareholder/
+    api/v1/tenant/
+    api/schema/ [name='schema']
+    api/docs/ [name='swagger-ui']
+    api/redoc/ [name='redoc']
+
+The current path, api/v1/shareholder, didn’t match any of these.
