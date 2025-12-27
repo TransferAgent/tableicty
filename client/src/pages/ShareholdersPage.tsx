@@ -64,6 +64,14 @@ const TAX_ID_TYPES = ['SSN', 'EIN', 'ITIN', 'FOREIGN'] as const;
 const ACQUISITION_TYPES = ['PURCHASE', 'GIFT', 'INHERITANCE', 'STOCK_SPLIT', 'DIVIDEND', 'TRANSFER', 'ISSUANCE'] as const;
 const HOLDING_TYPES = ['CERTIFICATE', 'DRS', 'BOOK_ENTRY'] as const;
 
+const formatPhoneNumber = (value: string): string => {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 0) return '';
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+};
+
 export function ShareholdersPage() {
   const [shareholders, setShareholders] = useState<AdminShareholder[]>([]);
   const [securityClasses, setSecurityClasses] = useState<AdminSecurityClass[]>([]);
@@ -595,7 +603,9 @@ export function ShareholdersPage() {
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })}
+                    placeholder="(555) 123-4567"
+                    maxLength={14}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
