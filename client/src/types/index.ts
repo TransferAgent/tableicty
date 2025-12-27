@@ -201,3 +201,104 @@ export interface TenantInvitation {
   expires_at: string;
   accepted: boolean;
 }
+
+export interface AdminShareholder {
+  id: string;
+  tenant: string;
+  user: number | null;
+  account_type: 'INDIVIDUAL' | 'JOINT' | 'TRUST' | 'IRA' | 'ENTITY' | 'ESTATE';
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  entity_name: string;
+  email: string;
+  phone: string;
+  tax_id_type: 'SSN' | 'EIN' | 'ITIN' | 'FOREIGN';
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  country: string;
+  is_accredited_investor: boolean;
+  is_insider: boolean;
+  is_affiliate: boolean;
+  is_restricted: boolean;
+  email_alerts_enabled: boolean;
+  paper_statements_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+  full_name: string;
+}
+
+export interface AdminSecurityClass {
+  id: string;
+  tenant: string;
+  issuer: string;
+  issuer_name: string;
+  class_name: string;
+  security_type: 'COMMON' | 'PREFERRED' | 'WARRANT' | 'OPTION' | 'CONVERTIBLE' | 'DEBT';
+  designation: string;
+  par_value: string;
+  authorized_shares: string;
+  outstanding_shares: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminHolding {
+  id: string;
+  tenant: string;
+  shareholder: string;
+  shareholder_name: string;
+  issuer: string;
+  issuer_name: string;
+  security_class: string;
+  security_class_name: string;
+  share_quantity: string;
+  cost_basis: string;
+  cost_basis_per_share: string;
+  acquisition_date: string;
+  acquisition_type: 'PURCHASE' | 'GIFT' | 'INHERITANCE' | 'STOCK_SPLIT' | 'DIVIDEND' | 'TRANSFER' | 'ISSUANCE';
+  holding_type: 'CERTIFICATE' | 'DRS' | 'BOOK_ENTRY';
+  is_restricted: boolean;
+  restriction_end_date: string | null;
+  legend_code: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminIssuer {
+  id: string;
+  tenant: string;
+  company_name: string;
+  legal_name: string;
+  ticker_symbol: string;
+  cusip: string;
+  cik: string;
+  ein: string;
+  state_of_incorporation: string;
+  date_of_incorporation: string | null;
+  fiscal_year_end: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  country: string;
+  phone: string;
+  website: string;
+  otc_tier: string;
+  total_authorized_shares: string;
+  tavs_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}

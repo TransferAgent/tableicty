@@ -14,6 +14,8 @@ import { CertificatesPage } from './pages/CertificatesPage';
 import { SecurityPage } from './pages/SecurityPage';
 import { AdminPage } from './pages/AdminPage';
 import BillingPage from './pages/BillingPage';
+import { ShareholdersPage } from './pages/ShareholdersPage';
+import { CapTablePage } from './pages/CapTablePage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TenantOnboarding } from './components/tenant/TenantOnboarding';
 
@@ -46,6 +48,8 @@ function App() {
                 <Route path="certificates" element={<CertificatesPage />} />
                 <Route path="admin" element={<AdminPage />} />
                 <Route path="billing" element={<BillingPage />} />
+                <Route path="shareholders" element={<ShareholdersPage />} />
+                <Route path="cap-table" element={<CapTablePage />} />
               </Route>
             </Routes>
           </TenantProvider>

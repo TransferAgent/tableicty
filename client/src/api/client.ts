@@ -18,6 +18,11 @@ import type {
   TenantInvitation,
   SubscriptionPlan,
   BillingStatus,
+  AdminShareholder,
+  AdminSecurityClass,
+  AdminHolding,
+  AdminIssuer,
+  PaginatedResponse,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
@@ -26,6 +31,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 class APIClient {
   private client: AxiosInstance;
+  private adminClient!: AxiosInstance;
   private accessToken: string | null = null;
 
   constructor() {
@@ -379,6 +385,125 @@ class APIClient {
         },
       }
     );
+    return response.data;
+  }
+
+  private initAdminClient() {
+    const adminBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1`
+      : '/api/v1';
+    
+    this.adminClient = axios.create({
+      baseURL: adminBaseUrl,
+      withCredentials: true,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    this.adminClient.interceptors.request.use((config) => {
+      const token = this.accessToken || sessionStorage.getItem('access_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+
+    this.adminClient.interceptors.response.use(
+      (response) => response,
+      async (error: AxiosError) => {
+        const originalRequest = error.config as any;
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          try {
+            const newAccessToken = await this.refreshAccessToken();
+            if (newAccessToken && originalRequest) {
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+              return this.adminClient(originalRequest);
+            }
+          } catch (refreshError) {
+            this.logout();
+            window.location.href = '/login';
+            return Promise.reject(refreshError);
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
+
+  async getAdminShareholders(params?: { search?: string; page?: number }): Promise<PaginatedResponse<AdminShareholder>> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.get('/shareholders/', { params });
+    return response.data;
+  }
+
+  async getAdminShareholder(id: string): Promise<AdminShareholder> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.get(`/shareholders/${id}/`);
+    return response.data;
+  }
+
+  async createAdminShareholder(data: Partial<AdminShareholder>): Promise<AdminShareholder> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.post('/shareholders/', data);
+    return response.data;
+  }
+
+  async updateAdminShareholder(id: string, data: Partial<AdminShareholder>): Promise<AdminShareholder> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.patch(`/shareholders/${id}/`, data);
+    return response.data;
+  }
+
+  async deleteAdminShareholder(id: string): Promise<void> {
+    if (!this.adminClient) this.initAdminClient();
+    await this.adminClient.delete(`/shareholders/${id}/`);
+  }
+
+  async getAdminHoldings(params?: { shareholder?: string; page?: number }): Promise<PaginatedResponse<AdminHolding>> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.get('/holdings/', { params });
+    return response.data;
+  }
+
+  async createAdminHolding(data: Partial<AdminHolding>): Promise<AdminHolding> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.post('/holdings/', data);
+    return response.data;
+  }
+
+  async updateAdminHolding(id: string, data: Partial<AdminHolding>): Promise<AdminHolding> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.patch(`/holdings/${id}/`, data);
+    return response.data;
+  }
+
+  async getAdminSecurityClasses(): Promise<PaginatedResponse<AdminSecurityClass>> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.get('/security-classes/');
+    return response.data;
+  }
+
+  async createAdminSecurityClass(data: Partial<AdminSecurityClass>): Promise<AdminSecurityClass> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.post('/security-classes/', data);
+    return response.data;
+  }
+
+  async getAdminIssuers(): Promise<PaginatedResponse<AdminIssuer>> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.get('/issuers/');
+    return response.data;
+  }
+
+  async createAdminIssuer(data: Partial<AdminIssuer>): Promise<AdminIssuer> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.post('/issuers/', data);
+    return response.data;
+  }
+
+  async getCapTable(issuerId: string): Promise<{ shareholders: { name: string; shares: string; percentage: number }[]; total_shares: string }> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.get(`/issuers/${issuerId}/cap_table/`);
     return response.data;
   }
 }
