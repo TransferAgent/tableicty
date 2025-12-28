@@ -368,11 +368,11 @@ export function ShareholdersPage() {
         try {
           await apiClient.createAdminSecurityClass({
             issuer: issuerResponse.id,
-            class_name: security_class_name.trim(),
+            class_designation: security_class_name.trim(),
             security_type: security_class_type as 'COMMON' | 'PREFERRED' | 'WARRANT' | 'OPTION' | 'CONVERTIBLE' | 'DEBT',
-            authorized_shares: security_class_authorized_shares || issuerFormData.total_authorized_shares,
+            shares_authorized: security_class_authorized_shares || issuerFormData.total_authorized_shares,
             par_value: issuerFormData.par_value || '0.0001',
-          });
+          } as any);
           toast.success('Issuer and security class created successfully');
         } catch (scError) {
           console.error('Error creating security class:', scError);
@@ -991,7 +991,7 @@ export function ShareholdersPage() {
                     </option>
                     {filteredSecurityClasses.map((sc) => (
                       <option key={sc.id} value={sc.id}>
-                        {sc.class_name} - {sc.security_type}
+                        {sc.class_designation} - {sc.security_type}
                       </option>
                     ))}
                   </select>
