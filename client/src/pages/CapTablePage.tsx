@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
-import type { AdminIssuer, AdminHolding } from '../types';
-import { PieChart, Building, TrendingUp, Users, Percent } from 'lucide-react';
+import type { AdminIssuer, AdminHolding, AdminSecurityClass } from '../types';
+import { PieChart, Building, TrendingUp, Users, Percent, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface CapTableEntry {
@@ -13,15 +13,17 @@ interface CapTableEntry {
 }
 
 interface CapTableSummary {
-  totalShares: number;
+  totalAuthorizedShares: number;
+  totalIssuedShares: number;
   totalShareholders: number;
-  byClass: { className: string; shares: number; percentage: number }[];
+  byClass: { className: string; authorizedShares: number; issuedShares: number; percentage: number }[];
   topShareholders: CapTableEntry[];
 }
 
 export function CapTablePage() {
   const [issuers, setIssuers] = useState<AdminIssuer[]>([]);
   const [holdings, setHoldings] = useState<AdminHolding[]>([]);
+  const [securityClasses, setSecurityClasses] = useState<AdminSecurityClass[]>([]);
   const [selectedIssuerId, setSelectedIssuerId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [capTable, setCapTable] = useState<CapTableSummary | null>(null);
@@ -31,20 +33,22 @@ export function CapTablePage() {
   }, []);
 
   useEffect(() => {
-    if (selectedIssuerId && holdings.length > 0) {
+    if (selectedIssuerId) {
       calculateCapTable();
     }
-  }, [selectedIssuerId, holdings]);
+  }, [selectedIssuerId, holdings, securityClasses]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [issuersRes, holdingsRes] = await Promise.all([
+      const [issuersRes, holdingsRes, classesRes] = await Promise.all([
         apiClient.getAdminIssuers(),
         apiClient.getAdminHoldings(),
+        apiClient.getAdminSecurityClasses(),
       ]);
       setIssuers(issuersRes.results || []);
       setHoldings(holdingsRes.results || []);
+      setSecurityClasses(classesRes.results || []);
       
       if (issuersRes.results && issuersRes.results.length > 0) {
         setSelectedIssuerId(issuersRes.results[0].id);
@@ -59,14 +63,27 @@ export function CapTablePage() {
 
   const calculateCapTable = () => {
     const issuerHoldings = holdings.filter((h) => h.issuer === selectedIssuerId);
+    const issuerClasses = securityClasses.filter((sc) => sc.issuer === selectedIssuerId);
     
-    let totalShares = 0;
+    let totalAuthorizedShares = 0;
+    let totalIssuedShares = 0;
     const shareholderShares: Record<string, { name: string; shares: number }> = {};
-    const classTotals: Record<string, { name: string; shares: number }> = {};
+    const classTotals: Record<string, { name: string; issuedShares: number; authorizedShares: number }> = {};
+
+    for (const secClass of issuerClasses) {
+      const authorized = parseFloat(secClass.shares_authorized) || 0;
+      totalAuthorizedShares += authorized;
+      const className = `${secClass.issuer_name} - ${secClass.security_type} ${secClass.class_designation}`;
+      classTotals[secClass.id] = { 
+        name: className, 
+        issuedShares: 0, 
+        authorizedShares: authorized 
+      };
+    }
 
     for (const holding of issuerHoldings) {
       const shares = parseFloat(holding.share_quantity) || 0;
-      totalShares += shares;
+      totalIssuedShares += shares;
 
       const shareholderName = holding.shareholder_name || 'Unknown';
       if (!shareholderShares[holding.shareholder]) {
@@ -74,17 +91,23 @@ export function CapTablePage() {
       }
       shareholderShares[holding.shareholder].shares += shares;
 
-      const className = holding.security_class_name || 'Unknown';
-      if (!classTotals[holding.security_class]) {
-        classTotals[holding.security_class] = { name: className, shares: 0 };
+      if (classTotals[holding.security_class]) {
+        classTotals[holding.security_class].issuedShares += shares;
+      } else {
+        const className = holding.security_class_name || 'Unknown';
+        classTotals[holding.security_class] = { 
+          name: className, 
+          issuedShares: shares, 
+          authorizedShares: 0 
+        };
       }
-      classTotals[holding.security_class].shares += shares;
     }
 
     const byClass = Object.entries(classTotals).map(([, data]) => ({
       className: data.name,
-      shares: data.shares,
-      percentage: totalShares > 0 ? (data.shares / totalShares) * 100 : 0,
+      authorizedShares: data.authorizedShares,
+      issuedShares: data.issuedShares,
+      percentage: data.authorizedShares > 0 ? (data.issuedShares / data.authorizedShares) * 100 : 0,
     }));
 
     const topShareholders = Object.entries(shareholderShares)
@@ -92,14 +115,15 @@ export function CapTablePage() {
         shareholderId,
         shareholderName: data.name,
         shares: data.shares,
-        percentage: totalShares > 0 ? (data.shares / totalShares) * 100 : 0,
+        percentage: totalAuthorizedShares > 0 ? (data.shares / totalAuthorizedShares) * 100 : 0,
         securityClass: '',
       }))
       .sort((a, b) => b.shares - a.shares)
       .slice(0, 10);
 
     setCapTable({
-      totalShares,
+      totalAuthorizedShares,
+      totalIssuedShares,
       totalShareholders: Object.keys(shareholderShares).length,
       byClass,
       topShareholders,
@@ -190,13 +214,26 @@ export function CapTablePage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-2">
+                <BarChart3 className="w-5 h-5 text-indigo-600" />
+                <h3 className="text-sm font-medium text-gray-500 uppercase">Authorized Shares</h3>
+              </div>
+              <p className="text-3xl font-bold text-gray-900">{formatNumber(capTable.totalAuthorizedShares)}</p>
+            </div>
+
             <div className="bg-white shadow rounded-lg p-6">
               <div className="flex items-center gap-3 mb-2">
                 <TrendingUp className="w-5 h-5 text-green-600" />
-                <h3 className="text-sm font-medium text-gray-500 uppercase">Total Shares</h3>
+                <h3 className="text-sm font-medium text-gray-500 uppercase">Issued Shares</h3>
               </div>
-              <p className="text-3xl font-bold text-gray-900">{formatNumber(capTable.totalShares)}</p>
+              <p className="text-3xl font-bold text-gray-900">{formatNumber(capTable.totalIssuedShares)}</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {capTable.totalAuthorizedShares > 0 
+                  ? formatPercent((capTable.totalIssuedShares / capTable.totalAuthorizedShares) * 100) + ' of authorized'
+                  : ''}
+              </p>
             </div>
 
             <div className="bg-white shadow rounded-lg p-6">
@@ -229,13 +266,16 @@ export function CapTablePage() {
                         Class
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        Shares
+                        Authorized
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        Percentage
+                        Issued
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                        % Issued
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Distribution
+                        Issuance
                       </th>
                     </tr>
                   </thead>
@@ -246,7 +286,10 @@ export function CapTablePage() {
                           {classData.className}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-gray-600">
-                          {formatNumber(classData.shares)}
+                          {formatNumber(classData.authorizedShares)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-gray-600">
+                          {formatNumber(classData.issuedShares)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-gray-600">
                           {formatPercent(classData.percentage)}
