@@ -64,8 +64,8 @@ class EmailService:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to send email to {to_email}: {str(e)}")
-            return False
+            logger.error(f"Failed to send email to {to_email}: {str(e)}", exc_info=True)
+            raise
     
     @classmethod
     def send_shareholder_invitation(

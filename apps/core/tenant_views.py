@@ -946,27 +946,36 @@ def send_shareholder_invitation(request):
         status='PENDING',
     )
     
-    success = EmailService.send_shareholder_invitation(
-        email=shareholder.email,
-        shareholder_name=shareholder_name,
-        company_name=company_name,
-        share_count=share_count,
-        share_class=share_class,
-        invite_token=token_string,
-        tenant_name=tenant.name,
-    )
-    
-    if success:
-        return Response({
-            'success': True,
-            'message': f'Invitation email sent to {shareholder.email}',
-            'shareholder_id': str(shareholder.id),
-            'expires_at': expires_at.isoformat(),
-        })
-    else:
+    try:
+        success = EmailService.send_shareholder_invitation(
+            email=shareholder.email,
+            shareholder_name=shareholder_name,
+            company_name=company_name,
+            share_count=share_count,
+            share_class=share_class,
+            invite_token=token_string,
+            tenant_name=tenant.name,
+        )
+        
+        if success:
+            return Response({
+                'success': True,
+                'message': f'Invitation email sent to {shareholder.email}',
+                'shareholder_id': str(shareholder.id),
+                'expires_at': expires_at.isoformat(),
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': 'Failed to send invitation email. Check server logs for details.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        import traceback
+        error_detail = str(e)
+        logger.error(f"Email sending failed for {shareholder.email}: {error_detail}\n{traceback.format_exc()}")
         return Response({
             'success': False,
-            'error': 'Failed to send invitation email. Check server logs for details.'
+            'error': f'Email delivery failed: {error_detail}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
