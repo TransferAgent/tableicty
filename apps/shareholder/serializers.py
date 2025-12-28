@@ -102,9 +102,10 @@ class ShareholderRegistrationSerializer(serializers.Serializer):
                     is_primary_contact=False
                 )
         
-        if tenant_id:
+        token_hash = payload.get('token_hash')
+        if token_hash:
             TenantInvitation.objects.filter(
-                email__iexact=validated_data['email'],
+                token=token_hash,
                 status='PENDING'
             ).update(
                 status='ACCEPTED',
