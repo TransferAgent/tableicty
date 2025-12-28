@@ -5,7 +5,9 @@ Provides endpoints for:
 - Tenant self-registration (onboarding)
 - Tenant settings management
 - User invitation workflow
+- Email testing and shareholder invitations
 """
+import logging
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
@@ -17,7 +19,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.core.models import (
-    Tenant, TenantMembership, SubscriptionPlan, Subscription, TenantInvitation
+    Tenant, TenantMembership, SubscriptionPlan, Subscription, TenantInvitation,
+    Shareholder, Holding, Issuer
 )
 from apps.core.permissions import IsTenantAdmin, CanManageUsers, IsPlatformAdmin
 from apps.core.serializers import (
@@ -25,6 +28,10 @@ from apps.core.serializers import (
     TenantInvitationSerializer, TenantInvitationCreateSerializer,
     AcceptInvitationSerializer
 )
+from apps.core.services.email import EmailService
+from apps.core.services.invite_tokens import create_invite_token, validate_invite_token
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -802,3 +809,200 @@ def admin_manage_role(request):
         return Response({
             'error': 'Invalid action. Use: list, promote, or create-admin'
         }, status=400)
+
+
+# ==============================================================================
+# EMAIL API ENDPOINTS
+# ==============================================================================
+
+@api_view(['POST'])
+@permission_classes([IsPlatformAdmin])
+def send_test_email(request):
+    """
+    Send a test email to verify SES configuration.
+    Only available to platform admins.
+    
+    POST /api/v1/email/test/
+    {
+        "email": "testadmin@tableicty.com"
+    }
+    """
+    to_email = request.data.get('email')
+    
+    if not to_email:
+        return Response(
+            {'error': 'email is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    success = EmailService.send_test_email(to_email)
+    
+    if success:
+        return Response({
+            'success': True,
+            'message': f'Test email sent to {to_email}'
+        })
+    else:
+        return Response({
+            'success': False,
+            'error': 'Failed to send test email. Check server logs for details.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
+def send_shareholder_invitation(request):
+    """
+    Send invitation email to a shareholder.
+    Creates JWT token and sends email with registration link.
+    
+    POST /api/v1/email/invite-shareholder/
+    {
+        "shareholder_id": "uuid",
+        "holding_id": "uuid" (optional - for specific holding context)
+    }
+    """
+    shareholder_id = request.data.get('shareholder_id')
+    holding_id = request.data.get('holding_id')
+    
+    if not shareholder_id:
+        return Response(
+            {'error': 'shareholder_id is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    membership = TenantMembership.objects.filter(user=request.user).first()
+    if not membership:
+        return Response(
+            {'error': 'No tenant membership found'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    tenant = membership.tenant
+    
+    try:
+        shareholder = Shareholder.objects.get(id=shareholder_id, tenant=tenant)
+    except Shareholder.DoesNotExist:
+        return Response(
+            {'error': 'Shareholder not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    if not shareholder.email:
+        return Response(
+            {'error': 'Shareholder has no email address'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if User.objects.filter(email=shareholder.email).exists():
+        return Response(
+            {'error': 'User with this email already has an account'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    holding = None
+    if holding_id:
+        try:
+            holding = Holding.objects.get(id=holding_id, shareholder=shareholder)
+        except Holding.DoesNotExist:
+            pass
+    
+    if not holding:
+        holding = Holding.objects.filter(shareholder=shareholder).first()
+    
+    if holding:
+        issuer = holding.issuer
+        company_name = issuer.company_name
+        company_id = str(issuer.id)
+        share_count = int(holding.share_quantity)
+        security_class = holding.security_class
+        share_class = f"{security_class.security_type} {security_class.class_designation}"
+    else:
+        first_issuer = Issuer.objects.filter(tenant=tenant).first()
+        company_name = first_issuer.company_name if first_issuer else tenant.name
+        company_id = str(first_issuer.id) if first_issuer else str(tenant.id)
+        share_count = 0
+        share_class = ''
+    
+    shareholder_name = shareholder.full_name or shareholder.entity_name or 'Shareholder'
+    
+    token_string, token_hash, expires_at = create_invite_token(
+        shareholder_id=str(shareholder.id),
+        email=shareholder.email,
+        tenant_id=str(tenant.id),
+        company_id=company_id,
+        company_name=company_name,
+        share_count=share_count,
+        share_class=share_class,
+    )
+    
+    TenantInvitation.objects.create(
+        tenant=tenant,
+        invited_by=request.user,
+        email=shareholder.email,
+        role='SHAREHOLDER',
+        token=token_hash,
+        expires_at=expires_at,
+        status='PENDING',
+    )
+    
+    success = EmailService.send_shareholder_invitation(
+        email=shareholder.email,
+        shareholder_name=shareholder_name,
+        company_name=company_name,
+        share_count=share_count,
+        share_class=share_class,
+        invite_token=token_string,
+        tenant_name=tenant.name,
+    )
+    
+    if success:
+        return Response({
+            'success': True,
+            'message': f'Invitation email sent to {shareholder.email}',
+            'shareholder_id': str(shareholder.id),
+            'expires_at': expires_at.isoformat(),
+        })
+    else:
+        return Response({
+            'success': False,
+            'error': 'Failed to send invitation email. Check server logs for details.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def validate_invite_token_view(request):
+    """
+    Validate an invitation token and return its payload.
+    Used by frontend to pre-fill registration form.
+    
+    POST /api/v1/email/validate-token/
+    {
+        "token": "jwt-token-string"
+    }
+    """
+    token = request.data.get('token')
+    
+    if not token:
+        return Response(
+            {'error': 'token is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    is_valid, payload, error = validate_invite_token(token)
+    
+    if not is_valid:
+        return Response({
+            'valid': False,
+            'error': error or 'Invalid or expired token'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    return Response({
+        'valid': True,
+        'email': payload.get('email'),
+        'company_name': payload.get('company_name'),
+        'share_count': payload.get('share_count'),
+        'share_class': payload.get('share_class'),
+        'shareholder_id': payload.get('shareholder_id'),
+    })
