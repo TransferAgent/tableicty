@@ -50,6 +50,9 @@ type IssuerFormData = {
   agreement_start_date: string;
   annual_fee: string;
   is_active: boolean;
+  primary_contact_name: string;
+  primary_contact_email: string;
+  primary_contact_phone: string;
 };
 
 const ACCOUNT_TYPES = [
@@ -134,6 +137,9 @@ export function ShareholdersPage() {
     agreement_start_date: new Date().toISOString().split('T')[0],
     annual_fee: '5000.00',
     is_active: true,
+    primary_contact_name: '',
+    primary_contact_email: '',
+    primary_contact_phone: '',
   };
   const [issuerFormData, setIssuerFormData] = useState<IssuerFormData>(initialIssuerData);
   const [issuerFormErrors, setIssuerFormErrors] = useState<Record<string, string>>({});
@@ -281,6 +287,15 @@ export function ShareholdersPage() {
     }
     if (!issuerFormData.agreement_start_date) {
       errors.agreement_start_date = 'Agreement start date is required';
+    }
+    if (!issuerFormData.primary_contact_name.trim()) {
+      errors.primary_contact_name = 'Primary contact name is required';
+    }
+    if (!issuerFormData.primary_contact_email.trim()) {
+      errors.primary_contact_email = 'Primary contact email is required';
+    }
+    if (!issuerFormData.primary_contact_phone.trim()) {
+      errors.primary_contact_phone = 'Primary contact phone is required';
     }
     
     setIssuerFormErrors(errors);
@@ -1178,6 +1193,80 @@ export function ShareholdersPage() {
                     min={0}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   />
+                </div>
+
+                <div className="col-span-2 border-t pt-4 mt-2">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Primary Contact</h3>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${issuerFormErrors.primary_contact_name ? 'text-red-600' : 'text-gray-700'}`}>
+                    Contact Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={issuerFormData.primary_contact_name}
+                    onChange={(e) => {
+                      setIssuerFormData({ ...issuerFormData, primary_contact_name: e.target.value });
+                      if (issuerFormErrors.primary_contact_name) {
+                        setIssuerFormErrors({ ...issuerFormErrors, primary_contact_name: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                      issuerFormErrors.primary_contact_name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
+                    placeholder="John Smith"
+                  />
+                  {issuerFormErrors.primary_contact_name && (
+                    <p className="mt-1 text-sm text-red-600">{issuerFormErrors.primary_contact_name}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${issuerFormErrors.primary_contact_email ? 'text-red-600' : 'text-gray-700'}`}>
+                    Contact Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={issuerFormData.primary_contact_email}
+                    onChange={(e) => {
+                      setIssuerFormData({ ...issuerFormData, primary_contact_email: e.target.value });
+                      if (issuerFormErrors.primary_contact_email) {
+                        setIssuerFormErrors({ ...issuerFormErrors, primary_contact_email: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                      issuerFormErrors.primary_contact_email ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
+                    placeholder="contact@company.com"
+                  />
+                  {issuerFormErrors.primary_contact_email && (
+                    <p className="mt-1 text-sm text-red-600">{issuerFormErrors.primary_contact_email}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${issuerFormErrors.primary_contact_phone ? 'text-red-600' : 'text-gray-700'}`}>
+                    Contact Phone *
+                  </label>
+                  <input
+                    type="tel"
+                    value={issuerFormData.primary_contact_phone}
+                    onChange={(e) => {
+                      setIssuerFormData({ ...issuerFormData, primary_contact_phone: formatPhoneNumber(e.target.value) });
+                      if (issuerFormErrors.primary_contact_phone) {
+                        setIssuerFormErrors({ ...issuerFormErrors, primary_contact_phone: '' });
+                      }
+                    }}
+                    maxLength={14}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                      issuerFormErrors.primary_contact_phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
+                    placeholder="(555) 123-4567"
+                  />
+                  {issuerFormErrors.primary_contact_phone && (
+                    <p className="mt-1 text-sm text-red-600">{issuerFormErrors.primary_contact_phone}</p>
+                  )}
                 </div>
 
                 <div className="col-span-2">
