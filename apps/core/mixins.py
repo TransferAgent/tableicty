@@ -64,7 +64,10 @@ class TenantQuerySetMixin:
                 return
             raise PermissionDenied("You must belong to a tenant to create objects.")
         
-        serializer.save(**{self.tenant_field: tenant})
+        if '__' in self.tenant_field:
+            serializer.save()
+        else:
+            serializer.save(**{self.tenant_field: tenant})
 
 
 class ShareholderOwnerQuerySetMixin:

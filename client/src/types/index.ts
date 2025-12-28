@@ -236,12 +236,12 @@ export interface AdminSecurityClass {
   tenant: string;
   issuer: string;
   issuer_name: string;
-  class_name: string;
-  security_type: 'COMMON' | 'PREFERRED' | 'WARRANT' | 'OPTION' | 'CONVERTIBLE' | 'DEBT';
-  designation: string;
+  class_designation: string;
+  security_type: 'COMMON' | 'PREFERRED' | 'WARRANT' | 'OPTION' | 'CONVERTIBLE' | 'CONVERTIBLE_NOTE' | 'TOKEN' | 'NFT_SECURITY';
+  shares_authorized: string;
   par_value: string;
-  authorized_shares: string;
-  outstanding_shares: string;
+  voting_rights: boolean;
+  votes_per_share: string;
   created_at: string;
   updated_at: string;
 }
