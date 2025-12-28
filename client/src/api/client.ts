@@ -418,6 +418,10 @@ class APIClient {
             if (newAccessToken && originalRequest) {
               originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
               return this.adminClient(originalRequest);
+            } else {
+              this.logout();
+              window.location.href = '/login';
+              return Promise.reject(new Error('Session expired'));
             }
           } catch (refreshError) {
             this.logout();
