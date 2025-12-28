@@ -138,6 +138,19 @@ export function CapTablePage() {
     return num.toFixed(2) + '%';
   };
 
+  // Calculate relative bar width with minimum visibility
+  const getBarWidth = (value: number, maxValue: number, minWidth: number = 3): number => {
+    if (value <= 0 || maxValue <= 0) return 0;
+    // Scale relative to max (largest = 100%)
+    const relativePercent = (value / maxValue) * 100;
+    // Ensure minimum visibility for non-zero values
+    return Math.max(relativePercent, minWidth);
+  };
+
+  // Get max values for relative scaling
+  const maxIssuancePercent = capTable ? Math.max(...capTable.byClass.map(c => c.percentage), 0) : 0;
+  const maxShareholderShares = capTable ? Math.max(...capTable.topShareholders.map(s => s.shares), 0) : 0;
+
   const selectedIssuer = issuers.find((i) => i.id === selectedIssuerId);
 
   if (loading) {
@@ -294,11 +307,11 @@ export function CapTablePage() {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-gray-600">
                           {formatPercent(classData.percentage)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <td className="px-6 py-4 whitespace-nowrap min-w-[150px]">
+                          <div className="w-full bg-gray-200 rounded-full h-3">
                             <div
-                              className="bg-indigo-600 h-2.5 rounded-full"
-                              style={{ width: `${Math.min(classData.percentage, 100)}%` }}
+                              className="bg-indigo-600 h-3 rounded-full transition-all duration-300"
+                              style={{ width: `${getBarWidth(classData.percentage, maxIssuancePercent)}%` }}
                             />
                           </div>
                         </td>
@@ -360,11 +373,11 @@ export function CapTablePage() {
                         <td className="px-6 py-4 whitespace-nowrap text-right font-medium text-gray-900">
                           {formatPercent(entry.percentage)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <td className="px-6 py-4 whitespace-nowrap min-w-[150px]">
+                          <div className="w-full bg-gray-200 rounded-full h-3">
                             <div
-                              className="bg-green-600 h-2.5 rounded-full"
-                              style={{ width: `${Math.min(entry.percentage, 100)}%` }}
+                              className="bg-green-600 h-3 rounded-full transition-all duration-300"
+                              style={{ width: `${getBarWidth(entry.shares, maxShareholderShares)}%` }}
                             />
                           </div>
                         </td>
