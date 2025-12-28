@@ -81,13 +81,13 @@ export function DashboardLayout() {
                 })}
               </div>
             </div>
-            <div className="flex items-center">
-              <div className="hidden sm:block mr-4 text-sm text-gray-700">
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <span className="hidden lg:block text-sm text-gray-700 whitespace-nowrap">
                 {user?.first_name} {user?.last_name}
-              </div>
+              </span>
               <button
                 onClick={handleLogout}
-                className="hidden sm:inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                className="hidden sm:inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 whitespace-nowrap"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
