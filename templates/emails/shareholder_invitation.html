@@ -1,0 +1,45 @@
+{% extends "emails/base.html" %}
+
+{% block title %}You've Been Issued Shares{% endblock %}
+
+{% block content %}
+<h2>Welcome, {{ shareholder_name }}!</h2>
+
+<p>
+    Great news! You have been issued shares in <strong>{{ company_name }}</strong>.
+</p>
+
+<div class="share-details">
+    <table>
+        <tr>
+            <td>Company</td>
+            <td>{{ company_name }}</td>
+        </tr>
+        <tr>
+            <td>Share Class</td>
+            <td>{{ share_class }}</td>
+        </tr>
+        <tr>
+            <td>Shares Issued</td>
+            <td>{{ share_count }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="highlight-box">
+    <strong>Action Required:</strong> Create your account to view your portfolio, track your holdings, and access important shareholder documents.
+</div>
+
+<p style="text-align: center;">
+    <a href="{{ registration_link }}" class="btn">View My Portfolio</a>
+</p>
+
+<p class="text-muted">
+    This link will expire in 7 days. If you did not expect to receive shares, please contact our support team.
+</p>
+
+<p class="text-muted">
+    If the button above doesn't work, copy and paste this link into your browser:<br>
+    <a href="{{ registration_link }}" style="color: #4F46E5; word-break: break-all;">{{ registration_link }}</a>
+</p>
+{% endblock %}
