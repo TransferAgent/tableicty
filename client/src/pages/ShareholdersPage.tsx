@@ -160,7 +160,7 @@ export function ShareholdersPage() {
       setShareholders(shareholdersRes.results || []);
       setSecurityClasses(classesRes.results || []);
       setIssuers(issuersRes.results || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading data:', error);
       toast.error('Failed to load shareholders');
     } finally {
