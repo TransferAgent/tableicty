@@ -103,7 +103,7 @@ export function ShareholdersPage() {
     city: '',
     state: '',
     zip_code: '',
-    country: 'USA',
+    country: 'US',
     is_accredited_investor: false,
     is_insider: false,
     is_affiliate: false,
@@ -123,6 +123,7 @@ export function ShareholdersPage() {
   };
 
   const [formData, setFormData] = useState<ShareholderFormData>(initialFormData);
+  const [shareholderFormErrors, setShareholderFormErrors] = useState<Record<string, string>>({});
   const [holdingFormData, setHoldingFormData] = useState<HoldingFormData>(initialHoldingData);
 
   const initialIssuerData: IssuerFormData = {
@@ -198,7 +199,7 @@ export function ShareholdersPage() {
       city: shareholder.city || '',
       state: shareholder.state || '',
       zip_code: shareholder.zip_code || '',
-      country: shareholder.country || 'USA',
+      country: shareholder.country || 'US',
       is_accredited_investor: shareholder.is_accredited_investor,
       is_insider: shareholder.is_insider,
       is_affiliate: shareholder.is_affiliate,
@@ -229,8 +230,46 @@ export function ShareholdersPage() {
     }
   };
 
+  const validateShareholderForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (formData.account_type === 'ENTITY') {
+      if (!formData.entity_name.trim()) {
+        errors.entity_name = 'Entity name is required';
+      }
+    } else {
+      if (!formData.first_name.trim()) {
+        errors.first_name = 'First name is required';
+      }
+      if (!formData.last_name.trim()) {
+        errors.last_name = 'Last name is required';
+      }
+    }
+    if (!formData.address_line1.trim()) {
+      errors.address_line1 = 'Address is required';
+    }
+    if (!formData.city.trim()) {
+      errors.city = 'City is required';
+    }
+    if (!formData.state.trim()) {
+      errors.state = 'State is required';
+    }
+    if (!formData.zip_code.trim()) {
+      errors.zip_code = 'ZIP code is required';
+    }
+    
+    setShareholderFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmitShareholder = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateShareholderForm()) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const data: any = { ...formData };
@@ -246,10 +285,12 @@ export function ShareholdersPage() {
       }
       setShowAddModal(false);
       setShowEditModal(false);
+      setShareholderFormErrors({});
       loadData();
     } catch (error: any) {
       console.error('Error saving shareholder:', error);
-      const message = error.response?.data?.detail || error.response?.data?.message || 'Failed to save shareholder';
+      const message = error.response?.data?.detail || error.response?.data?.message || 
+        Object.values(error.response?.data || {}).flat().join(', ') || 'Failed to save shareholder';
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -564,42 +605,69 @@ export function ShareholdersPage() {
 
                 {formData.account_type === 'ENTITY' ? (
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className={`block text-sm font-medium mb-1 ${shareholderFormErrors.entity_name ? 'text-red-600' : 'text-gray-700'}`}>
                       Entity Name *
                     </label>
                     <input
                       type="text"
-                      required
                       value={formData.entity_name}
-                      onChange={(e) => setFormData({ ...formData, entity_name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      onChange={(e) => {
+                        setFormData({ ...formData, entity_name: e.target.value });
+                        if (shareholderFormErrors.entity_name) {
+                          setShareholderFormErrors({ ...shareholderFormErrors, entity_name: '' });
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                        shareholderFormErrors.entity_name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      }`}
                     />
+                    {shareholderFormErrors.entity_name && (
+                      <p className="mt-1 text-sm text-red-600">{shareholderFormErrors.entity_name}</p>
+                    )}
                   </div>
                 ) : (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className={`block text-sm font-medium mb-1 ${shareholderFormErrors.first_name ? 'text-red-600' : 'text-gray-700'}`}>
                         First Name *
                       </label>
                       <input
                         type="text"
-                        required
                         value={formData.first_name}
-                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        onChange={(e) => {
+                          setFormData({ ...formData, first_name: e.target.value });
+                          if (shareholderFormErrors.first_name) {
+                            setShareholderFormErrors({ ...shareholderFormErrors, first_name: '' });
+                          }
+                        }}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                          shareholderFormErrors.first_name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        }`}
                       />
+                      {shareholderFormErrors.first_name && (
+                        <p className="mt-1 text-sm text-red-600">{shareholderFormErrors.first_name}</p>
+                      )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className={`block text-sm font-medium mb-1 ${shareholderFormErrors.last_name ? 'text-red-600' : 'text-gray-700'}`}>
                         Last Name *
                       </label>
                       <input
                         type="text"
-                        required
                         value={formData.last_name}
-                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        onChange={(e) => {
+                          setFormData({ ...formData, last_name: e.target.value });
+                          if (shareholderFormErrors.last_name) {
+                            setShareholderFormErrors({ ...shareholderFormErrors, last_name: '' });
+                          }
+                        }}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                          shareholderFormErrors.last_name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        }`}
                       />
+                      {shareholderFormErrors.last_name && (
+                        <p className="mt-1 text-sm text-red-600">{shareholderFormErrors.last_name}</p>
+                      )}
                     </div>
                   </>
                 )}
@@ -657,15 +725,25 @@ export function ShareholdersPage() {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address Line 1
+                  <label className={`block text-sm font-medium mb-1 ${shareholderFormErrors.address_line1 ? 'text-red-600' : 'text-gray-700'}`}>
+                    Address Line 1 *
                   </label>
                   <input
                     type="text"
                     value={formData.address_line1}
-                    onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    onChange={(e) => {
+                      setFormData({ ...formData, address_line1: e.target.value });
+                      if (shareholderFormErrors.address_line1) {
+                        setShareholderFormErrors({ ...shareholderFormErrors, address_line1: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                      shareholderFormErrors.address_line1 ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                   />
+                  {shareholderFormErrors.address_line1 && (
+                    <p className="mt-1 text-sm text-red-600">{shareholderFormErrors.address_line1}</p>
+                  )}
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -680,39 +758,77 @@ export function ShareholdersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                  <label className={`block text-sm font-medium mb-1 ${shareholderFormErrors.city ? 'text-red-600' : 'text-gray-700'}`}>
+                    City *
+                  </label>
                   <input
                     type="text"
                     value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    onChange={(e) => {
+                      setFormData({ ...formData, city: e.target.value });
+                      if (shareholderFormErrors.city) {
+                        setShareholderFormErrors({ ...shareholderFormErrors, city: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                      shareholderFormErrors.city ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                   />
+                  {shareholderFormErrors.city && (
+                    <p className="mt-1 text-sm text-red-600">{shareholderFormErrors.city}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                  <label className={`block text-sm font-medium mb-1 ${shareholderFormErrors.state ? 'text-red-600' : 'text-gray-700'}`}>
+                    State *
+                  </label>
                   <input
                     type="text"
                     value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    onChange={(e) => {
+                      setFormData({ ...formData, state: e.target.value });
+                      if (shareholderFormErrors.state) {
+                        setShareholderFormErrors({ ...shareholderFormErrors, state: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                      shareholderFormErrors.state ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                   />
+                  {shareholderFormErrors.state && (
+                    <p className="mt-1 text-sm text-red-600">{shareholderFormErrors.state}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
+                  <label className={`block text-sm font-medium mb-1 ${shareholderFormErrors.zip_code ? 'text-red-600' : 'text-gray-700'}`}>
+                    ZIP Code *
+                  </label>
                   <input
                     type="text"
                     value={formData.zip_code}
-                    onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    onChange={(e) => {
+                      setFormData({ ...formData, zip_code: e.target.value });
+                      if (shareholderFormErrors.zip_code) {
+                        setShareholderFormErrors({ ...shareholderFormErrors, zip_code: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                      shareholderFormErrors.zip_code ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                   />
+                  {shareholderFormErrors.zip_code && (
+                    <p className="mt-1 text-sm text-red-600">{shareholderFormErrors.zip_code}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                   <input
                     type="text"
                     value={formData.country}
-                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value.toUpperCase() })}
+                    maxLength={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="US"
                   />
                 </div>
 
