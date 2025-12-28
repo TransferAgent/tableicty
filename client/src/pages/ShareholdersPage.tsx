@@ -53,6 +53,10 @@ type IssuerFormData = {
   primary_contact_name: string;
   primary_contact_email: string;
   primary_contact_phone: string;
+  create_default_security_class: boolean;
+  security_class_name: string;
+  security_class_type: string;
+  security_class_authorized_shares: string;
 };
 
 const ACCOUNT_TYPES = [
@@ -141,6 +145,10 @@ export function ShareholdersPage() {
     primary_contact_name: '',
     primary_contact_email: '',
     primary_contact_phone: '',
+    create_default_security_class: true,
+    security_class_name: 'Common Stock',
+    security_class_type: 'COMMON',
+    security_class_authorized_shares: '',
   };
   const [issuerFormData, setIssuerFormData] = useState<IssuerFormData>(initialIssuerData);
   const [issuerFormErrors, setIssuerFormErrors] = useState<Record<string, string>>({});
@@ -353,8 +361,27 @@ export function ShareholdersPage() {
     
     setSubmitting(true);
     try {
-      await apiClient.createAdminIssuer(issuerFormData as any);
-      toast.success('Issuer created successfully');
+      const { create_default_security_class, security_class_name, security_class_type, security_class_authorized_shares, ...issuerData } = issuerFormData;
+      const issuerResponse = await apiClient.createAdminIssuer(issuerData as any);
+      
+      if (create_default_security_class && security_class_name.trim()) {
+        try {
+          await apiClient.createAdminSecurityClass({
+            issuer: issuerResponse.id,
+            class_name: security_class_name.trim(),
+            security_type: security_class_type as 'COMMON' | 'PREFERRED' | 'WARRANT' | 'OPTION' | 'CONVERTIBLE' | 'DEBT',
+            authorized_shares: security_class_authorized_shares || issuerFormData.total_authorized_shares,
+            par_value: issuerFormData.par_value || '0.0001',
+          });
+          toast.success('Issuer and security class created successfully');
+        } catch (scError) {
+          console.error('Error creating security class:', scError);
+          toast.success('Issuer created, but security class failed');
+        }
+      } else {
+        toast.success('Issuer created successfully');
+      }
+      
       setShowIssuerModal(false);
       setIssuerFormData(initialIssuerData);
       setIssuerFormErrors({});
@@ -1400,6 +1427,78 @@ export function ShareholdersPage() {
                     <span className="text-sm text-gray-700">Active</span>
                   </label>
                 </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Default Security Class</h3>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={issuerFormData.create_default_security_class}
+                      onChange={(e) =>
+                        setIssuerFormData({ ...issuerFormData, create_default_security_class: e.target.checked })
+                      }
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700">Create with issuer</span>
+                  </label>
+                </div>
+                <p className="text-sm text-gray-500 mb-4">
+                  A security class (e.g., Common Stock) is required to issue shares. You can create one now or add it later.
+                </p>
+                
+                {issuerFormData.create_default_security_class && (
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Class Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={issuerFormData.security_class_name}
+                        onChange={(e) =>
+                          setIssuerFormData({ ...issuerFormData, security_class_name: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="Common Stock"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Type
+                      </label>
+                      <select
+                        value={issuerFormData.security_class_type}
+                        onChange={(e) =>
+                          setIssuerFormData({ ...issuerFormData, security_class_type: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="COMMON">Common</option>
+                        <option value="PREFERRED">Preferred</option>
+                        <option value="CONVERTIBLE">Convertible</option>
+                        <option value="WARRANT">Warrant</option>
+                        <option value="OPTION">Option</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Authorized Shares
+                      </label>
+                      <input
+                        type="number"
+                        value={issuerFormData.security_class_authorized_shares}
+                        onChange={(e) =>
+                          setIssuerFormData({ ...issuerFormData, security_class_authorized_shares: e.target.value })
+                        }
+                        placeholder={issuerFormData.total_authorized_shares || 'Same as company'}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Leave blank to use company total</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
