@@ -17,6 +17,9 @@ from apps.core.tenant_views import (
     create_portal_session_view,
     cancel_subscription_view,
     admin_manage_role,
+    send_test_email,
+    send_shareholder_invitation,
+    validate_invite_token_view,
 )
 from apps.core.webhooks import stripe_webhook
 
@@ -37,5 +40,8 @@ urlpatterns = [
     path('billing/cancel/', cancel_subscription_view, name='billing-cancel'),
     path('webhooks/stripe/', stripe_webhook, name='stripe-webhook'),
     path('admin/manage-role/', admin_manage_role, name='admin-manage-role'),
+    path('email/test/', send_test_email, name='email-test'),
+    path('email/invite-shareholder/', send_shareholder_invitation, name='email-invite-shareholder'),
+    path('email/validate-token/', validate_invite_token_view, name='email-validate-token'),
     path('', include(router.urls)),
 ]
