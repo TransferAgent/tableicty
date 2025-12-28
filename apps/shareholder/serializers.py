@@ -1,8 +1,10 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from apps.core.models import Shareholder, Transfer, Certificate, AuditLog, Holding
+from apps.core.models import Shareholder, Transfer, Certificate, AuditLog, Holding, TenantMembership, TenantInvitation
+from apps.core.services.invite_tokens import validate_invite_token
 from decimal import Decimal
 
 
@@ -23,6 +25,8 @@ class ShareholderRegistrationSerializer(serializers.Serializer):
         style={'input_type': 'password'}
     )
     invite_token = serializers.CharField(required=True, write_only=True)
+    first_name = serializers.CharField(required=False, allow_blank=True, default='')
+    last_name = serializers.CharField(required=False, allow_blank=True, default='')
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
@@ -32,37 +36,81 @@ class ShareholderRegistrationSerializer(serializers.Serializer):
         return attrs
 
     def validate_invite_token(self, value):
-        # Validate invite token exists in database (mock for now)
-        # In production, check a RegistrationToken model
         if not value:
-            raise serializers.ValidationError("Invalid invite token")
+            raise serializers.ValidationError("Invite token is required")
+        
+        is_valid, payload, error = validate_invite_token(value)
+        
+        if not is_valid:
+            raise serializers.ValidationError(f"Invalid or expired invite token: {error}")
+        
+        self._token_payload = payload
         return value
     
     def create(self, validated_data):
-        invite_token = validated_data.pop('invite_token')
+        validated_data.pop('invite_token')
         validated_data.pop('password_confirm')
+        first_name = validated_data.pop('first_name', '')
+        last_name = validated_data.pop('last_name', '')
         
-        # TODO: Look up Shareholder by invite_token
-        # For now, find shareholder by email
-        try:
-            shareholder = Shareholder.objects.get(email=validated_data['email'], user__isnull=True)
-        except Shareholder.DoesNotExist:
-            raise serializers.ValidationError(
-                "No shareholder account found for this email. Please contact support."
-            )
+        payload = getattr(self, '_token_payload', {})
+        shareholder_id = payload.get('shareholder_id')
+        tenant_id = payload.get('tenant_id')
+        email_from_token = payload.get('email')
         
-        # Create user
+        if email_from_token and email_from_token.lower() != validated_data['email'].lower():
+            raise serializers.ValidationError({
+                "email": "Email does not match the invitation"
+            })
+        
+        shareholder = None
+        if shareholder_id:
+            try:
+                shareholder = Shareholder.objects.get(id=shareholder_id, user__isnull=True)
+            except Shareholder.DoesNotExist:
+                pass
+        
+        if not shareholder:
+            try:
+                shareholder = Shareholder.objects.get(email=validated_data['email'], user__isnull=True)
+            except Shareholder.DoesNotExist:
+                raise serializers.ValidationError(
+                    "No shareholder account found for this email. Please contact support."
+                )
+        
+        user_first_name = first_name or shareholder.first_name or ''
+        user_last_name = last_name or shareholder.last_name or ''
+        
         user = User.objects.create_user(
             username=validated_data['email'],
             email=validated_data['email'],
             password=validated_data['password'],
-            first_name=shareholder.first_name or '',
-            last_name=shareholder.last_name or ''
+            first_name=user_first_name,
+            last_name=user_last_name
         )
         
-        # Link user to shareholder
         shareholder.user = user
         shareholder.save()
+        
+        if shareholder.tenant:
+            existing = TenantMembership.objects.filter(user=user, tenant=shareholder.tenant).first()
+            if not existing:
+                TenantMembership.objects.create(
+                    tenant=shareholder.tenant,
+                    user=user,
+                    role='SHAREHOLDER',
+                    is_primary_contact=False
+                )
+        
+        if tenant_id:
+            TenantInvitation.objects.filter(
+                email__iexact=validated_data['email'],
+                status='PENDING'
+            ).update(
+                status='ACCEPTED',
+                accepted_at=timezone.now(),
+                accepted_by=user
+            )
         
         return user
 
