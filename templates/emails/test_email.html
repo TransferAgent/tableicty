@@ -1,0 +1,40 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Email Test{% endblock %}
+
+{% block content %}
+<h2>Email Configuration Test</h2>
+
+<p>
+    {{ test_message }}
+</p>
+
+<div class="highlight-box">
+    <strong>Status:</strong> Email delivery is working correctly!
+</div>
+
+<p>
+    If you received this email, your AWS SES configuration is properly set up and emails can be delivered successfully.
+</p>
+
+<div class="share-details">
+    <table>
+        <tr>
+            <td>Email Service</td>
+            <td>AWS SES</td>
+        </tr>
+        <tr>
+            <td>Region</td>
+            <td>us-east-1</td>
+        </tr>
+        <tr>
+            <td>Status</td>
+            <td style="color: #059669;">Connected</td>
+        </tr>
+    </table>
+</div>
+
+<p class="text-muted">
+    This is an automated test email. No action is required.
+</p>
+{% endblock %}

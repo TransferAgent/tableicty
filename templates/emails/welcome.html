@@ -1,0 +1,31 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Welcome to Tableicty{% endblock %}
+
+{% block content %}
+<h2>Welcome, {{ first_name }}!</h2>
+
+<p>
+    Thank you for joining Tableicty{% if company_name %} and becoming a registered shareholder of <strong>{{ company_name }}</strong>{% endif %}.
+</p>
+
+<div class="highlight-box">
+    Your account has been successfully created. You can now access your shareholder portal to:
+</div>
+
+<ul style="color: #4b5563; line-height: 2;">
+    <li>View your stock portfolio and holdings</li>
+    <li>Track transaction history</li>
+    <li>Access tax documents (1099-DIV, 1099-B)</li>
+    <li>Request certificate conversions</li>
+    <li>Update your profile and preferences</li>
+</ul>
+
+<p style="text-align: center;">
+    <a href="{{ frontend_url }}/login" class="btn">Access My Portfolio</a>
+</p>
+
+<p class="text-muted">
+    If you have any questions about your holdings or need assistance, please don't hesitate to contact our support team.
+</p>
+{% endblock %}
