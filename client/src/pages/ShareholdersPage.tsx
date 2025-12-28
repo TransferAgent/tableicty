@@ -223,7 +223,7 @@ export function ShareholdersPage() {
     try {
       await apiClient.deleteAdminShareholder(shareholder.id);
       toast.success('Shareholder deleted');
-      loadData();
+      await loadData();
     } catch (error) {
       console.error('Error deleting shareholder:', error);
       toast.error('Failed to delete shareholder');
@@ -286,7 +286,7 @@ export function ShareholdersPage() {
       setShowAddModal(false);
       setShowEditModal(false);
       setShareholderFormErrors({});
-      loadData();
+      await loadData();
     } catch (error: any) {
       console.error('Error saving shareholder:', error);
       const message = error.response?.data?.detail || error.response?.data?.message || 
@@ -304,7 +304,7 @@ export function ShareholdersPage() {
       await apiClient.createAdminHolding(holdingFormData as any);
       toast.success('Shares issued successfully');
       setShowHoldingModal(false);
-      loadData();
+      await loadData();
     } catch (error: any) {
       console.error('Error issuing shares:', error);
       const message = error.response?.data?.detail || error.response?.data?.message || 'Failed to issue shares';
@@ -358,7 +358,7 @@ export function ShareholdersPage() {
       setShowIssuerModal(false);
       setIssuerFormData(initialIssuerData);
       setIssuerFormErrors({});
-      loadData();
+      await loadData();
     } catch (error: any) {
       console.error('Error creating issuer:', error);
       const message = error.response?.data?.detail || error.response?.data?.message || 
@@ -393,7 +393,7 @@ export function ShareholdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <Users className="w-8 h-8 text-indigo-600" />
           <h1 className="text-2xl font-bold text-gray-900">Shareholders</h1>
@@ -401,20 +401,22 @@ export function ShareholdersPage() {
             {shareholders.length} total
           </span>
         </div>
-        <button
-          onClick={() => setShowIssuerModal(true)}
-          className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <Building className="w-5 h-5 mr-2" />
-          Add Issuer
-        </button>
-        <button
-          onClick={handleAddShareholder}
-          className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Add Shareholder
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowIssuerModal(true)}
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Building className="w-5 h-5 mr-2" />
+            Add Issuer
+          </button>
+          <button
+            onClick={handleAddShareholder}
+            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Add Shareholder
+          </button>
+        </div>
       </div>
 
       <div className="bg-white shadow rounded-lg">
