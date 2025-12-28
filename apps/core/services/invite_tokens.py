@@ -100,12 +100,14 @@ def create_invite_token(
     return token_string, token_hash, expires_at
 
 
-def validate_invite_token(token_string: str) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
+def validate_invite_token(token_string: str, check_database: bool = True) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
     """
     Validate an invite token and extract its payload.
+    Also verifies the token hasn't been revoked by checking database.
     
     Args:
         token_string: The JWT token string
+        check_database: Whether to verify token hash against TenantInvitation (default True)
         
     Returns:
         Tuple of (is_valid, payload_dict, error_message)
@@ -116,6 +118,21 @@ def validate_invite_token(token_string: str) -> Tuple[bool, Optional[Dict[str, A
         if token['token_type'] != 'shareholder_invite':
             return False, None, 'Invalid token type'
         
+        token_hash = hashlib.sha256(token_string.encode()).hexdigest()[:64]
+        
+        if check_database:
+            from apps.core.models import TenantInvitation
+            invitation = TenantInvitation.objects.filter(
+                token=token_hash,
+                status='PENDING'
+            ).first()
+            
+            if not invitation:
+                return False, None, 'Invitation not found or already used/revoked'
+            
+            if not invitation.is_valid():
+                return False, None, 'Invitation has expired'
+        
         payload = {
             'shareholder_id': token.get('shareholder_id'),
             'email': token.get('email'),
@@ -125,6 +142,7 @@ def validate_invite_token(token_string: str) -> Tuple[bool, Optional[Dict[str, A
             'share_count': token.get('share_count', 0),
             'share_class': token.get('share_class', ''),
             'role': token.get('role', 'SHAREHOLDER'),
+            'token_hash': token_hash,
         }
         
         return True, payload, None
