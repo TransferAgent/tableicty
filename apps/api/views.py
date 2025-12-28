@@ -72,6 +72,7 @@ class SecurityClassViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     filterset_fields = ['issuer', 'security_type', 'voting_rights', 'is_active']
     search_fields = ['class_designation', 'issuer__company_name']
     ordering = ['issuer', 'security_type']
+    tenant_field = 'issuer__tenant'
 
 
 class ShareholderViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
