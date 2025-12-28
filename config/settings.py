@@ -342,6 +342,30 @@ AXES_COOLOFF_TIME = 0.5
 
 PGCRYPTO_KEY = env('PGCRYPTO_KEY', default='development-encryption-key-32char')
 
+# ==============================================================================
+# EMAIL CONFIGURATION (AWS SES)
+# ==============================================================================
+if IS_PRODUCTION:
+    EMAIL_HOST = resolve_ssm_parameter('EMAIL_HOST', default='email-smtp.us-east-1.amazonaws.com')
+    EMAIL_PORT = int(resolve_ssm_parameter('EMAIL_PORT', default='587'))
+    EMAIL_HOST_USER = resolve_ssm_parameter('EMAIL_USERNAME', default='')
+    EMAIL_HOST_PASSWORD = resolve_ssm_parameter('EMAIL_PASSWORD', default='')
+    EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = False
+    DEFAULT_FROM_EMAIL = resolve_ssm_parameter('EMAIL_FROM_ADDRESS', default='noreply@tableicty.com')
+    EMAIL_FROM_NAME = resolve_ssm_parameter('EMAIL_FROM_NAME', default='Tableicty')
+else:
+    # Development: Use console backend (prints to terminal) or configure local SMTP
+    EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+    EMAIL_HOST = env('EMAIL_HOST', default='localhost')
+    EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+    EMAIL_HOST_USER = env('EMAIL_USERNAME', default='')
+    EMAIL_HOST_PASSWORD = env('EMAIL_PASSWORD', default='')
+    EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+    EMAIL_USE_SSL = False
+    DEFAULT_FROM_EMAIL = env('EMAIL_FROM_ADDRESS', default='noreply@tableicty.com')
+    EMAIL_FROM_NAME = env('EMAIL_FROM_NAME', default='Tableicty')
+
 if IS_PRODUCTION:
     STRIPE_SECRET_KEY = resolve_ssm_parameter('STRIPE_SECRET_KEY', default='')
     STRIPE_PUBLISHABLE_KEY = resolve_ssm_parameter('STRIPE_PUBLISHABLE_KEY', default='')
