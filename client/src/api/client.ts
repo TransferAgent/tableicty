@@ -510,6 +510,15 @@ class APIClient {
     const response = await this.adminClient.get(`/issuers/${issuerId}/cap_table/`);
     return response.data;
   }
+
+  async inviteShareholder(shareholderId: string, holdingId?: string): Promise<{ success: boolean; message?: string; error?: string; expires_at?: string }> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.post('/tenant/email/invite-shareholder/', {
+      shareholder_id: shareholderId,
+      holding_id: holdingId,
+    });
+    return response.data;
+  }
 }
 
 export const apiClient = new APIClient();
