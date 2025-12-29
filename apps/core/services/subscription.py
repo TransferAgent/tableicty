@@ -12,7 +12,7 @@ from apps.core.models import Tenant, Subscription, Shareholder, TenantMembership
 
 FEATURE_FLAGS = {
     'email_invitations': {
-        'tiers': ['GROWTH', 'ENTERPRISE'],
+        'tiers': ['PROFESSIONAL', 'ENTERPRISE'],
         'name': 'Email Invitations',
         'upgrade_message': 'Email invitations require Professional plan or higher',
     },
@@ -22,12 +22,12 @@ FEATURE_FLAGS = {
         'upgrade_message': 'Certificate management is an Enterprise feature',
     },
     'transfer_processing': {
-        'tiers': ['GROWTH', 'ENTERPRISE'],
+        'tiers': ['PROFESSIONAL', 'ENTERPRISE'],
         'name': 'Transfer Processing',
         'upgrade_message': 'Transfer processing requires Professional plan or higher',
     },
     'compliance_reports': {
-        'tiers': ['GROWTH', 'ENTERPRISE'],
+        'tiers': ['PROFESSIONAL', 'ENTERPRISE'],
         'name': 'Compliance Reports',
         'upgrade_message': 'Compliance reports require Professional plan or higher',
     },

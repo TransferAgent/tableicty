@@ -33,7 +33,7 @@ class Command(BaseCommand):
             {
                 'name': 'Professional',
                 'slug': 'professional',
-                'tier': 'GROWTH',
+                'tier': 'PROFESSIONAL',
                 'description': 'Full-featured transfer agent for growing companies',
                 'price_monthly': Decimal('499.00'),
                 'price_yearly': Decimal('4990.00'),
