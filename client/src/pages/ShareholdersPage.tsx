@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
 import type { AdminShareholder, AdminSecurityClass, AdminIssuer } from '../types';
-import { Users, Plus, Search, Edit, Trash2, DollarSign, X, Building, AlertCircle, Mail, Loader2 } from 'lucide-react';
+import { Users, Plus, Search, Edit, Trash2, DollarSign, X, Building, AlertCircle, Mail, Loader2, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTenant } from '../contexts/TenantContext';
+import { useNavigate } from 'react-router-dom';
 
 type ShareholderFormData = {
   account_type: AdminShareholder['account_type'];
@@ -80,6 +82,10 @@ const formatPhoneNumber = (value: string): string => {
 };
 
 export function ShareholdersPage() {
+  const { hasFeature } = useTenant();
+  const navigate = useNavigate();
+  const canSendInvitations = hasFeature('email_invitations');
+  
   const [shareholders, setShareholders] = useState<AdminShareholder[]>([]);
   const [securityClasses, setSecurityClasses] = useState<AdminSecurityClass[]>([]);
   const [issuers, setIssuers] = useState<AdminIssuer[]>([]);
@@ -620,22 +626,32 @@ export function ShareholdersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleInviteShareholder(shareholder)}
-                          disabled={!shareholder.email || invitingId === shareholder.id}
-                          className={`p-2 rounded-lg transition-colors ${
-                            shareholder.email 
-                              ? 'text-purple-600 hover:bg-purple-50' 
-                              : 'text-gray-300 cursor-not-allowed'
-                          }`}
-                          title={shareholder.email ? 'Send Invitation Email' : 'No email address'}
-                        >
-                          {invitingId === shareholder.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Mail className="w-4 h-4" />
-                          )}
-                        </button>
+                        {canSendInvitations ? (
+                          <button
+                            onClick={() => handleInviteShareholder(shareholder)}
+                            disabled={!shareholder.email || invitingId === shareholder.id}
+                            className={`p-2 rounded-lg transition-colors ${
+                              shareholder.email 
+                                ? 'text-purple-600 hover:bg-purple-50' 
+                                : 'text-gray-300 cursor-not-allowed'
+                            }`}
+                            title={shareholder.email ? 'Send Invitation Email' : 'No email address'}
+                          >
+                            {invitingId === shareholder.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Mail className="w-4 h-4" />
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => navigate('/billing')}
+                            className="p-2 rounded-lg transition-colors text-gray-400 hover:bg-purple-50 hover:text-purple-600"
+                            title="Upgrade to Professional to send invitations"
+                          >
+                            <Lock className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleIssueShares(shareholder)}
                           className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"

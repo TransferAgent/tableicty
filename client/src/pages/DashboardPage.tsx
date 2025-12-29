@@ -5,11 +5,39 @@ import { apiClient } from '../api/client';
 import { useTenant } from '../contexts/TenantContext';
 import type { Holding, PortfolioSummary } from '../types';
 import { formatNumber, formatDate } from '../lib/utils';
-import { TrendingUp, Building2, Briefcase, Users, CreditCard, Settings, Shield } from 'lucide-react';
+import { TrendingUp, Building2, Briefcase, Users, CreditCard, Settings, Shield, Crown, CheckCircle, XCircle } from 'lucide-react';
 import { PortfolioCharts } from '../components/charts/PortfolioCharts';
 
+function UsageProgressBar({ current, limit, label }: { current: number; limit: number; label: string }) {
+  const unlimited = limit === -1;
+  const percentage = unlimited ? 0 : Math.min((current / limit) * 100, 100);
+  const isNearLimit = !unlimited && percentage >= 80;
+  const isAtLimit = !unlimited && current >= limit;
+  
+  return (
+    <div>
+      <div className="flex justify-between text-sm mb-1">
+        <span className="text-gray-600">{label}</span>
+        <span className={`font-medium ${isAtLimit ? 'text-red-600' : isNearLimit ? 'text-yellow-600' : 'text-gray-900'}`}>
+          {current.toLocaleString()} / {unlimited ? 'Unlimited' : limit.toLocaleString()}
+        </span>
+      </div>
+      {!unlimited && (
+        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${
+              isAtLimit ? 'bg-red-500' : isNearLimit ? 'bg-yellow-500' : 'bg-indigo-500'
+            }`}
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DashboardPage() {
-  const { isAdmin, currentTenant, currentRole } = useTenant();
+  const { isAdmin, currentTenant, currentRole, billingStatus } = useTenant();
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,6 +150,64 @@ export function DashboardPage() {
             </Link>
           </div>
         </div>
+
+        {billingStatus?.usage && (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Subscription & Usage</h2>
+              <div className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-yellow-500" />
+                <span className="text-sm font-medium text-gray-900 bg-gradient-to-r from-yellow-100 to-yellow-50 px-3 py-1 rounded-full">
+                  {billingStatus.usage.tier_name} Plan
+                </span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <UsageProgressBar
+                  label="Shareholders"
+                  current={billingStatus.usage.shareholders.current}
+                  limit={billingStatus.usage.shareholders.limit}
+                />
+                <UsageProgressBar
+                  label="Admin Users"
+                  current={billingStatus.usage.admins.current}
+                  limit={billingStatus.usage.admins.limit}
+                />
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Features</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(billingStatus.usage.features).map(([feature, enabled]) => (
+                    <div key={feature} className="flex items-center gap-2 text-sm">
+                      {enabled ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-gray-300" />
+                      )}
+                      <span className={enabled ? 'text-gray-700' : 'text-gray-400'}>
+                        {feature.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {!billingStatus.usage.shareholders.can_add && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  You've reached your shareholder limit. 
+                  <Link to="/dashboard/billing" className="ml-1 font-medium underline hover:text-yellow-900">
+                    Upgrade your plan
+                  </Link>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Getting Started</h2>

@@ -30,6 +30,7 @@ from apps.core.serializers import (
 )
 from apps.core.services.email import EmailService
 from apps.core.services.invite_tokens import create_invite_token, validate_invite_token
+from apps.core.services.subscription import SubscriptionValidator, require_feature
 
 logger = logging.getLogger(__name__)
 
@@ -493,10 +494,14 @@ def billing_status_view(request):
                 'max_shareholders': subscription.plan.max_shareholders,
                 'max_transfers_per_month': subscription.plan.max_transfers_per_month,
                 'max_users': subscription.plan.max_users,
+                'features': subscription.plan.features or [],
             } if subscription.plan else None,
             'trial_end': subscription.trial_end.isoformat() if subscription.trial_end else None,
             'current_period_end': subscription.current_period_end.isoformat() if subscription.current_period_end else None,
         }
+    
+    usage = SubscriptionValidator.get_usage_summary(tenant)
+    response_data['usage'] = usage
     
     return Response(response_data)
 
@@ -851,10 +856,12 @@ def send_test_email(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsTenantAdmin])
+@require_feature('email_invitations')
 def send_shareholder_invitation(request):
     """
     Send invitation email to a shareholder.
     Creates JWT token and sends email with registration link.
+    Requires Professional or Enterprise tier.
     
     POST /api/v1/email/invite-shareholder/
     {
