@@ -1,16 +1,69 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiClient } from '../api/client';
+import { Loader2, Gift, CheckCircle } from 'lucide-react';
+
+interface InvitationInfo {
+  email: string;
+  companyName: string;
+  shareCount: number;
+  shareClass: string;
+}
 
 export function RegisterPage() {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [inviteToken, setInviteToken] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [validatingToken, setValidatingToken] = useState(false);
+  const [invitationInfo, setInvitationInfo] = useState<InvitationInfo | null>(null);
+  const [tokenValidated, setTokenValidated] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get('token');
+    if (tokenFromUrl) {
+      setInviteToken(tokenFromUrl);
+      validateToken(tokenFromUrl);
+    }
+  }, [searchParams]);
+
+  const validateToken = async (token: string) => {
+    setValidatingToken(true);
+    setError('');
+    
+    try {
+      const result = await apiClient.validateInviteToken(token);
+      
+      if (result.valid && result.email) {
+        setEmail(result.email);
+        setInvitationInfo({
+          email: result.email,
+          companyName: result.company_name || 'Company',
+          shareCount: result.share_count || 0,
+          shareClass: result.share_class || '',
+        });
+        setTokenValidated(true);
+      } else {
+        setError(result.error || 'Invalid or expired invitation token');
+        setTokenValidated(false);
+      }
+    } catch (err: any) {
+      setError(
+        err.response?.data?.error || 
+        err.response?.data?.detail || 
+        'Failed to validate invitation token'
+      );
+      setTokenValidated(false);
+    } finally {
+      setValidatingToken(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,6 +71,11 @@ export function RegisterPage() {
 
     if (password !== passwordConfirm) {
       setError('Passwords do not match');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -35,6 +93,7 @@ export function RegisterPage() {
       setError(
         err.response?.data?.email?.[0] ||
           err.response?.data?.detail ||
+          err.response?.data?.error ||
           'Registration failed. Please check your information and try again.'
       );
     } finally {
@@ -53,6 +112,39 @@ export function RegisterPage() {
             Join the Shareholder Portal
           </p>
         </div>
+
+        {validatingToken && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-indigo-600 mr-2" />
+            <span className="text-gray-600">Validating invitation...</span>
+          </div>
+        )}
+
+        {invitationInfo && tokenValidated && (
+          <div className="rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 p-4">
+            <div className="flex items-start">
+              <Gift className="h-6 w-6 text-purple-600 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <h3 className="text-sm font-semibold text-purple-900">
+                  You've been invited!
+                </h3>
+                <p className="mt-1 text-sm text-purple-700">
+                  Welcome to <strong>{invitationInfo.companyName}</strong>
+                </p>
+                {invitationInfo.shareCount > 0 && (
+                  <p className="mt-1 text-sm text-purple-600">
+                    You have <strong>{invitationInfo.shareCount.toLocaleString()}</strong> {invitationInfo.shareClass} shares
+                  </p>
+                )}
+                <div className="mt-2 flex items-center text-xs text-green-600">
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Invitation verified
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="rounded-md bg-red-50 p-4">
@@ -70,27 +162,43 @@ export function RegisterPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                readOnly={tokenValidated}
+                className={`mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
+                  tokenValidated ? 'bg-gray-100 cursor-not-allowed' : ''
+                }`}
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => !tokenValidated && setEmail(e.target.value)}
               />
+              {tokenValidated && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Email is locked to match your invitation
+                </p>
+              )}
             </div>
-            <div>
-              <label htmlFor="invite-token" className="block text-sm font-medium text-gray-700">
-                Invite Token
-              </label>
-              <input
-                id="invite-token"
-                name="invite-token"
-                type="text"
-                required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Enter your invite token"
-                value={inviteToken}
-                onChange={(e) => setInviteToken(e.target.value)}
-              />
-            </div>
+
+            {!searchParams.get('token') && (
+              <div>
+                <label htmlFor="invite-token" className="block text-sm font-medium text-gray-700">
+                  Invite Token
+                </label>
+                <input
+                  id="invite-token"
+                  name="invite-token"
+                  type="text"
+                  required
+                  className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="Paste your invitation token"
+                  value={inviteToken}
+                  onChange={(e) => setInviteToken(e.target.value)}
+                  onBlur={() => inviteToken && !tokenValidated && validateToken(inviteToken)}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter the token from your invitation email
+                </p>
+              </div>
+            )}
+
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
@@ -106,6 +214,9 @@ export function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Must be at least 8 characters
+              </p>
             </div>
             <div>
               <label htmlFor="password-confirm" className="block text-sm font-medium text-gray-700">
@@ -128,10 +239,17 @@ export function RegisterPage() {
           <div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || validatingToken}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Creating account...
+                </>
+              ) : (
+                'Create account'
+              )}
             </button>
           </div>
 
