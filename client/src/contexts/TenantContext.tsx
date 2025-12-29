@@ -1,19 +1,22 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { apiClient } from '../api/client';
-import type { Tenant, TenantMembership, CurrentTenantResponse } from '../types';
+import type { Tenant, TenantMembership, CurrentTenantResponse, BillingStatus } from '../types';
 import { useAuth } from './AuthContext';
 
 interface TenantContextType {
   currentTenant: Tenant | null;
   currentRole: string | null;
   availableTenants: TenantMembership[];
+  billingStatus: BillingStatus | null;
   loading: boolean;
   error: string | null;
   refreshTenantContext: () => Promise<void>;
+  refreshBillingStatus: () => Promise<void>;
   switchTenant: (tenantId: string) => Promise<void>;
   isAdmin: boolean;
   isStaff: boolean;
   isPlatformAdmin: boolean;
+  hasFeature: (feature: string) => boolean;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -23,6 +26,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [currentRole, setCurrentRole] = useState<string | null>(null);
   const [availableTenants, setAvailableTenants] = useState<TenantMembership[]>([]);
+  const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +37,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       setCurrentTenant(null);
       setCurrentRole(null);
       setAvailableTenants([]);
+      setBillingStatus(null);
       setLoading(false);
     }
   }, [isAuthenticated]);
@@ -45,12 +50,22 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       setCurrentTenant(response.current_tenant);
       setCurrentRole(response.current_role);
       setAvailableTenants(response.available_tenants || []);
+      
+      if (response.current_tenant) {
+        try {
+          const billing = await apiClient.getBillingStatus();
+          setBillingStatus(billing);
+        } catch (billingErr) {
+          console.error('Failed to load billing status:', billingErr);
+        }
+      }
     } catch (err: any) {
       console.error('Failed to load tenant context:', err);
       setError(err.response?.data?.error || 'Failed to load tenant context');
       setCurrentTenant(null);
       setCurrentRole(null);
       setAvailableTenants([]);
+      setBillingStatus(null);
     } finally {
       setLoading(false);
     }
@@ -59,6 +74,17 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   const refreshTenantContext = async () => {
     if (isAuthenticated) {
       await loadTenantContext();
+    }
+  };
+
+  const refreshBillingStatus = async () => {
+    if (isAuthenticated && currentTenant) {
+      try {
+        const billing = await apiClient.getBillingStatus();
+        setBillingStatus(billing);
+      } catch (err) {
+        console.error('Failed to refresh billing status:', err);
+      }
     }
   };
 
@@ -72,6 +98,12 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     setCurrentRole(targetMembership.role);
   };
 
+  const hasFeature = (feature: string): boolean => {
+    const features = billingStatus?.usage?.features;
+    if (!features) return false;
+    return (features as Record<string, boolean>)[feature] ?? false;
+  };
+
   const isAdmin = currentRole === 'PLATFORM_ADMIN' || currentRole === 'TENANT_ADMIN';
   const isStaff = isAdmin || currentRole === 'TENANT_STAFF';
   const isPlatformAdmin = currentRole === 'PLATFORM_ADMIN';
@@ -82,13 +114,16 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         currentTenant,
         currentRole,
         availableTenants,
+        billingStatus,
         loading,
         error,
         refreshTenantContext,
+        refreshBillingStatus,
         switchTenant,
         isAdmin,
         isStaff,
         isPlatformAdmin,
+        hasFeature,
       }}
     >
       {children}

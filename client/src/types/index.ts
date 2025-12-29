@@ -169,6 +169,35 @@ export interface SubscriptionPlan {
   max_shareholders: number;
   max_transfers_per_month: number;
   max_users: number;
+  features?: string[];
+}
+
+export interface UsageMetrics {
+  tier: string | null;
+  tier_name: string;
+  status: string;
+  price_monthly?: string;
+  shareholders: {
+    current: number;
+    limit: number;
+    unlimited: boolean;
+    can_add: boolean;
+  };
+  admins: {
+    current: number;
+    limit: number;
+    unlimited: boolean;
+    can_add: boolean;
+  };
+  features: {
+    email_invitations: boolean;
+    certificate_management: boolean;
+    transfer_processing: boolean;
+    compliance_reports: boolean;
+    dtcc_integration: boolean;
+    api_access: boolean;
+    priority_support: boolean;
+  };
 }
 
 export interface BillingStatus {
@@ -182,6 +211,7 @@ export interface BillingStatus {
     trial_end: string | null;
     current_period_end: string | null;
   } | null;
+  usage?: UsageMetrics;
 }
 
 export interface TenantRegistrationData {

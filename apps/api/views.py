@@ -6,6 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from apps.core.models import Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog
 from apps.core.mixins import TenantQuerySetMixin
 from apps.core.permissions import IsTenantStaff, CanProcessTransfers, TenantScopedPermission
+from apps.core.services.subscription import SubscriptionValidator
 from .serializers import (
     IssuerSerializer, SecurityClassSerializer, ShareholderSerializer,
     HoldingSerializer, CertificateSerializer, TransferSerializer, AuditLogSerializer
@@ -83,6 +84,23 @@ class ShareholderViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     filterset_fields = ['account_type', 'accredited_investor', 'kyc_verified', 'is_active', 'country']
     search_fields = ['first_name', 'last_name', 'entity_name', 'email']
     ordering = ['last_name', 'first_name']
+    
+    def create(self, request, *args, **kwargs):
+        tenant = getattr(request, 'tenant', None)
+        if tenant:
+            can_add, current, limit, message = SubscriptionValidator.check_shareholder_limit(tenant)
+            if not can_add:
+                return Response(
+                    {
+                        'error': 'Shareholder limit reached',
+                        'message': message,
+                        'current': current,
+                        'limit': limit,
+                        'upgrade_url': '/billing',
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        return super().create(request, *args, **kwargs)
     
     @action(detail=True, methods=['get'])
     def holdings(self, request, pk=None):
