@@ -83,8 +83,10 @@ export function ShareholdersPage() {
   const [shareholders, setShareholders] = useState<AdminShareholder[]>([]);
   const [securityClasses, setSecurityClasses] = useState<AdminSecurityClass[]>([]);
   const [issuers, setIssuers] = useState<AdminIssuer[]>([]);
+  const [holdings, setHoldings] = useState<{ shareholder: string; issuer: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIssuerId, setSelectedIssuerId] = useState<string>('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showHoldingModal, setShowHoldingModal] = useState(false);
@@ -161,14 +163,16 @@ export function ShareholdersPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [shareholdersRes, classesRes, issuersRes] = await Promise.all([
+      const [shareholdersRes, classesRes, issuersRes, holdingsRes] = await Promise.all([
         apiClient.getAdminShareholders(),
         apiClient.getAdminSecurityClasses(),
         apiClient.getAdminIssuers(),
+        apiClient.getAdminHoldings(),
       ]);
       setShareholders(shareholdersRes.results || []);
       setSecurityClasses(classesRes.results || []);
       setIssuers(issuersRes.results || []);
+      setHoldings(holdingsRes.results || []);
     } catch (error: any) {
       console.error('Error loading data:', error);
       toast.error('Failed to load shareholders');
@@ -177,13 +181,26 @@ export function ShareholdersPage() {
     }
   };
 
+  const shareholderIssuerMap = new Map<string, Set<string>>();
+  holdings.forEach((h) => {
+    if (!shareholderIssuerMap.has(h.shareholder)) {
+      shareholderIssuerMap.set(h.shareholder, new Set());
+    }
+    shareholderIssuerMap.get(h.shareholder)!.add(h.issuer);
+  });
+
   const filteredShareholders = shareholders.filter((s) => {
     const searchLower = searchQuery.toLowerCase();
-    return (
+    const matchesSearch =
       s.full_name?.toLowerCase().includes(searchLower) ||
       s.email?.toLowerCase().includes(searchLower) ||
-      s.entity_name?.toLowerCase().includes(searchLower)
-    );
+      s.entity_name?.toLowerCase().includes(searchLower);
+    
+    const matchesIssuer =
+      !selectedIssuerId ||
+      shareholderIssuerMap.get(s.id)?.has(selectedIssuerId);
+
+    return matchesSearch && matchesIssuer;
   });
 
   const handleAddShareholder = () => {
@@ -472,15 +489,31 @@ export function ShareholdersPage() {
 
       <div className="bg-white shadow rounded-lg">
         <div className="p-4 border-b border-gray-200">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
+          <div className="flex gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+            {issuers.length > 0 && (
+              <select
+                value={selectedIssuerId}
+                onChange={(e) => setSelectedIssuerId(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white min-w-[200px]"
+              >
+                <option value="">All Companies</option>
+                {issuers.map((issuer) => (
+                  <option key={issuer.id} value={issuer.id}>
+                    {issuer.company_name} ({issuer.ticker_symbol})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
