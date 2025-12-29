@@ -924,7 +924,12 @@ def send_shareholder_invitation(request):
         share_count = 0
         share_class = ''
     
-    shareholder_name = shareholder.full_name or shareholder.entity_name or 'Shareholder'
+    if shareholder.entity_name:
+        shareholder_name = shareholder.entity_name
+    elif shareholder.first_name or shareholder.last_name:
+        shareholder_name = f"{shareholder.first_name} {shareholder.last_name}".strip()
+    else:
+        shareholder_name = 'Shareholder'
     
     token_string, token_hash, expires_at = create_invite_token(
         shareholder_id=str(shareholder.id),
