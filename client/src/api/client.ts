@@ -519,6 +519,23 @@ class APIClient {
     });
     return response.data;
   }
+
+  async validateInviteToken(token: string): Promise<{
+    valid: boolean;
+    email?: string;
+    shareholder_id?: string;
+    tenant_id?: string;
+    company_name?: string;
+    share_count?: number;
+    share_class?: string;
+    error?: string;
+  }> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.post(`${tenantBaseUrl}/email/validate-token/`, { token });
+    return response.data;
+  }
 }
 
 export const apiClient = new APIClient();

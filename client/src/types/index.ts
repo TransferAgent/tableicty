@@ -90,7 +90,8 @@ export interface RegisterData {
   email: string;
   password: string;
   password_confirm: string;
-  invite_token: string;
+  invite_token?: string;
+  invitation_token?: string;
 }
 
 export interface AuthResponse {
