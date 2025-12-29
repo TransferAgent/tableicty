@@ -111,7 +111,7 @@ class SubscriptionPlan(models.Model):
     
     TIER_CHOICES = [
         ('STARTER', 'Starter'),      # Self-service cap table management
-        ('GROWTH', 'Growth'),        # + Transfer processing, compliance reports
+        ('PROFESSIONAL', 'Professional'),  # + Transfer processing, compliance reports
         ('ENTERPRISE', 'Enterprise'), # + Full TA services, DTCC integration
     ]
     tier = models.CharField(max_length=20, choices=TIER_CHOICES, unique=True)
