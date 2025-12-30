@@ -567,8 +567,11 @@ def create_checkout_session_view(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception(f"Checkout session failed for tenant {tenant.id}, plan {plan.id}: {str(e)}")
         return Response(
-            {'error': 'Failed to create checkout session'},
+            {'error': f'Failed to create checkout session: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
