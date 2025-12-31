@@ -941,10 +941,16 @@ def send_shareholder_invitation(request):
     else:
         shareholder_name = 'Shareholder'
     
+    all_holdings = Holding.objects.filter(shareholder=shareholder)
+    total_shares_decimal = sum(Decimal(str(h.share_quantity)) for h in all_holdings)
+    
+    if total_shares_decimal <= 0:
+        return Response(
+            {'error': 'Cannot send email notification: shareholder has no shares'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
     if existing_user:
-        all_holdings = Holding.objects.filter(shareholder=shareholder)
-        total_shares_decimal = sum(Decimal(str(h.share_quantity)) for h in all_holdings)
-        
         if additional_shares_param is not None:
             try:
                 additional_shares_decimal = Decimal(str(additional_shares_param))
