@@ -41,6 +41,7 @@ function App() {
                 }
               >
                 <Route index element={<DashboardPage />} />
+                <Route path="holdings" element={<DashboardPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="security" element={<SecurityPage />} />
                 <Route path="transactions" element={<TransactionsPage />} />
