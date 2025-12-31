@@ -124,12 +124,27 @@ def handle_checkout_completed(session):
             logger.error(f"Plan {plan_id} not found")
             return
         
+        stripe_client = get_stripe_client()
+        try:
+            stripe_sub = stripe_client.Subscription.retrieve(subscription_id)
+            period_start = datetime.fromtimestamp(stripe_sub.current_period_start) if stripe_sub.current_period_start else None
+            period_end = datetime.fromtimestamp(stripe_sub.current_period_end) if stripe_sub.current_period_end else None
+            logger.info(f"Fetched billing period: {period_start} to {period_end}")
+        except Exception as e:
+            logger.error(f"Failed to fetch subscription from Stripe: {e}")
+            period_start = None
+            period_end = None
+        
         subscription = Subscription.objects.filter(tenant=tenant).first()
         if subscription:
             subscription.plan = plan
             subscription.billing_cycle = billing_cycle.upper()
             subscription.status = 'ACTIVE'
             subscription.stripe_subscription_id = subscription_id
+            if period_start:
+                subscription.current_period_start = period_start
+            if period_end:
+                subscription.current_period_end = period_end
             subscription.save()
             logger.info(f"Updated subscription {subscription.id} to plan {plan.name}")
         else:
@@ -139,8 +154,10 @@ def handle_checkout_completed(session):
                 billing_cycle=billing_cycle.upper(),
                 status='ACTIVE',
                 stripe_subscription_id=subscription_id,
+                current_period_start=period_start,
+                current_period_end=period_end,
             )
-            logger.info(f"Created subscription {subscription.id} for tenant {tenant_id}")
+            logger.info(f"Created subscription {subscription.id} for tenant {tenant_id} with billing period")
     
     logger.info(f"Checkout completed for tenant {tenant_id}")
 
@@ -164,14 +181,37 @@ def handle_subscription_created(subscription_data):
         'unpaid': 'PAST_DUE',
     }
     
+    period_start = None
+    period_end = None
+    if subscription_data.get('current_period_start'):
+        period_start = datetime.fromtimestamp(subscription_data['current_period_start'])
+    if subscription_data.get('current_period_end'):
+        period_end = datetime.fromtimestamp(subscription_data['current_period_end'])
+    
     subscription = Subscription.objects.filter(tenant=tenant).first()
     if subscription:
         subscription.stripe_subscription_id = subscription_id
         subscription.status = status_mapping.get(status, 'ACTIVE')
-        update_subscription_period(subscription, subscription_data)
+        if period_start:
+            subscription.current_period_start = period_start
+        if period_end:
+            subscription.current_period_end = period_end
         subscription.save()
+        logger.info(f"Updated subscription {subscription.id} with billing period: {period_start} to {period_end}")
+    else:
+        default_plan = SubscriptionPlan.objects.filter(tier='STARTER').first()
+        if default_plan:
+            subscription = Subscription.objects.create(
+                tenant=tenant,
+                plan=default_plan,
+                status=status_mapping.get(status, 'ACTIVE'),
+                stripe_subscription_id=subscription_id,
+                current_period_start=period_start,
+                current_period_end=period_end,
+            )
+            logger.info(f"Created subscription {subscription.id} for tenant {tenant.id} with billing period")
     
-    logger.info(f"Subscription created for tenant {tenant.id}")
+    logger.info(f"Subscription created/updated for tenant {tenant.id}")
 
 
 def handle_subscription_updated(subscription_data):
