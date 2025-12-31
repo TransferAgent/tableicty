@@ -1,0 +1,49 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Share Update Notification{% endblock %}
+
+{% block content %}
+<h2>Hello, {{ shareholder_name }}!</h2>
+
+<p>
+    Great news! Your holdings in <strong>{{ company_name }}</strong> have been updated.
+</p>
+
+<div class="share-details">
+    <table>
+        <tr>
+            <td>Company</td>
+            <td>{{ company_name }}</td>
+        </tr>
+        <tr>
+            <td>Share Class</td>
+            <td>{{ share_class }}</td>
+        </tr>
+        <tr>
+            <td>Additional Shares</td>
+            <td>+{{ additional_shares }}</td>
+        </tr>
+        <tr style="background-color: #EEF2FF;">
+            <td><strong>New Total</strong></td>
+            <td><strong>{{ total_shares }}</strong></td>
+        </tr>
+    </table>
+</div>
+
+<div class="highlight-box">
+    <strong>Your portfolio has been updated!</strong> Log in to view your complete holdings, transaction history, and shareholder documents.
+</div>
+
+<p style="text-align: center;">
+    <a href="{{ dashboard_link }}" class="btn">View My Portfolio</a>
+</p>
+
+<p class="text-muted">
+    If you have any questions about this share grant, please contact your company's transfer agent or our support team.
+</p>
+
+<p class="text-muted">
+    If the button above doesn't work, copy and paste this link into your browser:<br>
+    <a href="{{ dashboard_link }}" style="color: #4F46E5; word-break: break-all;">{{ dashboard_link }}</a>
+</p>
+{% endblock %}
