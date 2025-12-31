@@ -950,6 +950,12 @@ def send_shareholder_invitation(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
+    if additional_shares_param is None or additional_shares_param == 0:
+        return Response(
+            {'error': 'No shares to commit. Please issue shares first before sending notification.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
     if existing_user:
         if additional_shares_param is not None:
             try:
