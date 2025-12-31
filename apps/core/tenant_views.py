@@ -869,11 +869,13 @@ def send_shareholder_invitation(request):
     POST /api/v1/email/invite-shareholder/
     {
         "shareholder_id": "uuid",
-        "holding_id": "uuid" (optional - for specific holding context)
+        "holding_id": "uuid" (optional - for specific holding context),
+        "additional_shares": int (optional - for share update notifications, the delta just granted)
     }
     """
     shareholder_id = request.data.get('shareholder_id')
     holding_id = request.data.get('holding_id')
+    additional_shares_param = request.data.get('additional_shares')
     
     if not shareholder_id:
         return Response(
@@ -904,11 +906,7 @@ def send_shareholder_invitation(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    if User.objects.filter(email=shareholder.email).exists():
-        return Response(
-            {'error': 'User with this email already has an account'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    existing_user = User.objects.filter(email=shareholder.email).first()
     
     holding = None
     if holding_id:
@@ -920,18 +918,20 @@ def send_shareholder_invitation(request):
     if not holding:
         holding = Holding.objects.filter(shareholder=shareholder).first()
     
+    from decimal import Decimal, InvalidOperation
+    
     if holding:
         issuer = holding.issuer
         company_name = issuer.company_name
         company_id = str(issuer.id)
-        share_count = int(holding.share_quantity)
+        share_count = holding.share_quantity
         security_class = holding.security_class
         share_class = f"{security_class.security_type} {security_class.class_designation}"
     else:
         first_issuer = Issuer.objects.filter(tenant=tenant).first()
         company_name = first_issuer.company_name if first_issuer else tenant.name
         company_id = str(first_issuer.id) if first_issuer else str(tenant.id)
-        share_count = 0
+        share_count = Decimal('0')
         share_class = ''
     
     if shareholder.entity_name:
@@ -941,13 +941,60 @@ def send_shareholder_invitation(request):
     else:
         shareholder_name = 'Shareholder'
     
+    if existing_user:
+        all_holdings = Holding.objects.filter(shareholder=shareholder)
+        total_shares_decimal = sum(Decimal(str(h.share_quantity)) for h in all_holdings)
+        
+        if additional_shares_param is not None:
+            try:
+                additional_shares_decimal = Decimal(str(additional_shares_param))
+            except (InvalidOperation, ValueError, TypeError):
+                additional_shares_decimal = Decimal(str(share_count))
+        else:
+            additional_shares_decimal = Decimal(str(share_count))
+        
+        try:
+            success = EmailService.send_share_update_notification(
+                email=shareholder.email,
+                shareholder_name=shareholder_name,
+                company_name=company_name,
+                additional_shares=additional_shares_decimal,
+                total_shares=total_shares_decimal,
+                share_class=share_class,
+                tenant_name=tenant.name,
+            )
+            
+            if success:
+                return Response({
+                    'success': True,
+                    'message': f'Share update notification sent to {shareholder.email}',
+                    'shareholder_id': str(shareholder.id),
+                    'email_type': 'share_update',
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': 'Failed to send notification email. Check server logs for details.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            import traceback
+            error_detail = str(e)
+            logger.error(f"Share update email failed for {shareholder.email}: {error_detail}\n{traceback.format_exc()}")
+            return Response({
+                'success': False,
+                'error': f'Email delivery failed: {error_detail}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    share_count_decimal = Decimal(str(share_count))
+    share_count_for_display = int(share_count_decimal) if share_count_decimal == share_count_decimal.to_integral_value() else float(share_count_decimal)
+    
     token_string, token_hash, expires_at = create_invite_token(
         shareholder_id=str(shareholder.id),
         email=shareholder.email,
         tenant_id=str(tenant.id),
         company_id=company_id,
         company_name=company_name,
-        share_count=share_count,
+        share_count=share_count_for_display,
         share_class=share_class,
     )
     
@@ -966,7 +1013,7 @@ def send_shareholder_invitation(request):
             email=shareholder.email,
             shareholder_name=shareholder_name,
             company_name=company_name,
-            share_count=share_count,
+            share_count=share_count_for_display,
             share_class=share_class,
             invite_token=token_string,
             tenant_name=tenant.name,
@@ -978,6 +1025,7 @@ def send_shareholder_invitation(request):
                 'message': f'Invitation email sent to {shareholder.email}',
                 'shareholder_id': str(shareholder.id),
                 'expires_at': expires_at.isoformat(),
+                'email_type': 'invitation',
             })
         else:
             return Response({

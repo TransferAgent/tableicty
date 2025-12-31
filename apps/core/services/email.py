@@ -172,8 +172,8 @@ class EmailService:
         email: str,
         shareholder_name: str,
         company_name: str,
-        additional_shares: int,
-        total_shares: int,
+        additional_shares,
+        total_shares,
         share_class: str,
         tenant_name: Optional[str] = None,
     ) -> bool:
@@ -184,22 +184,32 @@ class EmailService:
             email: Shareholder's email address
             shareholder_name: Full name of the shareholder
             company_name: Name of the issuing company
-            additional_shares: Number of new shares granted
-            total_shares: New total share count
+            additional_shares: Number of new shares granted (Decimal, int, or float)
+            total_shares: New total share count (Decimal, int, or float)
             share_class: Class of shares (e.g., "Common Stock Class A")
             tenant_name: Optional tenant/platform name for branding
             
         Returns:
             True if email sent successfully
         """
+        from decimal import Decimal
+        
         frontend_url = getattr(settings, 'FRONTEND_URL', 'https://tableicty.com')
         dashboard_link = f"{frontend_url}/dashboard/holdings"
+        
+        def format_shares(value):
+            """Format share count, removing unnecessary decimals for whole numbers."""
+            dec_val = Decimal(str(value))
+            if dec_val == dec_val.to_integral_value():
+                return f"{int(dec_val):,}"
+            normalized = dec_val.normalize()
+            return f"{normalized:,}"
         
         context = {
             'shareholder_name': shareholder_name,
             'company_name': company_name,
-            'additional_shares': f"{additional_shares:,}",
-            'total_shares': f"{total_shares:,}",
+            'additional_shares': format_shares(additional_shares),
+            'total_shares': format_shares(total_shares),
             'share_class': share_class,
             'dashboard_link': dashboard_link,
             'tenant_name': tenant_name or 'Tableicty',
