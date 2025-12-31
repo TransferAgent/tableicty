@@ -165,3 +165,51 @@ class EmailService:
             template_name='welcome',
             context=context,
         )
+    
+    @classmethod
+    def send_share_update_notification(
+        cls,
+        email: str,
+        shareholder_name: str,
+        company_name: str,
+        additional_shares: int,
+        total_shares: int,
+        share_class: str,
+        tenant_name: Optional[str] = None,
+    ) -> bool:
+        """
+        Send notification to existing shareholder when additional shares are granted.
+        
+        Args:
+            email: Shareholder's email address
+            shareholder_name: Full name of the shareholder
+            company_name: Name of the issuing company
+            additional_shares: Number of new shares granted
+            total_shares: New total share count
+            share_class: Class of shares (e.g., "Common Stock Class A")
+            tenant_name: Optional tenant/platform name for branding
+            
+        Returns:
+            True if email sent successfully
+        """
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://tableicty.com')
+        dashboard_link = f"{frontend_url}/dashboard/holdings"
+        
+        context = {
+            'shareholder_name': shareholder_name,
+            'company_name': company_name,
+            'additional_shares': f"{additional_shares:,}",
+            'total_shares': f"{total_shares:,}",
+            'share_class': share_class,
+            'dashboard_link': dashboard_link,
+            'tenant_name': tenant_name or 'Tableicty',
+        }
+        
+        subject = f"Share Update: You've received additional shares in {company_name}"
+        
+        return cls.send_email(
+            to_email=email,
+            subject=subject,
+            template_name='share_update',
+            context=context,
+        )
