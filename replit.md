@@ -24,7 +24,7 @@ The system is built on a Python 3.11/Django 4.2 LTS backend with Django REST Fra
 -   **Security:** Features include PII encryption, brute force protection, strong password validation, CORS, two-factor authentication (TOTP), and robust httpOnly cookie authentication with XSS/CSRF protection. Audit logs are hardened for immutability.
 -   **Shareholder Portal (React Frontend):** Provides JWT-based authentication with httpOnly cookies, a dashboard with holdings and visualizations, transaction history, tax document access, certificate conversion requests, and profile management.
 -   **Multi-Tenant SaaS Architecture:** Implements a multi-tenant data model with tenant-scoped data isolation, role-based access control (PLATFORM_ADMIN, TENANT_ADMIN, TENANT_STAFF, SHAREHOLDER), tenant self-registration, and subscription management.
--   **Email Service:** Integration with AWS SES for sending shareholder invitations, welcome emails, and test emails, utilizing JWT invite tokens for secure registration.
+-   **Email Service:** Integration with AWS SES for sending shareholder invitations, welcome emails, test emails, and share update notifications. Features smart email detection that sends "Share Update" notifications to existing shareholders with accounts (showing additional shares and new totals) or invitation emails with JWT tokens for new shareholders who need to register.
 -   **Shareholder Management (Admin Console):** CRUD operations for shareholders, ability to issue shares, and a comprehensive cap table view with breakdowns by security class and top shareholders.
 -   **Billing:** Stripe integration for subscription management, checkout sessions, and webhook handling.
 
