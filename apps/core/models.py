@@ -731,3 +731,153 @@ class AuditLog(models.Model):
     
     def __str__(self):
         return f"{self.timestamp:%Y-%m-%d %H:%M} - {self.user_email} - {self.action_type} - {self.model_name}"
+
+
+class ShareIssuanceRequest(models.Model):
+    """
+    Tracks share issuance requests, especially for payment-required investment types.
+    Shares are only issued after payment confirmation for retail/friends & family investments.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='share_issuance_requests',
+        help_text="Tenant this issuance request belongs to"
+    )
+    
+    shareholder = models.ForeignKey(
+        Shareholder,
+        on_delete=models.CASCADE,
+        related_name='issuance_requests',
+        help_text="Shareholder receiving shares"
+    )
+    issuer = models.ForeignKey(
+        Issuer,
+        on_delete=models.CASCADE,
+        related_name='issuance_requests',
+        help_text="Issuer of the shares"
+    )
+    security_class = models.ForeignKey(
+        SecurityClass,
+        on_delete=models.CASCADE,
+        related_name='issuance_requests',
+        help_text="Security class being issued"
+    )
+    
+    INVESTMENT_TYPE_CHOICES = [
+        ('FOUNDER_SHARES', 'Founder Shares'),
+        ('SEED_ROUND', 'Seed Round Funding'),
+        ('RETAIL', 'Retail Investment'),
+        ('FRIENDS_FAMILY', 'Friends & Family'),
+    ]
+    investment_type = models.CharField(
+        max_length=20,
+        choices=INVESTMENT_TYPE_CHOICES,
+        help_text="Type of investment - determines if payment is required"
+    )
+    
+    share_quantity = models.DecimalField(
+        max_digits=20,
+        decimal_places=4,
+        validators=[MinValueValidator(0)],
+        help_text="Number of shares to issue"
+    )
+    price_per_share = models.DecimalField(
+        max_digits=15,
+        decimal_places=4,
+        validators=[MinValueValidator(0)],
+        help_text="Price per share"
+    )
+    total_amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        help_text="Total payment amount (shares * price)"
+    )
+    
+    STATUS_CHOICES = [
+        ('PENDING_PAYMENT', 'Pending Payment'),
+        ('PAYMENT_PROCESSING', 'Payment Processing'),
+        ('COMPLETED', 'Completed'),
+        ('FAILED', 'Failed'),
+        ('EXPIRED', 'Expired'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='PENDING_PAYMENT',
+        help_text="Current status of the issuance request"
+    )
+    
+    stripe_checkout_session_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Stripe Checkout Session ID for payment"
+    )
+    stripe_payment_intent_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Stripe Payment Intent ID"
+    )
+    
+    holding = models.ForeignKey(
+        Holding,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='issuance_request',
+        help_text="The holding created after successful payment"
+    )
+    
+    holding_type = models.CharField(max_length=20, default='DRS')
+    is_restricted = models.BooleanField(default=False)
+    acquisition_type = models.CharField(max_length=20, default='ISSUANCE')
+    cost_basis = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    notes = models.TextField(blank=True)
+    
+    send_email_notification = models.BooleanField(
+        default=True,
+        help_text="Whether to send email notification after issuance"
+    )
+    
+    requested_by = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='share_issuance_requests',
+        help_text="Admin user who initiated the request"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+    expires_at = models.DateTimeField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['tenant', 'status']),
+            models.Index(fields=['shareholder', 'status']),
+            models.Index(fields=['stripe_checkout_session_id']),
+            models.Index(fields=['status', 'expires_at']),
+        ]
+        verbose_name = "Share Issuance Request"
+        verbose_name_plural = "Share Issuance Requests"
+    
+    def __str__(self):
+        return f"{self.shareholder} - {self.share_quantity} shares ({self.get_status_display()})"
+    
+    @property
+    def requires_payment(self) -> bool:
+        """Returns True if this investment type requires payment."""
+        return self.investment_type in ('RETAIL', 'FRIENDS_FAMILY')
+    
+    def save(self, *args, **kwargs):
+        if not self.total_amount:
+            self.total_amount = self.share_quantity * self.price_per_share
+        super().save(*args, **kwargs)

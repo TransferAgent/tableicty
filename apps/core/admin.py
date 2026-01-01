@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.utils.html import format_html
 from .models import (
     Tenant, TenantMembership, SubscriptionPlan, Subscription, TenantInvitation,
-    Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog
+    Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog,
+    ShareIssuanceRequest
 )
 
 
@@ -447,3 +448,35 @@ class AuditLogAdmin(admin.ModelAdmin):
     
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(ShareIssuanceRequest)
+class ShareIssuanceRequestAdmin(admin.ModelAdmin):
+    list_display = ['id', 'shareholder', 'issuer', 'investment_type', 'share_quantity', 
+                    'price_per_share', 'total_amount', 'status', 'created_at']
+    list_filter = ['status', 'investment_type', 'tenant', 'created_at']
+    search_fields = ['shareholder__first_name', 'shareholder__last_name', 'shareholder__entity_name',
+                     'issuer__company_name', 'stripe_checkout_session_id']
+    readonly_fields = ['id', 'created_at', 'updated_at', 'completed_at']
+    date_hierarchy = 'created_at'
+    raw_id_fields = ['shareholder', 'issuer', 'security_class', 'holding', 'requested_by']
+    
+    fieldsets = (
+        (None, {
+            'fields': ('tenant', 'shareholder', 'issuer', 'security_class', 'investment_type')
+        }),
+        ('Share Details', {
+            'fields': ('share_quantity', 'price_per_share', 'total_amount', 'holding_type', 
+                       'is_restricted', 'acquisition_type', 'cost_basis')
+        }),
+        ('Payment Status', {
+            'fields': ('status', 'stripe_checkout_session_id', 'stripe_payment_intent_id')
+        }),
+        ('Result', {
+            'fields': ('holding', 'send_email_notification', 'notes')
+        }),
+        ('Metadata', {
+            'fields': ('requested_by', 'created_at', 'updated_at', 'completed_at', 'expires_at'),
+            'classes': ('collapse',)
+        }),
+    )
