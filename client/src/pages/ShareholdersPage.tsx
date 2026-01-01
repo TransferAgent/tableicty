@@ -275,15 +275,23 @@ export function ShareholdersPage() {
     }
     
     try {
-      const result = await apiClient.inviteShareholder(shareholder.id);
-      if (result.success) {
-        toast.success(result.message || 'Email sent successfully');
+      const result = await apiClient.releaseShares(shareholder.id);
+      if (result.status === 'released') {
+        toast.success(result.message || 'Shares released and email sent successfully');
+        await loadData();
+      } else if (result.status === 'already_released') {
+        const inviteResult = await apiClient.inviteShareholder(shareholder.id);
+        if (inviteResult.success) {
+          toast.success(inviteResult.message || 'Email sent successfully');
+        } else {
+          toast.error(inviteResult.error || 'Failed to send email');
+        }
       } else {
-        toast.error(result.error || 'Failed to send email');
+        toast.error(result.error || 'Failed to release shares');
       }
     } catch (error: any) {
-      console.error('Error sending email:', error);
-      const message = error.response?.data?.error || 'Failed to send email';
+      console.error('Error releasing shares:', error);
+      const message = error.response?.data?.error || 'Failed to release shares';
       toast.error(message);
     }
   };

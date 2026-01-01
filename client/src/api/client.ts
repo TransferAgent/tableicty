@@ -503,6 +503,21 @@ class APIClient {
     return response.data;
   }
 
+  async releaseShares(shareholderId: string): Promise<{
+    status: 'released' | 'already_released';
+    message: string;
+    released_shares?: number;
+    total_shares?: number;
+    email_sent?: boolean;
+    error?: string;
+  }> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.post('/holdings/release-shares/', {
+      shareholder_id: shareholderId,
+    });
+    return response.data;
+  }
+
   async updateAdminHolding(id: string, data: Partial<AdminHolding>): Promise<AdminHolding> {
     if (!this.adminClient) this.initAdminClient();
     const response = await this.adminClient.patch(`/holdings/${id}/`, data);

@@ -417,6 +417,100 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
                     'investment_type': investment_type,
                     'holding_status': 'HELD',
                 })
+    
+    @action(detail=False, methods=['post'], url_path='release-shares')
+    def release_shares(self, request):
+        """
+        Release shares from holding bucket to shareholder and send email notification.
+        
+        This endpoint is called when the admin clicks the email icon on the Shareholders page.
+        It changes HELD holdings to ACTIVE and sends the email notification.
+        
+        POST /api/v1/holdings/release-shares/
+        {
+            "shareholder_id": "uuid"
+        }
+        """
+        from django.utils import timezone
+        from django.db.models import Sum
+        from apps.core.models import Shareholder
+        from apps.core.services.email import EmailService
+        
+        tenant = getattr(request, 'tenant', None)
+        if not tenant:
+            return Response({'error': 'No tenant context'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        shareholder_id = request.data.get('shareholder_id')
+        if not shareholder_id:
+            return Response({'error': 'shareholder_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            shareholder = Shareholder.objects.get(id=shareholder_id, tenant=tenant)
+        except Shareholder.DoesNotExist:
+            return Response({'error': 'Shareholder not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        held_holdings = Holding.objects.filter(
+            shareholder=shareholder,
+            tenant=tenant,
+            status='HELD'
+        )
+        
+        held_count = held_holdings.count()
+        if held_count == 0:
+            active_count = Holding.objects.filter(
+                shareholder=shareholder,
+                tenant=tenant,
+                status='ACTIVE'
+            ).count()
+            
+            if active_count > 0:
+                return Response({
+                    'status': 'already_released',
+                    'message': 'All shares have already been released to this shareholder.',
+                })
+            else:
+                return Response(
+                    {'error': 'No shares found for this shareholder. Please issue shares first.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        released_shares = 0
+        issuer = None
+        for holding in held_holdings:
+            holding.status = 'ACTIVE'
+            holding.released_at = timezone.now()
+            holding.released_by = request.user
+            holding.save()
+            released_shares += holding.share_quantity
+            if not issuer:
+                issuer = holding.issuer
+        
+        total_active_shares = Holding.objects.filter(
+            shareholder=shareholder,
+            status='ACTIVE'
+        ).aggregate(total=Sum('share_quantity'))['total'] or 0
+        
+        email_sent = False
+        if shareholder.email and issuer:
+            try:
+                email_service = EmailService()
+                email_service.send_share_update_or_invitation(
+                    shareholder=shareholder,
+                    issuer=issuer,
+                    additional_shares=int(released_shares),
+                    total_shares=int(total_active_shares),
+                )
+                email_sent = True
+            except Exception as email_error:
+                pass
+        
+        return Response({
+            'status': 'released',
+            'message': f'{int(released_shares)} shares released to shareholder. {"Email notification sent." if email_sent else "No email sent (shareholder has no email address)."}',
+            'released_shares': int(released_shares),
+            'total_shares': int(total_active_shares),
+            'email_sent': email_sent,
+        })
 
 
 class CertificateViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
