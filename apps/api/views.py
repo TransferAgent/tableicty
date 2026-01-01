@@ -313,6 +313,8 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
                 holding_type=holding_type,
                 is_restricted=is_restricted,
                 notes=notes,
+                status='HELD',
+                held_at=timezone.now(),
             )
             
             issuance_request = ShareIssuanceRequest.objects.create(
@@ -339,11 +341,11 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
             serializer = HoldingSerializer(holding)
             return Response({
                 'status': 'completed',
-                'message': 'Shares issued successfully',
+                'message': 'Shares placed in holding bucket. Click the email icon to release shares and notify shareholder.',
                 'holding': serializer.data,
                 'issuance_request_id': str(issuance_request.id),
                 'investment_type': investment_type,
-                'send_email_notification': send_email,
+                'holding_status': 'HELD',
             })
 
 
