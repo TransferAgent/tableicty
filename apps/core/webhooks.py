@@ -366,6 +366,9 @@ def handle_share_issuance_payment(session):
                 holding_type=issuance_request.holding_type,
                 is_restricted=issuance_request.is_restricted,
                 notes=f"Issued via {issuance_request.get_investment_type_display()} - Payment confirmed",
+                status='HELD',
+                held_at=timezone.now(),
+                share_issuance_request=issuance_request,
             )
             
             issuance_request.holding = holding
@@ -373,28 +376,7 @@ def handle_share_issuance_payment(session):
             issuance_request.completed_at = timezone.now()
             issuance_request.save()
             
-            logger.info(f"Share issuance completed: {issuance_request.share_quantity} shares issued to {issuance_request.shareholder}")
-        
-        if issuance_request.send_email_notification and issuance_request.shareholder.email:
-            try:
-                from apps.core.services.email import EmailService
-                from django.db.models import Sum
-                
-                email_service = EmailService()
-                total_shares = Holding.objects.filter(
-                    shareholder=issuance_request.shareholder
-                ).aggregate(total=Sum('share_quantity'))['total'] or 0
-                
-                if total_shares > 0:
-                    email_service.send_share_update_or_invitation(
-                        shareholder=issuance_request.shareholder,
-                        issuer=issuance_request.issuer,
-                        additional_shares=int(issuance_request.share_quantity),
-                        total_shares=int(total_shares),
-                    )
-                    logger.info(f"Email notification sent to {issuance_request.shareholder.email}")
-            except Exception as email_error:
-                logger.error(f"Failed to send email notification: {email_error}")
+            logger.info(f"Share issuance completed: {issuance_request.share_quantity} shares placed in HELD status for {issuance_request.shareholder}")
                 
     except ShareIssuanceRequest.DoesNotExist:
         logger.error(f"ShareIssuanceRequest {issuance_request_id} not found")
