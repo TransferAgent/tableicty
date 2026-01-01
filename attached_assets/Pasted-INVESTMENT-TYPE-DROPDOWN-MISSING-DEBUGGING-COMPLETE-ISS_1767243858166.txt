@@ -1,0 +1,68 @@
+INVESTMENT TYPE DROPDOWN MISSING - DEBUGGING COMPLETE
+
+ISSUE SUMMARY:
+The Investment Type dropdown is not appearing in the "Issue Shares" modal.
+
+ROOT CAUSE IDENTIFIED:
+✅ Database field exists: core_shareissuancerequest.investment_type (character varying)
+✅ Frontend code expects the field (based on your statement "code is correct")
+❌ Backend API is NOT providing investment_type options to the frontend
+
+API ENDPOINTS CHECKED:
+1. GET /api/v1/tenant/issuers/ - Returns issuer data, NO investment_types
+2. GET /api/v1/tenant/security-classes/ - Returns security classes, NO investment_types
+3. GET /api/v1/shareholders/ - Returns shareholders, NO investment_types
+4. GET /api/v1/holdings/ - Returns holdings, NO investment_types
+
+EXPECTED BEHAVIOR:
+One of these endpoints (or a new endpoint) should return:
+{
+  "investment_types": [
+    {"value": "FOUNDER", "label": "Founder Shares"},
+    {"value": "SEED", "label": "Seed Round"},
+    {"value": "RETAIL", "label": "Retail Investment"},
+    {"value": "FRIENDS_FAMILY", "label": "Friends & Family"}
+  ]
+}
+
+FRONTEND BEHAVIOR:
+The Issue Shares modal loads and makes these API calls:
+- /api/v1/tenant/shareholders/
+- /api/v1/tenant/security-classes/
+- /api/v1/tenant/issuers/
+- /api/v1/tenant/holdings/
+
+But none of these responses contain investment_type dropdown options.
+
+QUESTIONS:
+1. Which API endpoint should return investment_type options?
+2. Is there a missing endpoint like /api/v1/investment-types/?
+3. Should investment_types be embedded in /api/v1/tenant/issuers/ response?
+4. Or should they be in a form metadata endpoint like /api/v1/share-issuance/form-options/?
+
+REPRODUCTION STEPS:
+1. Login to https://tableicty.com
+2. Navigate to Shareholders page
+3. Click "Issue Shares" button
+4. Modal opens with fields for:
+   - Issuer (dropdown) ✅
+   - Security Class (dropdown - grayed until issuer selected) ✅
+   - Number of Shares ✅
+   - Cost Basis ✅
+   - Acquisition Date ✅
+   - Acquisition Type (dropdown - shows "ISSUANCE") ✅
+   - Holding Type (dropdown - shows "DRS") ✅
+5. MISSING: Investment Type dropdown should appear after Security Class
+
+BROWSER CONSOLE:
+No JavaScript errors in console.
+
+NETWORK TAB:
+All API calls return 200 OK. No failed requests.
+
+DATABASE:
+core_shareissuancerequest table has investment_type column (character varying, NOT NULL)
+
+NEXT STEPS:
+Please add investment_type options to the appropriate API endpoint response.
+After deployment, I will test again.
