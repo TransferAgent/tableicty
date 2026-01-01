@@ -97,9 +97,16 @@ def stripe_webhook(request):
 
 def handle_checkout_completed(session):
     """Handle successful checkout session completion."""
-    tenant_id = session.get('metadata', {}).get('tenant_id')
-    plan_id = session.get('metadata', {}).get('plan_id')
-    billing_cycle = session.get('metadata', {}).get('billing_cycle', 'monthly')
+    metadata = session.get('metadata', {})
+    checkout_type = metadata.get('type', 'subscription')
+    
+    if checkout_type == 'share_issuance':
+        handle_share_issuance_payment(session)
+        return
+    
+    tenant_id = metadata.get('tenant_id')
+    plan_id = metadata.get('plan_id')
+    billing_cycle = metadata.get('billing_cycle', 'monthly')
     subscription_id = session.get('subscription')
     customer_id = session.get('customer')
     
@@ -285,3 +292,111 @@ def update_subscription_period(subscription, stripe_data):
         subscription.current_period_end = datetime.fromtimestamp(
             stripe_data['current_period_end']
         )
+
+
+def handle_share_issuance_payment(session):
+    """
+    Handle successful payment for share issuance.
+    Creates the holding after payment is confirmed.
+    Uses select_for_update to prevent duplicate Holdings from concurrent webhooks.
+    """
+    from django.utils import timezone
+    from django.db import transaction
+    from apps.core.models import ShareIssuanceRequest, Holding
+    
+    metadata = session.get('metadata', {})
+    issuance_request_id = metadata.get('issuance_request_id')
+    payment_intent_id = session.get('payment_intent')
+    
+    if not issuance_request_id:
+        logger.error("Share issuance checkout missing issuance_request_id in metadata")
+        return
+    
+    try:
+        with transaction.atomic():
+            issuance_request = ShareIssuanceRequest.objects.select_for_update().select_related(
+                'tenant', 'shareholder', 'issuer', 'security_class'
+            ).get(id=issuance_request_id)
+            
+            if issuance_request.status == 'COMPLETED':
+                logger.info(f"Issuance request {issuance_request_id} already completed, skipping duplicate webhook")
+                return
+            
+            if issuance_request.holding is not None:
+                logger.info(f"Issuance request {issuance_request_id} already has holding, skipping")
+                return
+            
+            session_id = session.get('id')
+            if issuance_request.stripe_checkout_session_id and session_id != issuance_request.stripe_checkout_session_id:
+                logger.error(f"Session ID mismatch for issuance {issuance_request_id}: expected {issuance_request.stripe_checkout_session_id}, got {session_id}")
+                issuance_request.status = 'FAILED'
+                issuance_request.notes = f"Security: Session ID mismatch"
+                issuance_request.save()
+                return
+            
+            session_amount = session.get('amount_total', 0)
+            expected_amount = int(issuance_request.total_amount * 100)
+            if session_amount != expected_amount:
+                logger.error(f"Amount mismatch for issuance {issuance_request_id}: expected {expected_amount} cents, got {session_amount} cents")
+                issuance_request.status = 'FAILED'
+                issuance_request.notes = f"Security: Amount mismatch (expected {expected_amount}, got {session_amount})"
+                issuance_request.save()
+                return
+            
+            payment_status = session.get('payment_status')
+            if payment_status != 'paid':
+                logger.error(f"Payment not confirmed for issuance {issuance_request_id}: status={payment_status}")
+                issuance_request.status = 'FAILED'
+                issuance_request.notes = f"Payment not confirmed: {payment_status}"
+                issuance_request.save()
+                return
+            
+            if payment_intent_id:
+                issuance_request.stripe_payment_intent_id = payment_intent_id
+            
+            holding = Holding.objects.create(
+                tenant=issuance_request.tenant,
+                shareholder=issuance_request.shareholder,
+                issuer=issuance_request.issuer,
+                security_class=issuance_request.security_class,
+                share_quantity=issuance_request.share_quantity,
+                acquisition_date=timezone.now().date(),
+                acquisition_price=issuance_request.price_per_share,
+                cost_basis=issuance_request.cost_basis,
+                holding_type=issuance_request.holding_type,
+                is_restricted=issuance_request.is_restricted,
+                notes=f"Issued via {issuance_request.get_investment_type_display()} - Payment confirmed",
+            )
+            
+            issuance_request.holding = holding
+            issuance_request.status = 'COMPLETED'
+            issuance_request.completed_at = timezone.now()
+            issuance_request.save()
+            
+            logger.info(f"Share issuance completed: {issuance_request.share_quantity} shares issued to {issuance_request.shareholder}")
+        
+        if issuance_request.send_email_notification and issuance_request.shareholder.email:
+            try:
+                from apps.core.services.email import EmailService
+                from django.db.models import Sum
+                
+                email_service = EmailService()
+                total_shares = Holding.objects.filter(
+                    shareholder=issuance_request.shareholder
+                ).aggregate(total=Sum('share_quantity'))['total'] or 0
+                
+                if total_shares > 0:
+                    email_service.send_share_update_or_invitation(
+                        shareholder=issuance_request.shareholder,
+                        issuer=issuance_request.issuer,
+                        additional_shares=int(issuance_request.share_quantity),
+                        total_shares=int(total_shares),
+                    )
+                    logger.info(f"Email notification sent to {issuance_request.shareholder.email}")
+            except Exception as email_error:
+                logger.error(f"Failed to send email notification: {email_error}")
+                
+    except ShareIssuanceRequest.DoesNotExist:
+        logger.error(f"ShareIssuanceRequest {issuance_request_id} not found")
+    except Exception as e:
+        logger.exception(f"Error processing share issuance payment for {issuance_request_id}: {e}")

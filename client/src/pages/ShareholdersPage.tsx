@@ -31,6 +31,8 @@ type HoldingFormData = {
   issuer: string;
   security_class: string;
   share_quantity: string;
+  investment_type: 'FOUNDER_SHARES' | 'SEED_ROUND' | 'RETAIL' | 'FRIENDS_FAMILY';
+  price_per_share: string;
   cost_basis: string;
   acquisition_date: string;
   acquisition_type: string;
@@ -38,6 +40,13 @@ type HoldingFormData = {
   is_restricted: boolean;
   notes: string;
 };
+
+const INVESTMENT_TYPES = [
+  { value: 'FOUNDER_SHARES', label: 'Founder Shares', requiresPayment: false, description: 'No payment required' },
+  { value: 'SEED_ROUND', label: 'Seed Round', requiresPayment: false, description: 'No payment required' },
+  { value: 'RETAIL', label: 'Retail Investment', requiresPayment: true, description: 'Payment required via Stripe' },
+  { value: 'FRIENDS_FAMILY', label: 'Friends & Family', requiresPayment: true, description: 'Payment required via Stripe' },
+] as const;
 
 type IssuerFormData = {
   company_name: string;
@@ -124,6 +133,8 @@ export function ShareholdersPage() {
     issuer: '',
     security_class: '',
     share_quantity: '',
+    investment_type: 'FOUNDER_SHARES',
+    price_per_share: '0',
     cost_basis: '',
     acquisition_date: new Date().toISOString().split('T')[0],
     acquisition_type: 'ISSUANCE',
@@ -329,12 +340,39 @@ export function ShareholdersPage() {
 
   const handleSubmitHolding = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const requiresPayment = ['RETAIL', 'FRIENDS_FAMILY'].includes(holdingFormData.investment_type);
+    if (requiresPayment && (!holdingFormData.price_per_share || Number(holdingFormData.price_per_share) <= 0)) {
+      toast.error('Price per share is required for retail and friends & family investments');
+      return;
+    }
+    
     setSubmitting(true);
     try {
-      await apiClient.createAdminHolding(holdingFormData as any);
-      toast.success('Shares issued successfully');
+      const result = await apiClient.issueShares({
+        shareholder: holdingFormData.shareholder,
+        issuer: holdingFormData.issuer,
+        security_class: holdingFormData.security_class,
+        share_quantity: holdingFormData.share_quantity,
+        investment_type: holdingFormData.investment_type,
+        price_per_share: holdingFormData.price_per_share || '0',
+        holding_type: holdingFormData.holding_type,
+        is_restricted: holdingFormData.is_restricted,
+        acquisition_type: holdingFormData.acquisition_type,
+        cost_basis: holdingFormData.cost_basis || undefined,
+        notes: holdingFormData.notes || undefined,
+        send_email_notification: sendEmailNotification && !!selectedShareholder?.email && canSendInvitations,
+      });
       
-      if (sendEmailNotification && selectedShareholder?.email && canSendInvitations) {
+      if (result.status === 'payment_required' && result.checkout_url) {
+        toast.success('Redirecting to payment...');
+        window.location.href = result.checkout_url;
+        return;
+      }
+      
+      toast.success(result.message || 'Shares issued successfully');
+      
+      if (result.send_email_notification && selectedShareholder?.email && canSendInvitations) {
         try {
           const sharesIssued = Number(holdingFormData.share_quantity) || 0;
           const emailResult = await apiClient.inviteShareholder(
@@ -359,7 +397,7 @@ export function ShareholdersPage() {
       await loadData();
     } catch (error: any) {
       console.error('Error issuing shares:', error);
-      const message = error.response?.data?.detail || error.response?.data?.message || 'Failed to issue shares';
+      const message = error.response?.data?.error || error.response?.data?.detail || error.response?.data?.message || 'Failed to issue shares';
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -1063,6 +1101,35 @@ export function ShareholdersPage() {
                   )}
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Investment Type *
+                  </label>
+                  <select
+                    required
+                    value={holdingFormData.investment_type}
+                    onChange={(e) =>
+                      setHoldingFormData({ 
+                        ...holdingFormData, 
+                        investment_type: e.target.value as HoldingFormData['investment_type']
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {INVESTMENT_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label} - {type.description}
+                      </option>
+                    ))}
+                  </select>
+                  {['RETAIL', 'FRIENDS_FAMILY'].includes(holdingFormData.investment_type) && (
+                    <p className="mt-1 text-sm text-blue-600 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      Shareholder will be redirected to Stripe for payment
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1081,6 +1148,25 @@ export function ShareholdersPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Price per Share ($) {['RETAIL', 'FRIENDS_FAMILY'].includes(holdingFormData.investment_type) ? '*' : ''}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      required={['RETAIL', 'FRIENDS_FAMILY'].includes(holdingFormData.investment_type)}
+                      value={holdingFormData.price_per_share}
+                      onChange={(e) =>
+                        setHoldingFormData({ ...holdingFormData, price_per_share: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Cost Basis ($)
                     </label>
                     <input
@@ -1092,6 +1178,17 @@ export function ShareholdersPage() {
                         setHoldingFormData({ ...holdingFormData, cost_basis: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Total Amount
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={`$${(Number(holdingFormData.share_quantity || 0) * Number(holdingFormData.price_per_share || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600"
                     />
                   </div>
                 </div>

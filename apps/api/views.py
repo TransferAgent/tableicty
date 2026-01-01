@@ -119,6 +119,232 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     filterset_fields = ['shareholder', 'issuer', 'security_class', 'holding_type', 'is_restricted']
     search_fields = ['shareholder__first_name', 'shareholder__last_name', 'issuer__company_name']
     ordering = ['issuer', '-share_quantity']
+    
+    @action(detail=False, methods=['post'], url_path='issue-shares')
+    def issue_shares(self, request):
+        """
+        Issue shares with conditional payment based on investment type.
+        
+        - FOUNDER_SHARES / SEED_ROUND: Issues shares immediately (no payment)
+        - RETAIL / FRIENDS_FAMILY: Creates Stripe checkout, issues after payment
+        
+        POST /api/v1/holdings/issue-shares/
+        {
+            "shareholder": "uuid",
+            "issuer": "uuid",
+            "security_class": "uuid",
+            "share_quantity": "1000",
+            "investment_type": "FOUNDER_SHARES|SEED_ROUND|RETAIL|FRIENDS_FAMILY",
+            "price_per_share": "1.00",
+            "holding_type": "DRS",
+            "is_restricted": false,
+            "acquisition_type": "ISSUANCE",
+            "cost_basis": "1000.00",
+            "notes": "",
+            "send_email_notification": true
+        }
+        """
+        from decimal import Decimal, InvalidOperation
+        from django.utils import timezone
+        from datetime import timedelta
+        from apps.core.models import ShareIssuanceRequest, Shareholder, SecurityClass as SecurityClassModel
+        from apps.core.stripe import is_stripe_configured, get_stripe_client
+        import os
+        
+        tenant = getattr(request, 'tenant', None)
+        if not tenant:
+            return Response({'error': 'No tenant context'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        shareholder_id = request.data.get('shareholder')
+        issuer_id = request.data.get('issuer')
+        security_class_id = request.data.get('security_class')
+        share_quantity = request.data.get('share_quantity')
+        investment_type = request.data.get('investment_type', 'FOUNDER_SHARES')
+        price_per_share = request.data.get('price_per_share', '0')
+        holding_type = request.data.get('holding_type', 'DRS')
+        is_restricted = request.data.get('is_restricted', False)
+        acquisition_type = request.data.get('acquisition_type', 'ISSUANCE')
+        cost_basis = request.data.get('cost_basis')
+        notes = request.data.get('notes', '')
+        send_email = request.data.get('send_email_notification', True)
+        
+        if not all([shareholder_id, issuer_id, security_class_id, share_quantity]):
+            return Response(
+                {'error': 'shareholder, issuer, security_class, and share_quantity are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        valid_investment_types = ['FOUNDER_SHARES', 'SEED_ROUND', 'RETAIL', 'FRIENDS_FAMILY']
+        if investment_type not in valid_investment_types:
+            return Response(
+                {'error': f'Invalid investment_type. Must be one of: {", ".join(valid_investment_types)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            share_qty = Decimal(str(share_quantity))
+            price = Decimal(str(price_per_share))
+            cost = Decimal(str(cost_basis)) if cost_basis else share_qty * price
+        except (InvalidOperation, ValueError) as e:
+            return Response({'error': f'Invalid numeric value: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if share_qty <= 0:
+            return Response(
+                {'error': 'Share quantity must be greater than 0'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            shareholder = Shareholder.objects.get(id=shareholder_id, tenant=tenant)
+        except Shareholder.DoesNotExist:
+            return Response({'error': 'Shareholder not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            issuer = Issuer.objects.get(id=issuer_id, tenant=tenant)
+        except Issuer.DoesNotExist:
+            return Response({'error': 'Issuer not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            security_class = SecurityClassModel.objects.get(id=security_class_id, issuer=issuer)
+        except SecurityClassModel.DoesNotExist:
+            return Response({'error': 'Security class not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        requires_payment = investment_type in ('RETAIL', 'FRIENDS_FAMILY')
+        total_amount = share_qty * price
+        
+        if requires_payment:
+            if not is_stripe_configured():
+                return Response(
+                    {'error': 'Payment processing is not configured. Please contact support.'},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE
+                )
+            
+            if price <= 0:
+                return Response(
+                    {'error': 'Price per share must be greater than 0 for paid investments'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            issuance_request = ShareIssuanceRequest.objects.create(
+                tenant=tenant,
+                shareholder=shareholder,
+                issuer=issuer,
+                security_class=security_class,
+                investment_type=investment_type,
+                share_quantity=share_qty,
+                price_per_share=price,
+                total_amount=total_amount,
+                status='PENDING_PAYMENT',
+                holding_type=holding_type,
+                is_restricted=is_restricted,
+                acquisition_type=acquisition_type,
+                cost_basis=cost,
+                notes=notes,
+                send_email_notification=send_email,
+                requested_by=request.user,
+                expires_at=timezone.now() + timedelta(hours=24),
+            )
+            
+            try:
+                stripe = get_stripe_client()
+                
+                frontend_domain = os.environ.get('FRONTEND_DOMAIN', 'https://tableicty.com')
+                success_url = f"{frontend_domain}/shareholders?issuance=success&request_id={issuance_request.id}"
+                cancel_url = f"{frontend_domain}/shareholders?issuance=cancelled&request_id={issuance_request.id}"
+                
+                checkout_session = stripe.checkout.Session.create(
+                    mode='payment',
+                    customer_email=shareholder.email if shareholder.email else None,
+                    line_items=[{
+                        'price_data': {
+                            'currency': 'usd',
+                            'unit_amount': int(price * 100),
+                            'product_data': {
+                                'name': f'{issuer.company_name} - {security_class.class_designation} Shares',
+                                'description': f'{share_qty} shares @ ${price}/share',
+                            },
+                        },
+                        'quantity': int(share_qty),
+                    }],
+                    success_url=success_url,
+                    cancel_url=cancel_url,
+                    metadata={
+                        'type': 'share_issuance',
+                        'issuance_request_id': str(issuance_request.id),
+                        'tenant_id': str(tenant.id),
+                        'shareholder_id': str(shareholder.id),
+                        'investment_type': investment_type,
+                    },
+                    expires_at=int((timezone.now() + timedelta(hours=24)).timestamp()),
+                )
+                
+                issuance_request.stripe_checkout_session_id = checkout_session.id
+                issuance_request.status = 'PAYMENT_PROCESSING'
+                issuance_request.save()
+                
+                return Response({
+                    'status': 'payment_required',
+                    'message': 'Payment required for share purchase',
+                    'checkout_url': checkout_session.url,
+                    'issuance_request_id': str(issuance_request.id),
+                    'investment_type': investment_type,
+                    'total_amount': str(total_amount),
+                })
+                
+            except Exception as e:
+                issuance_request.status = 'FAILED'
+                issuance_request.notes = f"Stripe error: {str(e)}"
+                issuance_request.save()
+                return Response(
+                    {'error': f'Failed to create payment session: {str(e)}'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+        else:
+            holding = Holding.objects.create(
+                tenant=tenant,
+                shareholder=shareholder,
+                issuer=issuer,
+                security_class=security_class,
+                share_quantity=share_qty,
+                acquisition_date=timezone.now().date(),
+                acquisition_price=price if price > 0 else None,
+                cost_basis=cost if cost > 0 else None,
+                holding_type=holding_type,
+                is_restricted=is_restricted,
+                notes=notes,
+            )
+            
+            issuance_request = ShareIssuanceRequest.objects.create(
+                tenant=tenant,
+                shareholder=shareholder,
+                issuer=issuer,
+                security_class=security_class,
+                investment_type=investment_type,
+                share_quantity=share_qty,
+                price_per_share=price,
+                total_amount=total_amount,
+                status='COMPLETED',
+                holding=holding,
+                holding_type=holding_type,
+                is_restricted=is_restricted,
+                acquisition_type=acquisition_type,
+                cost_basis=cost,
+                notes=notes,
+                send_email_notification=send_email,
+                requested_by=request.user,
+                completed_at=timezone.now(),
+            )
+            
+            serializer = HoldingSerializer(holding)
+            return Response({
+                'status': 'completed',
+                'message': 'Shares issued successfully',
+                'holding': serializer.data,
+                'issuance_request_id': str(issuance_request.id),
+                'investment_type': investment_type,
+                'send_email_notification': send_email,
+            })
 
 
 class CertificateViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):

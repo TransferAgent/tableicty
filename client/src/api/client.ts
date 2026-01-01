@@ -475,6 +475,34 @@ class APIClient {
     return response.data;
   }
 
+  async issueShares(data: {
+    shareholder: string;
+    issuer: string;
+    security_class: string;
+    share_quantity: string;
+    investment_type: 'FOUNDER_SHARES' | 'SEED_ROUND' | 'RETAIL' | 'FRIENDS_FAMILY';
+    price_per_share: string;
+    holding_type?: string;
+    is_restricted?: boolean;
+    acquisition_type?: string;
+    cost_basis?: string;
+    notes?: string;
+    send_email_notification?: boolean;
+  }): Promise<{
+    status: 'completed' | 'payment_required';
+    message: string;
+    holding?: AdminHolding;
+    checkout_url?: string;
+    issuance_request_id: string;
+    investment_type: string;
+    total_amount?: string;
+    send_email_notification?: boolean;
+  }> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.post('/holdings/issue-shares/', data);
+    return response.data;
+  }
+
   async updateAdminHolding(id: string, data: Partial<AdminHolding>): Promise<AdminHolding> {
     if (!this.adminClient) this.initAdminClient();
     const response = await this.adminClient.patch(`/holdings/${id}/`, data);
