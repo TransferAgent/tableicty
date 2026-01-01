@@ -146,7 +146,6 @@ export function ShareholdersPage() {
   const [formData, setFormData] = useState<ShareholderFormData>(initialFormData);
   const [shareholderFormErrors, setShareholderFormErrors] = useState<Record<string, string>>({});
   const [holdingFormData, setHoldingFormData] = useState<HoldingFormData>(initialHoldingData);
-  const [sendEmailNotification, setSendEmailNotification] = useState(true);
 
   const initialIssuerData: IssuerFormData = {
     company_name: '',
@@ -257,6 +256,37 @@ export function ShareholdersPage() {
     setShowHoldingModal(true);
   };
 
+  const handleSendEmail = async (shareholder: AdminShareholder) => {
+    if (!shareholder.email) {
+      toast.error('This shareholder does not have an email address');
+      return;
+    }
+    
+    if (!canSendInvitations) {
+      toast.error('Email invitations are not enabled for your subscription plan');
+      return;
+    }
+    
+    const shareholderHoldings = holdings.filter(h => h.shareholder === shareholder.id);
+    if (shareholderHoldings.length === 0) {
+      toast.error(`${shareholder.full_name} has no shares issued. Please issue shares first before sending an email.`);
+      return;
+    }
+    
+    try {
+      const result = await apiClient.inviteShareholder(shareholder.id);
+      if (result.success) {
+        toast.success(result.message || 'Email sent successfully');
+      } else {
+        toast.error(result.error || 'Failed to send email');
+      }
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      const message = error.response?.data?.error || 'Failed to send email';
+      toast.error(message);
+    }
+  };
+
   const handleDeleteShareholder = async (shareholder: AdminShareholder) => {
     if (!confirm(`Are you sure you want to delete ${shareholder.full_name}? This cannot be undone.`)) {
       return;
@@ -361,7 +391,7 @@ export function ShareholdersPage() {
         acquisition_type: holdingFormData.acquisition_type,
         cost_basis: holdingFormData.cost_basis || undefined,
         notes: holdingFormData.notes || undefined,
-        send_email_notification: sendEmailNotification && !!selectedShareholder?.email && canSendInvitations,
+        send_email_notification: false,
       });
       
       if (result.status === 'payment_required' && result.checkout_url) {
@@ -372,28 +402,7 @@ export function ShareholdersPage() {
       
       toast.success(result.message || 'Shares issued successfully');
       
-      if (result.send_email_notification && selectedShareholder?.email && canSendInvitations) {
-        try {
-          const sharesIssued = Number(holdingFormData.share_quantity) || 0;
-          const emailResult = await apiClient.inviteShareholder(
-            selectedShareholder.id,
-            undefined,
-            sharesIssued
-          );
-          if (emailResult.success) {
-            toast.success(emailResult.message || 'Notification email sent');
-          } else {
-            toast.error(emailResult.error || 'Failed to send notification email');
-          }
-        } catch (emailError: any) {
-          console.error('Error sending notification email:', emailError);
-          const emailMessage = emailError.response?.data?.error || 'Failed to send notification email';
-          toast.error(emailMessage);
-        }
-      }
-      
       setShowHoldingModal(false);
-      setSendEmailNotification(true);
       await loadData();
     } catch (error: any) {
       console.error('Error issuing shares:', error);
@@ -667,6 +676,24 @@ export function ShareholdersPage() {
                           title="Issue Shares"
                         >
                           <DollarSign className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleSendEmail(shareholder)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            shareholder.email && canSendInvitations
+                              ? 'text-blue-600 hover:bg-blue-50'
+                              : 'text-gray-300 cursor-not-allowed'
+                          }`}
+                          title={
+                            !shareholder.email
+                              ? 'No email address'
+                              : !canSendInvitations
+                              ? 'Email not enabled for your plan'
+                              : 'Send Email'
+                          }
+                          disabled={!shareholder.email || !canSendInvitations}
+                        >
+                          <Mail className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleEditShareholder(shareholder)}
@@ -1272,23 +1299,6 @@ export function ShareholdersPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
-
-                {canSendInvitations && selectedShareholder?.email && (
-                  <div className="p-3 bg-purple-50 rounded-lg">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={sendEmailNotification}
-                        onChange={(e) => setSendEmailNotification(e.target.checked)}
-                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                      />
-                      <span className="text-sm text-gray-700">
-                        <Mail className="w-4 h-4 inline mr-1" />
-                        Send email notification to {selectedShareholder.email}
-                      </span>
-                    </label>
-                  </div>
-                )}
 
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <button
