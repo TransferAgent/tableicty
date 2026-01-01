@@ -494,6 +494,43 @@ class Holding(models.Model):
     restriction_removal_date = models.DateField(blank=True, null=True)
     blockchain_token_id = models.CharField(max_length=100, blank=True, null=True)
     
+    HOLDING_STATUS_CHOICES = [
+        ('HELD', 'Held (Pending Release)'),
+        ('ACTIVE', 'Active (Released)'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    status = models.CharField(
+        max_length=20, 
+        choices=HOLDING_STATUS_CHOICES, 
+        default='HELD',
+        help_text="HELD = in holding bucket, ACTIVE = released to shareholder"
+    )
+    held_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When shares were placed in holding bucket"
+    )
+    released_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="When shares were released from holding bucket"
+    )
+    released_by = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='released_holdings',
+        help_text="Admin who released the shares"
+    )
+    share_issuance_request = models.ForeignKey(
+        'ShareIssuanceRequest',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='holdings',
+        help_text="Link to the issuance request (for payment tracking)"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     notes = models.TextField(blank=True)
@@ -504,12 +541,14 @@ class Holding(models.Model):
             models.Index(fields=['shareholder', 'issuer']),
             models.Index(fields=['issuer', 'security_class']),
             models.Index(fields=['is_restricted']),
+            models.Index(fields=['status']),
         ]
         verbose_name = "Holding (Shareholder Position)"
         verbose_name_plural = "Holdings (Shareholder Positions)"
     
     def __str__(self):
-        return f"{self.shareholder} holds {self.share_quantity} of {self.security_class}"
+        status_indicator = " [HELD]" if self.status == 'HELD' else ""
+        return f"{self.shareholder} holds {self.share_quantity} of {self.security_class}{status_indicator}"
 
 
 class Certificate(models.Model):
