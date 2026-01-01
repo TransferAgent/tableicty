@@ -172,8 +172,9 @@ def current_user_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsShareholderOwner])
 def shareholder_holdings_view(request):
+    """Return only ACTIVE holdings (not HELD or CANCELLED)"""
     shareholder = request.user.shareholder
-    holdings = Holding.objects.filter(shareholder=shareholder).select_related('issuer', 'security_class').order_by('-acquisition_date')
+    holdings = Holding.objects.filter(shareholder=shareholder, status='ACTIVE').select_related('issuer', 'security_class').order_by('-acquisition_date')
     holdings_data = [{
         'id': str(h.id),
         'issuer': {'name': h.issuer.company_name, 'ticker': h.issuer.ticker_symbol, 'otc_tier': h.issuer.otc_tier},
@@ -189,8 +190,9 @@ def shareholder_holdings_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsShareholderOwner])
 def shareholder_summary_view(request):
+    """Return summary for only ACTIVE holdings (not HELD or CANCELLED)"""
     shareholder = request.user.shareholder
-    holdings = Holding.objects.filter(shareholder=shareholder)
+    holdings = Holding.objects.filter(shareholder=shareholder, status='ACTIVE')
     total_companies = holdings.values('issuer').distinct().count()
     total_shares = sum(float(h.share_quantity) for h in holdings)
     return Response({'total_companies': total_companies, 'total_shares': total_shares, 'total_holdings': holdings.count()})
@@ -229,9 +231,10 @@ def transaction_history_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsShareholderOwner])
 def tax_documents_view(request):
+    """Return tax documents for ACTIVE holdings only"""
     from datetime import date
     shareholder = request.user.shareholder
-    holdings = Holding.objects.filter(shareholder=shareholder).select_related('issuer')
+    holdings = Holding.objects.filter(shareholder=shareholder, status='ACTIVE').select_related('issuer')
     
     documents = []
     current_year = date.today().year
@@ -277,7 +280,8 @@ def tax_document_download_view(request, doc_id):
     
     holding = Holding.objects.filter(
         shareholder=shareholder,
-        issuer_id=issuer_id
+        issuer_id=issuer_id,
+        status='ACTIVE'
     ).select_related('issuer').first()
     
     if not holding:
