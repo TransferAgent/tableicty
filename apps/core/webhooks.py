@@ -354,29 +354,76 @@ def handle_share_issuance_payment(session):
             if payment_intent_id:
                 issuance_request.stripe_payment_intent_id = payment_intent_id
             
-            holding = Holding.objects.create(
-                tenant=issuance_request.tenant,
-                shareholder=issuance_request.shareholder,
-                issuer=issuance_request.issuer,
-                security_class=issuance_request.security_class,
-                share_quantity=issuance_request.share_quantity,
-                acquisition_date=timezone.now().date(),
-                acquisition_price=issuance_request.price_per_share,
-                cost_basis=issuance_request.cost_basis,
-                holding_type=issuance_request.holding_type,
-                is_restricted=issuance_request.is_restricted,
-                notes=f"Issued via {issuance_request.get_investment_type_display()} - Payment confirmed",
-                status='HELD',
-                held_at=timezone.now(),
-                share_issuance_request=issuance_request,
-            )
-            
-            issuance_request.holding = holding
-            issuance_request.status = 'COMPLETED'
-            issuance_request.completed_at = timezone.now()
-            issuance_request.save()
-            
-            logger.info(f"Share issuance completed: {issuance_request.share_quantity} shares placed in HELD status for {issuance_request.shareholder}")
+            if issuance_request.send_email_notification:
+                holding = Holding.objects.create(
+                    tenant=issuance_request.tenant,
+                    shareholder=issuance_request.shareholder,
+                    issuer=issuance_request.issuer,
+                    security_class=issuance_request.security_class,
+                    share_quantity=issuance_request.share_quantity,
+                    acquisition_date=timezone.now().date(),
+                    acquisition_price=issuance_request.price_per_share,
+                    cost_basis=issuance_request.cost_basis,
+                    holding_type=issuance_request.holding_type,
+                    is_restricted=issuance_request.is_restricted,
+                    notes=f"Issued via {issuance_request.get_investment_type_display()} - Payment confirmed",
+                    status='ACTIVE',
+                    held_at=timezone.now(),
+                    released_at=timezone.now(),
+                    share_issuance_request=issuance_request,
+                )
+                
+                issuance_request.holding = holding
+                issuance_request.status = 'COMPLETED'
+                issuance_request.completed_at = timezone.now()
+                issuance_request.save()
+                
+                logger.info(f"Share issuance completed: {issuance_request.share_quantity} shares issued as ACTIVE for {issuance_request.shareholder}")
+                
+                if issuance_request.shareholder.email:
+                    try:
+                        from apps.core.services.email import EmailService
+                        from django.db.models import Sum
+                        
+                        email_service = EmailService()
+                        total_shares = Holding.objects.filter(
+                            shareholder=issuance_request.shareholder,
+                            status='ACTIVE'
+                        ).aggregate(total=Sum('share_quantity'))['total'] or 0
+                        
+                        email_service.send_share_update_or_invitation(
+                            shareholder=issuance_request.shareholder,
+                            issuer=issuance_request.issuer,
+                            additional_shares=int(issuance_request.share_quantity),
+                            total_shares=int(total_shares),
+                        )
+                        logger.info(f"Email notification sent to {issuance_request.shareholder.email}")
+                    except Exception as email_error:
+                        logger.error(f"Failed to send email notification: {email_error}")
+            else:
+                holding = Holding.objects.create(
+                    tenant=issuance_request.tenant,
+                    shareholder=issuance_request.shareholder,
+                    issuer=issuance_request.issuer,
+                    security_class=issuance_request.security_class,
+                    share_quantity=issuance_request.share_quantity,
+                    acquisition_date=timezone.now().date(),
+                    acquisition_price=issuance_request.price_per_share,
+                    cost_basis=issuance_request.cost_basis,
+                    holding_type=issuance_request.holding_type,
+                    is_restricted=issuance_request.is_restricted,
+                    notes=f"Issued via {issuance_request.get_investment_type_display()} - Payment confirmed",
+                    status='HELD',
+                    held_at=timezone.now(),
+                    share_issuance_request=issuance_request,
+                )
+                
+                issuance_request.holding = holding
+                issuance_request.status = 'COMPLETED'
+                issuance_request.completed_at = timezone.now()
+                issuance_request.save()
+                
+                logger.info(f"Share issuance completed: {issuance_request.share_quantity} shares placed in HELD status for {issuance_request.shareholder}")
                 
     except ShareIssuanceRequest.DoesNotExist:
         logger.error(f"ShareIssuanceRequest {issuance_request_id} not found")

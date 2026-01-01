@@ -146,6 +146,7 @@ export function ShareholdersPage() {
   const [formData, setFormData] = useState<ShareholderFormData>(initialFormData);
   const [shareholderFormErrors, setShareholderFormErrors] = useState<Record<string, string>>({});
   const [holdingFormData, setHoldingFormData] = useState<HoldingFormData>(initialHoldingData);
+  const [sendEmailNotification, setSendEmailNotification] = useState(true);
 
   const initialIssuerData: IssuerFormData = {
     company_name: '',
@@ -391,7 +392,7 @@ export function ShareholdersPage() {
         acquisition_type: holdingFormData.acquisition_type,
         cost_basis: holdingFormData.cost_basis || undefined,
         notes: holdingFormData.notes || undefined,
-        send_email_notification: false,
+        send_email_notification: sendEmailNotification && !!selectedShareholder?.email,
       });
       
       if (result.status === 'payment_required' && result.checkout_url) {
@@ -403,6 +404,7 @@ export function ShareholdersPage() {
       toast.success(result.message || 'Shares issued successfully');
       
       setShowHoldingModal(false);
+      setSendEmailNotification(true);
       await loadData();
     } catch (error: any) {
       console.error('Error issuing shares:', error);
@@ -1299,6 +1301,28 @@ export function ShareholdersPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
+
+                {selectedShareholder?.email && (
+                  <div className="p-3 bg-purple-50 rounded-lg">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={sendEmailNotification}
+                        onChange={(e) => setSendEmailNotification(e.target.checked)}
+                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        <Mail className="w-4 h-4 inline mr-1" />
+                        Issue shares immediately and send email to {selectedShareholder.email}
+                      </span>
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1 ml-6">
+                      {sendEmailNotification 
+                        ? "Shares will be issued immediately and shareholder will be notified"
+                        : "Shares will be held until you manually release them via the email icon"}
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <button

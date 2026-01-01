@@ -301,52 +301,122 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
                 )
         
         else:
-            holding = Holding.objects.create(
-                tenant=tenant,
-                shareholder=shareholder,
-                issuer=issuer,
-                security_class=security_class,
-                share_quantity=share_qty,
-                acquisition_date=timezone.now().date(),
-                acquisition_price=price if price > 0 else None,
-                cost_basis=cost if cost > 0 else None,
-                holding_type=holding_type,
-                is_restricted=is_restricted,
-                notes=notes,
-                status='HELD',
-                held_at=timezone.now(),
-            )
-            
-            issuance_request = ShareIssuanceRequest.objects.create(
-                tenant=tenant,
-                shareholder=shareholder,
-                issuer=issuer,
-                security_class=security_class,
-                investment_type=investment_type,
-                share_quantity=share_qty,
-                price_per_share=price,
-                total_amount=total_amount,
-                status='COMPLETED',
-                holding=holding,
-                holding_type=holding_type,
-                is_restricted=is_restricted,
-                acquisition_type=acquisition_type,
-                cost_basis=cost,
-                notes=notes,
-                send_email_notification=send_email,
-                requested_by=request.user,
-                completed_at=timezone.now(),
-            )
-            
-            serializer = HoldingSerializer(holding)
-            return Response({
-                'status': 'completed',
-                'message': 'Shares placed in holding bucket. Click the email icon to release shares and notify shareholder.',
-                'holding': serializer.data,
-                'issuance_request_id': str(issuance_request.id),
-                'investment_type': investment_type,
-                'holding_status': 'HELD',
-            })
+            if send_email:
+                holding = Holding.objects.create(
+                    tenant=tenant,
+                    shareholder=shareholder,
+                    issuer=issuer,
+                    security_class=security_class,
+                    share_quantity=share_qty,
+                    acquisition_date=timezone.now().date(),
+                    acquisition_price=price if price > 0 else None,
+                    cost_basis=cost if cost > 0 else None,
+                    holding_type=holding_type,
+                    is_restricted=is_restricted,
+                    notes=notes,
+                    status='ACTIVE',
+                    held_at=timezone.now(),
+                    released_at=timezone.now(),
+                    released_by=request.user,
+                )
+                
+                issuance_request = ShareIssuanceRequest.objects.create(
+                    tenant=tenant,
+                    shareholder=shareholder,
+                    issuer=issuer,
+                    security_class=security_class,
+                    investment_type=investment_type,
+                    share_quantity=share_qty,
+                    price_per_share=price,
+                    total_amount=total_amount,
+                    status='COMPLETED',
+                    holding=holding,
+                    holding_type=holding_type,
+                    is_restricted=is_restricted,
+                    acquisition_type=acquisition_type,
+                    cost_basis=cost,
+                    notes=notes,
+                    send_email_notification=send_email,
+                    requested_by=request.user,
+                    completed_at=timezone.now(),
+                )
+                
+                if shareholder.email:
+                    try:
+                        from apps.core.services.email import EmailService
+                        from django.db.models import Sum
+                        
+                        email_service = EmailService()
+                        total_shares = Holding.objects.filter(
+                            shareholder=shareholder,
+                            status='ACTIVE'
+                        ).aggregate(total=Sum('share_quantity'))['total'] or 0
+                        
+                        email_service.send_share_update_or_invitation(
+                            shareholder=shareholder,
+                            issuer=issuer,
+                            additional_shares=int(share_qty),
+                            total_shares=int(total_shares),
+                        )
+                    except Exception as email_error:
+                        pass
+                
+                serializer = HoldingSerializer(holding)
+                return Response({
+                    'status': 'completed',
+                    'message': 'Shares issued successfully and email notification sent.',
+                    'holding': serializer.data,
+                    'issuance_request_id': str(issuance_request.id),
+                    'investment_type': investment_type,
+                    'holding_status': 'ACTIVE',
+                })
+            else:
+                holding = Holding.objects.create(
+                    tenant=tenant,
+                    shareholder=shareholder,
+                    issuer=issuer,
+                    security_class=security_class,
+                    share_quantity=share_qty,
+                    acquisition_date=timezone.now().date(),
+                    acquisition_price=price if price > 0 else None,
+                    cost_basis=cost if cost > 0 else None,
+                    holding_type=holding_type,
+                    is_restricted=is_restricted,
+                    notes=notes,
+                    status='HELD',
+                    held_at=timezone.now(),
+                )
+                
+                issuance_request = ShareIssuanceRequest.objects.create(
+                    tenant=tenant,
+                    shareholder=shareholder,
+                    issuer=issuer,
+                    security_class=security_class,
+                    investment_type=investment_type,
+                    share_quantity=share_qty,
+                    price_per_share=price,
+                    total_amount=total_amount,
+                    status='COMPLETED',
+                    holding=holding,
+                    holding_type=holding_type,
+                    is_restricted=is_restricted,
+                    acquisition_type=acquisition_type,
+                    cost_basis=cost,
+                    notes=notes,
+                    send_email_notification=send_email,
+                    requested_by=request.user,
+                    completed_at=timezone.now(),
+                )
+                
+                serializer = HoldingSerializer(holding)
+                return Response({
+                    'status': 'completed',
+                    'message': 'Shares placed in holding bucket. Click the email icon to release shares and notify shareholder.',
+                    'holding': serializer.data,
+                    'issuance_request_id': str(issuance_request.id),
+                    'investment_type': investment_type,
+                    'holding_status': 'HELD',
+                })
 
 
 class CertificateViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
