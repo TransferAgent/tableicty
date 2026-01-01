@@ -25,9 +25,9 @@ class IssuerViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def cap_table(self, request, pk=None):
-        """Generate cap table for this issuer"""
+        """Generate cap table for this issuer (ACTIVE holdings only)"""
         issuer = self.get_object()
-        holdings = Holding.objects.filter(issuer=issuer).select_related('shareholder', 'security_class')
+        holdings = Holding.objects.filter(issuer=issuer, status='ACTIVE').select_related('shareholder', 'security_class')
         
         total_shares = sum(h.share_quantity for h in holdings)
         cap_table_data = []
@@ -51,9 +51,9 @@ class IssuerViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def share_summary(self, request, pk=None):
-        """Get authorized vs issued shares summary"""
+        """Get authorized vs issued shares summary (ACTIVE holdings only)"""
         issuer = self.get_object()
-        holdings = Holding.objects.filter(issuer=issuer)
+        holdings = Holding.objects.filter(issuer=issuer, status='ACTIVE')
         
         total_issued = sum(h.share_quantity for h in holdings)
         
@@ -426,12 +426,15 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
         This endpoint is called when the admin clicks the email icon on the Shareholders page.
         It changes HELD holdings to ACTIVE and sends the email notification.
         
+        Uses transaction.atomic() and select_for_update() for data integrity.
+        
         POST /api/v1/holdings/release-shares/
         {
             "shareholder_id": "uuid"
         }
         """
         from django.utils import timezone
+        from django.db import transaction
         from django.db.models import Sum
         from apps.core.models import Shareholder
         from apps.core.services.email import EmailService
@@ -449,13 +452,12 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
         except Shareholder.DoesNotExist:
             return Response({'error': 'Shareholder not found'}, status=status.HTTP_404_NOT_FOUND)
         
-        held_holdings = Holding.objects.filter(
+        held_count = Holding.objects.filter(
             shareholder=shareholder,
             tenant=tenant,
             status='HELD'
-        )
+        ).count()
         
-        held_count = held_holdings.count()
         if held_count == 0:
             active_count = Holding.objects.filter(
                 shareholder=shareholder,
@@ -476,17 +478,27 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
         
         released_shares = 0
         issuer = None
-        for holding in held_holdings:
-            holding.status = 'ACTIVE'
-            holding.released_at = timezone.now()
-            holding.released_by = request.user
-            holding.save()
-            released_shares += holding.share_quantity
-            if not issuer:
-                issuer = holding.issuer
+        email_error_msg = None
+        
+        with transaction.atomic():
+            held_holdings = Holding.objects.select_for_update().filter(
+                shareholder=shareholder,
+                tenant=tenant,
+                status='HELD'
+            )
+            
+            for holding in held_holdings:
+                holding.status = 'ACTIVE'
+                holding.released_at = timezone.now()
+                holding.released_by = request.user
+                holding.save()
+                released_shares += holding.share_quantity
+                if not issuer:
+                    issuer = holding.issuer
         
         total_active_shares = Holding.objects.filter(
             shareholder=shareholder,
+            tenant=tenant,
             status='ACTIVE'
         ).aggregate(total=Sum('share_quantity'))['total'] or 0
         
@@ -501,15 +513,24 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
                     total_shares=int(total_active_shares),
                 )
                 email_sent = True
-            except Exception as email_error:
-                pass
+            except Exception as e:
+                email_error_msg = str(e)
+        
+        message = f'{int(released_shares)} shares released to shareholder.'
+        if email_sent:
+            message += ' Email notification sent.'
+        elif shareholder.email:
+            message += f' Email failed to send: {email_error_msg}'
+        else:
+            message += ' No email sent (shareholder has no email address).'
         
         return Response({
             'status': 'released',
-            'message': f'{int(released_shares)} shares released to shareholder. {"Email notification sent." if email_sent else "No email sent (shareholder has no email address)."}',
+            'message': message,
             'released_shares': int(released_shares),
             'total_shares': int(total_active_shares),
             'email_sent': email_sent,
+            'email_error': email_error_msg,
         })
 
 
