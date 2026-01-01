@@ -168,6 +168,10 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
         notes = request.data.get('notes', '')
         send_email = request.data.get('send_email_notification', True)
         
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"ISSUE_SHARES DEBUG: send_email_notification received = {request.data.get('send_email_notification')}, parsed send_email = {send_email}, investment_type = {investment_type}")
+        
         if not all([shareholder_id, issuer_id, security_class_id, share_quantity]):
             return Response(
                 {'error': 'shareholder, issuer, security_class, and share_quantity are required'},
