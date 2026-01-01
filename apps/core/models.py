@@ -502,11 +502,12 @@ class Holding(models.Model):
     status = models.CharField(
         max_length=20, 
         choices=HOLDING_STATUS_CHOICES, 
-        default='HELD',
+        default='ACTIVE',
         help_text="HELD = in holding bucket, ACTIVE = released to shareholder"
     )
     held_at = models.DateTimeField(
-        auto_now_add=True,
+        null=True,
+        blank=True,
         help_text="When shares were placed in holding bucket"
     )
     released_at = models.DateTimeField(
