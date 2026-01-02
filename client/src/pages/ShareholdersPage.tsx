@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import type { AdminShareholder, AdminSecurityClass, AdminIssuer } from '../types';
 import { Users, Plus, Search, Edit, Trash2, DollarSign, X, Building, AlertCircle, Mail } from 'lucide-react';
@@ -92,6 +93,7 @@ const formatPhoneNumber = (value: string): string => {
 export function ShareholdersPage() {
   const { hasFeature } = useTenant();
   const canSendInvitations = hasFeature('email_invitations');
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [shareholders, setShareholders] = useState<AdminShareholder[]>([]);
   const [securityClasses, setSecurityClasses] = useState<AdminSecurityClass[]>([]);
@@ -174,6 +176,19 @@ export function ShareholdersPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const issuanceStatus = searchParams.get('issuance');
+    
+    if (issuanceStatus === 'success') {
+      toast.success('Shares issued successfully! Payment completed.', { duration: 5000 });
+      setSearchParams({});
+      loadData();
+    } else if (issuanceStatus === 'cancelled') {
+      toast.error('Share issuance was cancelled.', { duration: 4000 });
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   const loadData = async () => {
     try {
