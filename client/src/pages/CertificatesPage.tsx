@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
 import type { Holding, CertificateRequest } from '../types';
-import { Plus, X, FileCheck } from 'lucide-react';
+import { Plus, X, FileCheck, Download, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 export function CertificatesPage() {
   const [showModal, setShowModal] = useState(false);
@@ -21,6 +21,8 @@ export function CertificatesPage() {
     share_quantity: '',
     mailing_address: '',
   });
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -87,6 +89,39 @@ export function CertificatesPage() {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
+  const toggleRowExpanded = (id: string) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleDownloadPdf = async (requestId: string, certificateNumber?: string) => {
+    setDownloadingId(requestId);
+    try {
+      const blob = await apiClient.downloadCertificatePdf(requestId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificate_${certificateNumber || requestId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Certificate downloaded successfully');
+    } catch (err: any) {
+      const message = err.response?.data?.error || 'Failed to download certificate';
+      toast.error(message);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-12">Loading...</div>;
   }
@@ -127,24 +162,75 @@ export function CertificatesPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shares</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {requests.map((request, idx) => (
-                  <tr key={request.id || idx} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {request.created_at ? new Date(request.created_at).toLocaleDateString() : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{request.issuer_name || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{request.security_type || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{request.conversion_type || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{request.share_quantity || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(request.status || 'PENDING')}`}>
-                        {request.status || 'PENDING'}
-                      </span>
-                    </td>
-                  </tr>
+                  <>
+                    <tr key={request.id || idx} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {request.created_at ? new Date(request.created_at).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{request.issuer_name || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{request.security_type || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{request.conversion_type || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{request.share_quantity || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(request.status || 'PENDING')}`}>
+                          {request.status || 'PENDING'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex items-center gap-2">
+                          {request.has_pdf_available && (
+                            <button
+                              onClick={() => handleDownloadPdf(request.id, request.certificate_number)}
+                              disabled={downloadingId === request.id}
+                              className="inline-flex items-center px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                              title="Download Certificate PDF"
+                            >
+                              <Download className="w-3 h-3 mr-1" />
+                              {downloadingId === request.id ? 'Downloading...' : 'PDF'}
+                            </button>
+                          )}
+                          {request.status === 'REJECTED' && request.rejection_reason && (
+                            <button
+                              onClick={() => toggleRowExpanded(request.id)}
+                              className="inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200"
+                              title="View rejection reason"
+                            >
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              Details
+                              {expandedRows.has(request.id) ? (
+                                <ChevronUp className="w-3 h-3 ml-1" />
+                              ) : (
+                                <ChevronDown className="w-3 h-3 ml-1" />
+                              )}
+                            </button>
+                          )}
+                          {request.certificate_number && request.status === 'COMPLETED' && (
+                            <span className="text-xs text-gray-500">
+                              #{request.certificate_number}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedRows.has(request.id) && request.rejection_reason && (
+                      <tr key={`${request.id}-details`} className="bg-red-50">
+                        <td colSpan={7} className="px-6 py-4">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-red-800">Rejection Reason:</p>
+                              <p className="text-sm text-red-700 mt-1">{request.rejection_reason}</p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
             </table>
