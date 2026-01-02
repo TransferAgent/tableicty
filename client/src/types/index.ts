@@ -109,12 +109,15 @@ export interface CertificateConversionSubmission {
 
 export interface CertificateRequest {
   id: string;
-  holding_id: string;
-  conversion_type: string;
-  share_quantity: number;
-  status: string;
-  requested_date: string;
+  conversion_type: 'DRS_TO_CERT' | 'CERT_TO_DRS';
+  share_quantity: number | string;
   mailing_address: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'REJECTED';
+  issuer_name: string;
+  security_type: string;
+  created_at: string;
+  processed_at: string | null;
+  rejection_reason: string;
 }
 
 export interface MFAStatus {

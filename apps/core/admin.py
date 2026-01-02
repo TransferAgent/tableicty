@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from .models import (
     Tenant, TenantMembership, SubscriptionPlan, Subscription, TenantInvitation,
     Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog,
-    ShareIssuanceRequest
+    ShareIssuanceRequest, CertificateRequest
 )
 
 
@@ -480,3 +480,55 @@ class ShareIssuanceRequestAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(CertificateRequest)
+class CertificateRequestAdmin(admin.ModelAdmin):
+    list_display = ['id', 'shareholder', 'conversion_type', 'share_quantity', 'status', 'created_at', 'processed_at']
+    list_filter = ['status', 'conversion_type', 'tenant', 'created_at']
+    search_fields = ['shareholder__first_name', 'shareholder__last_name', 'shareholder__entity_name',
+                     'shareholder__email', 'holding__issuer__company_name']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    date_hierarchy = 'created_at'
+    raw_id_fields = ['shareholder', 'holding', 'processed_by']
+    
+    fieldsets = (
+        (None, {
+            'fields': ('tenant', 'shareholder', 'holding')
+        }),
+        ('Request Details', {
+            'fields': ('conversion_type', 'share_quantity', 'mailing_address')
+        }),
+        ('Status', {
+            'fields': ('status', 'rejection_reason', 'admin_notes', 'certificate_number')
+        }),
+        ('Processing', {
+            'fields': ('processed_by', 'processed_at')
+        }),
+        ('Metadata', {
+            'fields': ('id', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['approve_requests', 'reject_requests']
+    
+    def approve_requests(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='PENDING').update(
+            status='COMPLETED',
+            processed_by=request.user,
+            processed_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} request(s) approved.')
+    approve_requests.short_description = "Approve selected requests"
+    
+    def reject_requests(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='PENDING').update(
+            status='REJECTED',
+            processed_by=request.user,
+            processed_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} request(s) rejected.')
+    reject_requests.short_description = "Reject selected requests"

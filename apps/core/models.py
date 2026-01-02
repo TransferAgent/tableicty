@@ -921,3 +921,105 @@ class ShareIssuanceRequest(models.Model):
         if not self.total_amount:
             self.total_amount = self.share_quantity * self.price_per_share
         super().save(*args, **kwargs)
+
+
+class CertificateRequest(models.Model):
+    """
+    Tracks certificate conversion requests from shareholders.
+    Replaces the previous AuditLog-based storage with a proper model.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='certificate_requests',
+        help_text="Tenant this request belongs to"
+    )
+    
+    shareholder = models.ForeignKey(
+        Shareholder,
+        on_delete=models.CASCADE,
+        related_name='certificate_requests',
+        help_text="Shareholder making the request"
+    )
+    
+    holding = models.ForeignKey(
+        Holding,
+        on_delete=models.CASCADE,
+        related_name='certificate_requests',
+        help_text="Holding being converted"
+    )
+    
+    CONVERSION_TYPE_CHOICES = [
+        ('DRS_TO_CERT', 'DRS to Physical Certificate'),
+        ('CERT_TO_DRS', 'Physical Certificate to DRS'),
+    ]
+    conversion_type = models.CharField(max_length=20, choices=CONVERSION_TYPE_CHOICES)
+    
+    share_quantity = models.DecimalField(
+        max_digits=20, 
+        decimal_places=4, 
+        validators=[MinValueValidator(0.0001)],
+        help_text="Number of shares to convert"
+    )
+    
+    mailing_address = models.TextField(
+        blank=True,
+        help_text="Mailing address for physical certificate delivery"
+    )
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Review'),
+        ('PROCESSING', 'Processing'),
+        ('COMPLETED', 'Completed'),
+        ('REJECTED', 'Rejected'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    
+    rejection_reason = models.TextField(
+        blank=True,
+        help_text="Reason for rejection (if rejected)"
+    )
+    
+    admin_notes = models.TextField(
+        blank=True,
+        help_text="Internal notes for admin use"
+    )
+    
+    processed_by = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='certificate_requests_processed',
+        help_text="Admin who processed the request"
+    )
+    
+    processed_at = models.DateTimeField(
+        blank=True, 
+        null=True,
+        help_text="When the request was processed"
+    )
+    
+    certificate_number = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Certificate number (if physical certificate issued)"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['tenant', 'status']),
+            models.Index(fields=['shareholder', 'status']),
+            models.Index(fields=['status', 'created_at']),
+        ]
+        verbose_name = "Certificate Request"
+        verbose_name_plural = "Certificate Requests"
+    
+    def __str__(self):
+        return f"{self.shareholder} - {self.get_conversion_type_display()} ({self.share_quantity} shares)"
