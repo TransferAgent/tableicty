@@ -246,9 +246,6 @@ class EmailService:
         Returns:
             True if email sent successfully
         """
-        import jwt
-        from datetime import datetime, timedelta
-        
         if not shareholder.email:
             logger.warning(f"Cannot send email - shareholder {shareholder.id} has no email")
             return False
@@ -273,14 +270,20 @@ class EmailService:
             )
         else:
             logger.info(f"Shareholder {shareholder.email} has no account - sending invitation")
-            secret_key = getattr(settings, 'SECRET_KEY', 'tableicty-secret')
-            payload = {
-                'shareholder_id': str(shareholder.id),
-                'email': shareholder.email,
-                'exp': datetime.utcnow() + timedelta(days=30),
-                'type': 'shareholder_invitation',
-            }
-            invite_token = jwt.encode(payload, secret_key, algorithm='HS256')
+            from apps.core.services.invite_tokens import ShareholderInviteToken
+            
+            tenant_id = str(shareholder.tenant_id) if hasattr(shareholder, 'tenant_id') and shareholder.tenant_id else ''
+            
+            token = ShareholderInviteToken.for_shareholder(
+                shareholder_id=str(shareholder.id),
+                email=shareholder.email,
+                tenant_id=tenant_id,
+                company_id=str(issuer.id),
+                company_name=company_name,
+                share_count=additional_shares,
+                share_class=share_class,
+            )
+            invite_token = str(token)
             
             return cls.send_shareholder_invitation(
                 email=shareholder.email,
