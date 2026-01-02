@@ -22,9 +22,11 @@ from .serializers import (
     TransferSerializer,
     TaxDocumentSerializer,
     CertificateConversionRequestSerializer,
+    CertificateRequestSerializer,
     ProfileUpdateSerializer,
 )
 from .permissions import IsShareholderOwner
+from apps.core.models import CertificateRequest
 
 
 class ShareholderRegisterView(generics.CreateAPIView):
@@ -343,36 +345,18 @@ def certificate_conversion_request_view(request):
     data = serializer.validated_data
     holding = data['holding']
     
-    request_id = str(uuid.uuid4())
-    
-    from apps.core.signals import set_audit_signal_flag, clear_audit_signal_flag
-    set_audit_signal_flag()
-    try:
-        AuditLog.objects.create(
-            model_name='CERTIFICATE_CONVERSION',
-            object_id=str(holding.id),
-            action_type='CREATE',
-            user=request.user,
-            user_email=request.user.email,
-            object_repr=f"Certificate Conversion Request {request_id}",
-            new_value={
-                'request_id': request_id,
-                'conversion_type': data['conversion_type'],
-                'holding_id': str(holding.id),
-                'issuer_name': holding.issuer.company_name,
-                'share_quantity': data['share_quantity'],
-                'shareholder_id': str(shareholder.id),
-                'mailing_address': data.get('mailing_address', '')
-            },
-            ip_address=request.META.get('REMOTE_ADDR'),
-            user_agent=request.META.get('HTTP_USER_AGENT', '')[:255]
-        )
-    finally:
-        clear_audit_signal_flag()
+    cert_request = CertificateRequest.objects.create(
+        tenant=shareholder.tenant,
+        shareholder=shareholder,
+        holding=holding,
+        conversion_type=data['conversion_type'],
+        share_quantity=data['share_quantity'],
+        mailing_address=data.get('mailing_address', ''),
+    )
     
     return Response({
         'message': 'Certificate conversion request submitted successfully',
-        'request_id': request_id,
+        'request_id': str(cert_request.id),
         'status': 'PENDING',
         'estimated_completion': '5-7 business days',
         'note': 'Our transfer agent team will review your request and contact you if additional information is needed.'
@@ -385,28 +369,15 @@ def certificate_requests_list_view(request):
     """List certificate conversion requests for the authenticated shareholder"""
     shareholder = request.user.shareholder
     
-    # Get certificate conversion requests from AuditLog
-    from apps.core.models import AuditLog
-    audit_logs = AuditLog.objects.filter(
-        model_name='CERTIFICATE_CONVERSION',
-        user=request.user
-    ).order_by('-timestamp')
+    cert_requests = CertificateRequest.objects.filter(
+        shareholder=shareholder
+    ).select_related(
+        'holding__issuer',
+        'holding__security_class'
+    ).order_by('-created_at')
     
-    requests = []
-    for log in audit_logs:
-        new_value = log.new_value or {}
-        requests.append({
-            'id': new_value.get('request_id', str(log.id)),
-            'created_at': log.timestamp.isoformat(),
-            'conversion_type': new_value.get('conversion_type', ''),
-            'share_quantity': new_value.get('share_quantity', 0),
-            'issuer_name': new_value.get('issuer_name', ''),
-            'security_type': 'Common Stock',
-            'status': 'PENDING',
-            'mailing_address': new_value.get('mailing_address', '')
-        })
-    
-    return Response(requests)
+    serializer = CertificateRequestSerializer(cert_requests, many=True)
+    return Response(serializer.data)
 
 
 @api_view(['GET', 'PATCH'])

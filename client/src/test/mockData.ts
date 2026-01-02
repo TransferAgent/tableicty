@@ -120,21 +120,27 @@ export const mockTaxDocuments: TaxDocument[] = [
 export const mockCertificateRequests: CertificateRequest[] = [
   {
     id: '1',
-    holding_id: 'd4fec9e8-2150-46ec-aacb-111e23798c81',
     conversion_type: 'CERT_TO_DRS',
     share_quantity: 100,
     status: 'PENDING',
-    requested_date: '2024-01-15',
     mailing_address: '123 Main St, New York, NY 10001',
+    issuer_name: 'Green Energy Corp',
+    security_type: 'Common Stock',
+    created_at: '2024-01-15T00:00:00Z',
+    processed_at: null,
+    rejection_reason: '',
   },
   {
     id: '2',
-    holding_id: 'd4fec9e8-2150-46ec-aacb-111e23798c82',
     conversion_type: 'DRS_TO_CERT',
     share_quantity: 50,
     status: 'COMPLETED',
-    requested_date: '2024-01-01',
     mailing_address: '456 Oak Ave, Brooklyn, NY 11201',
+    issuer_name: 'TechStart Inc',
+    security_type: 'Common Stock',
+    created_at: '2024-01-01T00:00:00Z',
+    processed_at: '2024-01-05T00:00:00Z',
+    rejection_reason: '',
   },
 ];
 

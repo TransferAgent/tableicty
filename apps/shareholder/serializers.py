@@ -3,7 +3,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from apps.core.models import Shareholder, Transfer, Certificate, AuditLog, Holding, TenantMembership, TenantInvitation
+from apps.core.models import Shareholder, Transfer, Certificate, AuditLog, Holding, TenantMembership, TenantInvitation, CertificateRequest
 from apps.core.services.invite_tokens import validate_invite_token
 from decimal import Decimal
 
@@ -447,3 +447,69 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
                 clear_audit_signal_flag()
         
         return instance
+
+
+class CertificateRequestSerializer(serializers.ModelSerializer):
+    """Serializer for shareholder viewing their certificate requests"""
+    issuer_name = serializers.CharField(source='holding.issuer.company_name', read_only=True)
+    security_type = serializers.CharField(source='holding.security_class.class_designation', read_only=True)
+    
+    class Meta:
+        model = CertificateRequest
+        fields = [
+            'id',
+            'conversion_type',
+            'share_quantity',
+            'mailing_address',
+            'status',
+            'issuer_name',
+            'security_type',
+            'created_at',
+            'processed_at',
+            'rejection_reason',
+        ]
+        read_only_fields = ['id', 'status', 'created_at', 'processed_at', 'rejection_reason']
+
+
+class CertificateRequestAdminSerializer(serializers.ModelSerializer):
+    """Serializer for admin viewing/processing certificate requests"""
+    shareholder_name = serializers.SerializerMethodField()
+    shareholder_email = serializers.CharField(source='shareholder.email', read_only=True)
+    issuer_name = serializers.CharField(source='holding.issuer.company_name', read_only=True)
+    security_type = serializers.CharField(source='holding.security_class.class_designation', read_only=True)
+    processed_by_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CertificateRequest
+        fields = [
+            'id',
+            'shareholder',
+            'shareholder_name',
+            'shareholder_email',
+            'holding',
+            'issuer_name',
+            'security_type',
+            'conversion_type',
+            'share_quantity',
+            'mailing_address',
+            'status',
+            'rejection_reason',
+            'admin_notes',
+            'processed_by',
+            'processed_by_name',
+            'processed_at',
+            'certificate_number',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'shareholder', 'holding', 'created_at', 'updated_at']
+    
+    def get_shareholder_name(self, obj):
+        if obj.shareholder.account_type == 'INDIVIDUAL':
+            return f"{obj.shareholder.first_name} {obj.shareholder.last_name}".strip()
+        return obj.shareholder.entity_name or obj.shareholder.email
+    
+    def get_processed_by_name(self, obj):
+        if obj.processed_by:
+            return f"{obj.processed_by.first_name} {obj.processed_by.last_name}".strip() or obj.processed_by.email
+        return None

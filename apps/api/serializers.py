@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.core.models import Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog
+from apps.core.models import Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog, CertificateRequest
 
 
 class IssuerSerializer(serializers.ModelSerializer):
@@ -74,3 +74,47 @@ class AuditLogSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'user', 'user_email', 'action_type', 'model_name', 
                            'object_id', 'object_repr', 'old_value', 'new_value', 
                            'changed_fields', 'timestamp', 'ip_address', 'user_agent', 'request_id']
+
+
+class CertificateRequestSerializer(serializers.ModelSerializer):
+    shareholder_name = serializers.SerializerMethodField()
+    shareholder_email = serializers.CharField(source='shareholder.email', read_only=True)
+    issuer_name = serializers.CharField(source='holding.issuer.company_name', read_only=True)
+    security_type = serializers.CharField(source='holding.security_class.class_designation', read_only=True)
+    processed_by_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CertificateRequest
+        fields = [
+            'id',
+            'tenant',
+            'shareholder',
+            'shareholder_name',
+            'shareholder_email',
+            'holding',
+            'issuer_name',
+            'security_type',
+            'conversion_type',
+            'share_quantity',
+            'mailing_address',
+            'status',
+            'rejection_reason',
+            'admin_notes',
+            'processed_by',
+            'processed_by_name',
+            'processed_at',
+            'certificate_number',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'shareholder', 'holding', 'created_at', 'updated_at', 'tenant']
+    
+    def get_shareholder_name(self, obj):
+        if obj.shareholder.account_type == 'INDIVIDUAL':
+            return f"{obj.shareholder.first_name} {obj.shareholder.last_name}".strip()
+        return obj.shareholder.entity_name or obj.shareholder.email
+    
+    def get_processed_by_name(self, obj):
+        if obj.processed_by:
+            return f"{obj.processed_by.first_name} {obj.processed_by.last_name}".strip() or obj.processed_by.email
+        return None

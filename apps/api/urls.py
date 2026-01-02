@@ -7,7 +7,8 @@ from apps.core.models import Issuer, Holding, Certificate
 from django.utils import timezone
 from .views import (
     IssuerViewSet, SecurityClassViewSet, ShareholderViewSet,
-    HoldingViewSet, CertificateViewSet, TransferViewSet, AuditLogViewSet
+    HoldingViewSet, CertificateViewSet, TransferViewSet, AuditLogViewSet,
+    CertificateRequestViewSet
 )
 
 router = DefaultRouter()
@@ -18,6 +19,7 @@ router.register(r'holdings', HoldingViewSet)
 router.register(r'certificates', CertificateViewSet)
 router.register(r'transfers', TransferViewSet)
 router.register(r'audit-logs', AuditLogViewSet)
+router.register(r'certificate-requests', CertificateRequestViewSet)
 
 
 @api_view(['GET'])

@@ -3,13 +3,15 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from apps.core.models import Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog
+from django.utils import timezone
+from apps.core.models import Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog, CertificateRequest
 from apps.core.mixins import TenantQuerySetMixin
 from apps.core.permissions import IsTenantStaff, CanProcessTransfers, TenantScopedPermission
 from apps.core.services.subscription import SubscriptionValidator
 from .serializers import (
     IssuerSerializer, SecurityClassSerializer, ShareholderSerializer,
-    HoldingSerializer, CertificateSerializer, TransferSerializer, AuditLogSerializer
+    HoldingSerializer, CertificateSerializer, TransferSerializer, AuditLogSerializer,
+    CertificateRequestSerializer
 )
 
 
@@ -721,3 +723,80 @@ class AuditLogViewSet(TenantQuerySetMixin, viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['action_type', 'model_name', 'user']
     search_fields = ['user_email', 'object_repr']
     ordering = ['-timestamp']
+
+
+class CertificateRequestViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
+    """Admin viewset for managing certificate conversion requests"""
+    queryset = CertificateRequest.objects.all()
+    serializer_class = CertificateRequestSerializer
+    permission_classes = [IsAuthenticated, IsTenantStaff]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['status', 'conversion_type', 'shareholder']
+    search_fields = ['shareholder__first_name', 'shareholder__last_name', 'shareholder__email',
+                     'holding__issuer__company_name']
+    ordering = ['-created_at']
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.select_related(
+            'shareholder',
+            'holding__issuer',
+            'holding__security_class',
+            'processed_by'
+        )
+    
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Approve a certificate request"""
+        cert_request = self.get_object()
+        
+        if cert_request.status != 'PENDING':
+            return Response(
+                {'error': f'Cannot approve request with status {cert_request.status}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        certificate_number = request.data.get('certificate_number', '')
+        admin_notes = request.data.get('admin_notes', '')
+        
+        cert_request.status = 'COMPLETED'
+        cert_request.processed_by = request.user
+        cert_request.processed_at = timezone.now()
+        cert_request.certificate_number = certificate_number
+        if admin_notes:
+            cert_request.admin_notes = admin_notes
+        cert_request.save()
+        
+        serializer = self.get_serializer(cert_request)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Reject a certificate request"""
+        cert_request = self.get_object()
+        
+        if cert_request.status != 'PENDING':
+            return Response(
+                {'error': f'Cannot reject request with status {cert_request.status}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        rejection_reason = request.data.get('rejection_reason', '')
+        if not rejection_reason:
+            return Response(
+                {'error': 'rejection_reason is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        admin_notes = request.data.get('admin_notes', '')
+        
+        cert_request.status = 'REJECTED'
+        cert_request.processed_by = request.user
+        cert_request.processed_at = timezone.now()
+        cert_request.rejection_reason = rejection_reason
+        if admin_notes:
+            cert_request.admin_notes = admin_notes
+        cert_request.save()
+        
+        serializer = self.get_serializer(cert_request)
+        return Response(serializer.data)

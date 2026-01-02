@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
-import type { Holding } from '../types';
+import type { Holding, CertificateRequest } from '../types';
 import { Plus, X, FileCheck } from 'lucide-react';
 
 export function CertificatesPage() {
   const [showModal, setShowModal] = useState(false);
   const [holdings, setHoldings] = useState<Holding[]>([]);
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<CertificateRequest[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [formData, setFormData] = useState<{
