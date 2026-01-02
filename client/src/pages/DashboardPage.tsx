@@ -37,20 +37,25 @@ function UsageProgressBar({ current, limit, label }: { current: number; limit: n
 }
 
 export function DashboardPage() {
-  const { isAdmin, currentTenant, currentRole, billingStatus } = useTenant();
+  const { isAdmin, currentTenant, currentRole, billingStatus, loading: tenantLoading } = useTenant();
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Wait for tenant context to finish loading before deciding what to load
+    if (tenantLoading) {
+      return;
+    }
+    
     // Only load portfolio data for shareholders, not admins
     if (!isAdmin) {
       loadData();
     } else {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, [isAdmin, tenantLoading]);
 
   const loadData = async () => {
     try {
