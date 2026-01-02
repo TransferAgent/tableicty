@@ -90,3 +90,8 @@ The system is built on a Python 3.11/Django 4.2 LTS backend with Django REST Fra
 - Updated CertificatesPage with PDF download button for completed DRS_TO_CERT conversions
 - Rejection reason display with expandable rows for rejected certificate requests
 - Certificate number display for completed requests
+- CertificateSettingsCard component for managing admin notification emails (Settings tab in AdminPage)
+- CertificateRequestModal component for viewing, approving, and rejecting certificate requests
+- AdminPage "Certificates" tab with request list, status filtering, pending badge count, and refresh capability
+- ShareholdersPage certificate status icon indicator (PENDING/PROCESSING/COMPLETED/REJECTED)
+- AdminCertificateRequest type and API client methods (getAdminCertificateRequests, approveCertificateRequest, rejectCertificateRequest)
