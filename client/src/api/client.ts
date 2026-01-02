@@ -22,6 +22,7 @@ import type {
   AdminSecurityClass,
   AdminHolding,
   AdminIssuer,
+  AdminCertificateRequest,
   PaginatedResponse,
 } from '../types';
 
@@ -296,6 +297,34 @@ class APIClient {
       ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
       : '/api/v1/tenant';
     const response = await axios.put(`${tenantBaseUrl}/settings/`, data, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+      },
+    });
+    return response.data;
+  }
+
+  async getCertificateSettings(): Promise<{ id: string; certificate_notification_emails: string[]; certificate_template_url?: string }> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.get(`${tenantBaseUrl}/certificate-settings/`, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+      },
+    });
+    return response.data;
+  }
+
+  async updateCertificateSettings(data: { certificate_notification_emails: string[] }): Promise<{ id: string; certificate_notification_emails: string[] }> {
+    const tenantBaseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
+      : '/api/v1/tenant';
+    const response = await axios.patch(`${tenantBaseUrl}/certificate-settings/`, data, {
       withCredentials: true,
       headers: {
         'Content-Type': 'application/json',
@@ -585,6 +614,40 @@ class APIClient {
       ? `${import.meta.env.VITE_API_BASE_URL}/api/v1/tenant`
       : '/api/v1/tenant';
     const response = await axios.post(`${tenantBaseUrl}/email/validate-token/`, { token });
+    return response.data;
+  }
+
+  async getAdminCertificateRequests(params?: {
+    status?: string;
+    shareholder?: string;
+    page?: number;
+  }): Promise<PaginatedResponse<AdminCertificateRequest>> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.get('/certificate-requests/', { params });
+    return response.data;
+  }
+
+  async getAdminCertificateRequest(id: string): Promise<AdminCertificateRequest> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.get(`/certificate-requests/${id}/`);
+    return response.data;
+  }
+
+  async approveCertificateRequest(
+    id: string,
+    data: { certificate_number?: string; admin_notes?: string; send_email?: boolean }
+  ): Promise<AdminCertificateRequest> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.post(`/certificate-requests/${id}/approve/`, data);
+    return response.data;
+  }
+
+  async rejectCertificateRequest(
+    id: string,
+    data: { rejection_reason: string; admin_notes?: string }
+  ): Promise<AdminCertificateRequest> {
+    if (!this.adminClient) this.initAdminClient();
+    const response = await this.adminClient.post(`/certificate-requests/${id}/reject/`, data);
     return response.data;
   }
 }
