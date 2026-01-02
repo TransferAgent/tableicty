@@ -294,3 +294,179 @@ class EmailService:
                 invite_token=invite_token,
                 tenant_name=tenant_name,
             )
+    
+    @classmethod
+    def send_certificate_request_admin_alert(
+        cls,
+        to_emails: list,
+        shareholder_name: str,
+        shareholder_email: str,
+        conversion_type: str,
+        share_quantity: int,
+        issuer_name: str,
+        request_date: str,
+        tenant_name: Optional[str] = None,
+    ) -> int:
+        """
+        Send notification to admins when a certificate request is submitted.
+        
+        Args:
+            to_emails: List of admin email addresses
+            shareholder_name: Name of shareholder making request
+            shareholder_email: Email of shareholder
+            conversion_type: Type of conversion (DRS_TO_CERT or CERT_TO_DRS)
+            share_quantity: Number of shares in request
+            issuer_name: Name of the issuing company
+            request_date: Date request was submitted
+            tenant_name: Optional tenant/platform name
+            
+        Returns:
+            Number of emails sent successfully
+        """
+        conversion_display = {
+            'DRS_TO_CERT': 'DRS to Physical Certificate',
+            'CERT_TO_DRS': 'Physical Certificate to DRS'
+        }.get(conversion_type, conversion_type)
+        
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://tableicty.com')
+        admin_link = f"{frontend_url}/dashboard/shareholders"
+        
+        context = {
+            'shareholder_name': shareholder_name,
+            'shareholder_email': shareholder_email,
+            'conversion_type': conversion_display,
+            'share_quantity': f"{share_quantity:,}" if isinstance(share_quantity, int) else str(share_quantity),
+            'issuer_name': issuer_name,
+            'request_date': request_date,
+            'admin_link': admin_link,
+            'tenant_name': tenant_name or 'Tableicty',
+        }
+        
+        subject = f"New Certificate Request from {shareholder_name}"
+        sent_count = 0
+        
+        for email in to_emails:
+            try:
+                cls.send_email(
+                    to_email=email,
+                    subject=subject,
+                    template_name='certificate_request_admin',
+                    context=context,
+                )
+                sent_count += 1
+            except Exception as e:
+                logger.error(f"Failed to send admin alert to {email}: {e}")
+        
+        return sent_count
+    
+    @classmethod
+    def send_certificate_approved(
+        cls,
+        to_email: str,
+        shareholder_name: str,
+        certificate_number: str,
+        share_quantity: int,
+        issuer_name: str,
+        conversion_type: str,
+        pdf_download_url: Optional[str] = None,
+        tenant_name: Optional[str] = None,
+    ) -> bool:
+        """
+        Send notification to shareholder when certificate request is approved.
+        
+        Args:
+            to_email: Shareholder email address
+            shareholder_name: Name of shareholder
+            certificate_number: Assigned certificate number
+            share_quantity: Number of shares
+            issuer_name: Name of the issuing company
+            conversion_type: Type of conversion
+            pdf_download_url: Optional URL to download PDF certificate
+            tenant_name: Optional tenant/platform name
+            
+        Returns:
+            True if email sent successfully
+        """
+        conversion_display = {
+            'DRS_TO_CERT': 'DRS to Physical Certificate',
+            'CERT_TO_DRS': 'Physical Certificate to DRS'
+        }.get(conversion_type, conversion_type)
+        
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://tableicty.com')
+        dashboard_link = f"{frontend_url}/dashboard/certificates"
+        
+        context = {
+            'shareholder_name': shareholder_name,
+            'certificate_number': certificate_number,
+            'share_quantity': f"{share_quantity:,}" if isinstance(share_quantity, int) else str(share_quantity),
+            'issuer_name': issuer_name,
+            'conversion_type': conversion_display,
+            'pdf_download_url': pdf_download_url,
+            'dashboard_link': dashboard_link,
+            'tenant_name': tenant_name or 'Tableicty',
+        }
+        
+        subject = f"Your Stock Certificate Has Been Issued - {certificate_number}"
+        
+        return cls.send_email(
+            to_email=to_email,
+            subject=subject,
+            template_name='certificate_approved',
+            context=context,
+        )
+    
+    @classmethod
+    def send_certificate_rejected(
+        cls,
+        to_email: str,
+        shareholder_name: str,
+        share_quantity: int,
+        issuer_name: str,
+        conversion_type: str,
+        rejection_reason: str,
+        admin_notes: Optional[str] = None,
+        tenant_name: Optional[str] = None,
+    ) -> bool:
+        """
+        Send notification to shareholder when certificate request is rejected.
+        
+        Args:
+            to_email: Shareholder email address
+            shareholder_name: Name of shareholder
+            share_quantity: Number of shares
+            issuer_name: Name of the issuing company
+            conversion_type: Type of conversion
+            rejection_reason: Reason for rejection
+            admin_notes: Optional notes from admin
+            tenant_name: Optional tenant/platform name
+            
+        Returns:
+            True if email sent successfully
+        """
+        conversion_display = {
+            'DRS_TO_CERT': 'DRS to Physical Certificate',
+            'CERT_TO_DRS': 'Physical Certificate to DRS'
+        }.get(conversion_type, conversion_type)
+        
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://tableicty.com')
+        dashboard_link = f"{frontend_url}/dashboard/certificates"
+        
+        context = {
+            'shareholder_name': shareholder_name,
+            'share_quantity': f"{share_quantity:,}" if isinstance(share_quantity, int) else str(share_quantity),
+            'issuer_name': issuer_name,
+            'conversion_type': conversion_display,
+            'rejection_reason': rejection_reason,
+            'admin_notes': admin_notes,
+            'dashboard_link': dashboard_link,
+            'tenant_name': tenant_name or 'Tableicty',
+        }
+        
+        subject = "Certificate Request Update - Action Required"
+        
+        return cls.send_email(
+            to_email=to_email,
+            subject=subject,
+            template_name='certificate_rejected',
+            context=context,
+        )

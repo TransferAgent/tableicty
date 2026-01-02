@@ -1008,6 +1008,22 @@ class CertificateRequest(models.Model):
         help_text="Certificate number (if physical certificate issued)"
     )
     
+    certificate_pdf_url = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="URL to the generated PDF certificate in S3"
+    )
+    
+    shareholder_email_sent = models.BooleanField(
+        default=False,
+        help_text="Whether shareholder notification email was sent"
+    )
+    
+    admin_email_sent = models.BooleanField(
+        default=False,
+        help_text="Whether admin notification email was sent on request submission"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -1023,3 +1039,40 @@ class CertificateRequest(models.Model):
     
     def __str__(self):
         return f"{self.shareholder} - {self.get_conversion_type_display()} ({self.share_quantity} shares)"
+
+
+class TenantSettings(models.Model):
+    """
+    Tenant-specific settings for certificate notifications and other configurations.
+    Provides a structured way to store tenant preferences beyond the generic settings JSON.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    tenant = models.OneToOneField(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='tenant_settings',
+        help_text="Tenant these settings belong to"
+    )
+    
+    certificate_notification_emails = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Email addresses to notify for certificate requests (JSON array)"
+    )
+    
+    certificate_template_url = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="URL to custom certificate template"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Tenant Settings"
+        verbose_name_plural = "Tenant Settings"
+    
+    def __str__(self):
+        return f"Settings for {self.tenant.name}"

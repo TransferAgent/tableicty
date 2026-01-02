@@ -44,6 +44,7 @@ urlpatterns = [
     
     # Certificate conversion requests
     path('certificate-requests/', views.certificate_requests_list_view, name='certificate_requests_list'),
+    path('certificate-requests/<uuid:request_id>/download/', views.certificate_pdf_download_view, name='certificate_pdf_download'),
     path('certificate-conversion/', views.certificate_conversion_request_view, name='certificate_conversion'),
     
     # Profile management

@@ -6,6 +6,7 @@ from rest_framework.routers import DefaultRouter
 from apps.core.tenant_views import (
     TenantRegistrationView,
     TenantDetailView,
+    TenantCertificateSettingsView,
     TenantMembershipViewSet,
     TenantInvitationViewSet,
     validate_invitation,
@@ -31,6 +32,7 @@ urlpatterns = [
     path('register/', TenantRegistrationView.as_view(), name='tenant-register'),
     path('current/', current_tenant_view, name='current-tenant'),
     path('settings/', TenantDetailView.as_view(), name='tenant-settings'),
+    path('certificate-settings/', TenantCertificateSettingsView.as_view(), name='tenant-certificate-settings'),
     path('subscription-plans/', subscription_plans_view, name='subscription-plans'),
     path('invitations/validate/<str:token>/', validate_invitation, name='validate-invitation'),
     path('invitations/accept/<str:token>/', accept_invitation, name='accept-invitation'),

@@ -748,6 +748,10 @@ class CertificateRequestViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
         """Approve a certificate request"""
+        from apps.core.services.email import EmailService
+        import logging
+        logger = logging.getLogger(__name__)
+        
         cert_request = self.get_object()
         
         if cert_request.status != 'PENDING':
@@ -758,6 +762,7 @@ class CertificateRequestViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
         
         certificate_number = request.data.get('certificate_number', '')
         admin_notes = request.data.get('admin_notes', '')
+        send_email = request.data.get('send_email', True)
         
         cert_request.status = 'COMPLETED'
         cert_request.processed_by = request.user
@@ -767,12 +772,36 @@ class CertificateRequestViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
             cert_request.admin_notes = admin_notes
         cert_request.save()
         
+        if send_email and cert_request.shareholder.email:
+            try:
+                shareholder = cert_request.shareholder
+                shareholder_name = f"{shareholder.first_name} {shareholder.last_name}".strip() or shareholder.email
+                
+                EmailService.send_certificate_approved(
+                    to_email=shareholder.email,
+                    shareholder_name=shareholder_name,
+                    certificate_number=certificate_number or 'N/A',
+                    share_quantity=int(cert_request.share_quantity),
+                    issuer_name=cert_request.holding.issuer.company_name,
+                    conversion_type=cert_request.conversion_type,
+                    pdf_download_url=cert_request.certificate_pdf_url or None,
+                    tenant_name=cert_request.tenant.name,
+                )
+                cert_request.shareholder_email_sent = True
+                cert_request.save(update_fields=['shareholder_email_sent'])
+            except Exception as e:
+                logger.error(f"Failed to send approval email: {e}")
+        
         serializer = self.get_serializer(cert_request)
         return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):
         """Reject a certificate request"""
+        from apps.core.services.email import EmailService
+        import logging
+        logger = logging.getLogger(__name__)
+        
         cert_request = self.get_object()
         
         if cert_request.status != 'PENDING':
@@ -797,6 +826,26 @@ class CertificateRequestViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
         if admin_notes:
             cert_request.admin_notes = admin_notes
         cert_request.save()
+        
+        if cert_request.shareholder.email:
+            try:
+                shareholder = cert_request.shareholder
+                shareholder_name = f"{shareholder.first_name} {shareholder.last_name}".strip() or shareholder.email
+                
+                EmailService.send_certificate_rejected(
+                    to_email=shareholder.email,
+                    shareholder_name=shareholder_name,
+                    share_quantity=int(cert_request.share_quantity),
+                    issuer_name=cert_request.holding.issuer.company_name,
+                    conversion_type=cert_request.conversion_type,
+                    rejection_reason=rejection_reason,
+                    admin_notes=admin_notes or None,
+                    tenant_name=cert_request.tenant.name,
+                )
+                cert_request.shareholder_email_sent = True
+                cert_request.save(update_fields=['shareholder_email_sent'])
+            except Exception as e:
+                logger.error(f"Failed to send rejection email: {e}")
         
         serializer = self.get_serializer(cert_request)
         return Response(serializer.data)
