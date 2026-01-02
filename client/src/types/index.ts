@@ -123,6 +123,44 @@ export interface CertificateRequest {
   has_pdf_available?: boolean;
 }
 
+export interface AdminCertificateRequest {
+  id: string;
+  tenant: string;
+  shareholder: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    full_name: string;
+  };
+  holding: {
+    id: string;
+    issuer: {
+      id: string;
+      company_name: string;
+    };
+    security_class: {
+      id: string;
+      name: string;
+    };
+    quantity: string;
+  };
+  conversion_type: 'DRS_TO_CERT' | 'CERT_TO_DRS';
+  share_quantity: string;
+  mailing_address: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'REJECTED';
+  certificate_number: string;
+  rejection_reason: string;
+  admin_notes: string;
+  shareholder_notes: string;
+  created_at: string;
+  processed_at: string | null;
+  processed_by: number | null;
+  shareholder_email_sent: boolean;
+  admin_email_sent: boolean;
+  has_pdf_available: boolean;
+}
+
 export interface MFAStatus {
   mfa_enabled: boolean;
   mfa_pending_setup: boolean;
@@ -230,6 +268,14 @@ export interface TenantRegistrationData {
   plan_tier?: string;
 }
 
+export interface TenantCertificateSettings {
+  id: string;
+  certificate_notification_emails: string[];
+  certificate_template_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TenantInvitation {
   id: string;
   email: string;
@@ -266,6 +312,8 @@ export interface AdminShareholder {
   created_at: string;
   updated_at: string;
   full_name: string;
+  has_pending_certificate_request?: boolean;
+  certificate_status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'REJECTED' | null;
 }
 
 export interface AdminSecurityClass {

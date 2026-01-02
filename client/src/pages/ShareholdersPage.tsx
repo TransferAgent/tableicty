@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import type { AdminShareholder, AdminSecurityClass, AdminIssuer } from '../types';
-import { Users, Plus, Search, Edit, Trash2, DollarSign, X, Building, AlertCircle, Mail } from 'lucide-react';
+import { Users, Plus, Search, Edit, Trash2, DollarSign, X, Building, AlertCircle, Mail, FileCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTenant } from '../contexts/TenantContext';
 
@@ -695,6 +695,24 @@ export function ShareholdersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
+                        {shareholder.has_pending_certificate_request && (
+                          <span
+                            className={`p-1.5 rounded-lg ${
+                              shareholder.certificate_status === 'PENDING'
+                                ? 'bg-yellow-100 text-yellow-600'
+                                : shareholder.certificate_status === 'PROCESSING'
+                                ? 'bg-blue-100 text-blue-600'
+                                : shareholder.certificate_status === 'COMPLETED'
+                                ? 'bg-green-100 text-green-600'
+                                : shareholder.certificate_status === 'REJECTED'
+                                ? 'bg-red-100 text-red-600'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                            title={`Certificate Request: ${shareholder.certificate_status || 'Pending'}`}
+                          >
+                            <FileCheck className="w-4 h-4" />
+                          </span>
+                        )}
                         <button
                           onClick={() => handleIssueShares(shareholder)}
                           className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
