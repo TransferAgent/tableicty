@@ -32,7 +32,7 @@ class CertificatePDFService:
         certificate_number: str,
         shareholder_name: str,
         company_name: str,
-        share_quantity: int,
+        share_quantity,
         security_type: str = "Common Stock",
         issue_date: Optional[date] = None,
         tenant_name: Optional[str] = None,
@@ -159,7 +159,10 @@ class CertificatePDFService:
         c.setFillColor(cls.TEXT_COLOR)
         c.drawCentredString(width/2, height - 4.5*inch, "is the registered owner of")
         
-        formatted_shares = f"{share_quantity:,}"
+        if share_quantity % 1:
+            formatted_shares = f"{share_quantity:,.4f}".rstrip('0').rstrip('.')
+        else:
+            formatted_shares = f"{int(share_quantity):,}"
         c.setFont("Helvetica-Bold", 36)
         c.setFillColor(cls.HEADER_COLOR)
         c.drawCentredString(width/2, height - 5.3*inch, formatted_shares)
@@ -220,7 +223,7 @@ def generate_certificate_pdf(cert_request) -> bytes:
         certificate_number=cert_request.certificate_number or f"CERT-{str(cert_request.id)[:8].upper()}",
         shareholder_name=shareholder_name,
         company_name=cert_request.holding.issuer.company_name,
-        share_quantity=int(cert_request.share_quantity),
+        share_quantity=cert_request.share_quantity,
         security_type=cert_request.holding.security_class.class_designation if cert_request.holding.security_class else "Common Stock",
         issue_date=cert_request.processed_at.date() if cert_request.processed_at else None,
         tenant_name=cert_request.tenant.name if cert_request.tenant else None,

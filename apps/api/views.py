@@ -777,11 +777,13 @@ class CertificateRequestViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
                 shareholder = cert_request.shareholder
                 shareholder_name = f"{shareholder.first_name} {shareholder.last_name}".strip() or shareholder.email
                 
+                share_qty = cert_request.share_quantity
+                formatted_shares = f"{share_qty:,.4f}".rstrip('0').rstrip('.') if share_qty % 1 else f"{int(share_qty):,}"
                 EmailService.send_certificate_approved(
                     to_email=shareholder.email,
                     shareholder_name=shareholder_name,
                     certificate_number=certificate_number or 'N/A',
-                    share_quantity=int(cert_request.share_quantity),
+                    share_quantity=formatted_shares,
                     issuer_name=cert_request.holding.issuer.company_name,
                     conversion_type=cert_request.conversion_type,
                     pdf_download_url=cert_request.certificate_pdf_url or None,
@@ -832,10 +834,12 @@ class CertificateRequestViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
                 shareholder = cert_request.shareholder
                 shareholder_name = f"{shareholder.first_name} {shareholder.last_name}".strip() or shareholder.email
                 
+                share_qty = cert_request.share_quantity
+                formatted_shares = f"{share_qty:,.4f}".rstrip('0').rstrip('.') if share_qty % 1 else f"{int(share_qty):,}"
                 EmailService.send_certificate_rejected(
                     to_email=shareholder.email,
                     shareholder_name=shareholder_name,
-                    share_quantity=int(cert_request.share_quantity),
+                    share_quantity=formatted_shares,
                     issuer_name=cert_request.holding.issuer.company_name,
                     conversion_type=cert_request.conversion_type,
                     rejection_reason=rejection_reason,

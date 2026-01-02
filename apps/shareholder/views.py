@@ -361,12 +361,14 @@ def certificate_conversion_request_view(request):
         tenant_settings = TenantSettings.objects.filter(tenant=shareholder.tenant).first()
         if tenant_settings and tenant_settings.certificate_notification_emails:
             shareholder_name = f"{shareholder.first_name} {shareholder.last_name}".strip() or shareholder.email
+            share_qty = data['share_quantity']
+            formatted_shares = f"{share_qty:,.4f}".rstrip('0').rstrip('.') if share_qty % 1 else f"{int(share_qty):,}"
             emails_sent = EmailService.send_certificate_request_admin_alert(
                 to_emails=tenant_settings.certificate_notification_emails,
                 shareholder_name=shareholder_name,
                 shareholder_email=shareholder.email,
                 conversion_type=data['conversion_type'],
-                share_quantity=int(data['share_quantity']),
+                share_quantity=formatted_shares,
                 issuer_name=holding.issuer.company_name,
                 request_date=cert_request.created_at.strftime('%Y-%m-%d'),
                 tenant_name=shareholder.tenant.name,

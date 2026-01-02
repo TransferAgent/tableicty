@@ -118,6 +118,9 @@ export interface CertificateRequest {
   created_at: string;
   processed_at: string | null;
   rejection_reason: string;
+  certificate_number?: string;
+  certificate_pdf_url?: string;
+  has_pdf_available?: boolean;
 }
 
 export interface MFAStatus {

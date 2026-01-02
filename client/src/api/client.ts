@@ -175,6 +175,13 @@ class APIClient {
     return response.data;
   }
 
+  async downloadCertificatePdf(requestId: string): Promise<Blob> {
+    const response = await this.client.get(`/certificate-requests/${requestId}/download/`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
   async getProfile(): Promise<Shareholder> {
     const response = await this.client.get('/profile/');
     return response.data;
