@@ -253,8 +253,8 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
                 stripe = get_stripe_client()
                 
                 frontend_domain = os.environ.get('FRONTEND_DOMAIN', 'https://tableicty.com')
-                success_url = f"{frontend_domain}/shareholders?issuance=success&request_id={issuance_request.id}"
-                cancel_url = f"{frontend_domain}/shareholders?issuance=cancelled&request_id={issuance_request.id}"
+                success_url = f"{frontend_domain}/dashboard/shareholders?issuance=success&request_id={issuance_request.id}"
+                cancel_url = f"{frontend_domain}/dashboard/shareholders?issuance=cancelled&request_id={issuance_request.id}"
                 
                 checkout_session = stripe.checkout.Session.create(
                     mode='payment',
