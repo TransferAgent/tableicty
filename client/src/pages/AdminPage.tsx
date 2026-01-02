@@ -5,7 +5,6 @@ import { apiClient } from '../api/client';
 import type { Tenant, AdminCertificateRequest } from '../types';
 import { Users, FileCheck, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { CertificateSettingsCard, CertificateRequestModal } from '../components/certificates';
-import toast from 'react-hot-toast';
 
 interface Member {
   id: string;
