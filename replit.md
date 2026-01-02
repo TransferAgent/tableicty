@@ -22,9 +22,10 @@ The system is built on a Python 3.11/Django 4.2 LTS backend with Django REST Fra
 -   **Database Models:** Seven core models manage transfer agent functions (Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog), with PII encryption and immutable audit trails.
 -   **Admin Interface & REST API:** Comprehensive Django Admin and RESTful API (CRUD) for all models, including cap table generation, share summaries, and transfer approvals. API documentation is generated via OpenAPI/Swagger.
 -   **Security:** Features include PII encryption, brute force protection, strong password validation, CORS, two-factor authentication (TOTP), and robust httpOnly cookie authentication with XSS/CSRF protection. Audit logs are hardened for immutability.
--   **Shareholder Portal (React Frontend):** Provides JWT-based authentication with httpOnly cookies, a dashboard with holdings and visualizations, transaction history, tax document access, certificate conversion requests, and profile management.
+-   **Shareholder Portal (React Frontend):** Provides JWT-based authentication with httpOnly cookies, a dashboard with holdings and visualizations, transaction history, tax document access, certificate conversion requests with PDF download support, and profile management.
 -   **Multi-Tenant SaaS Architecture:** Implements a multi-tenant data model with tenant-scoped data isolation, role-based access control (PLATFORM_ADMIN, TENANT_ADMIN, TENANT_STAFF, SHAREHOLDER), tenant self-registration, and subscription management.
--   **Email Service:** Integration with AWS SES for sending shareholder invitations, welcome emails, test emails, and share update notifications. Features smart email detection that sends "Share Update" notifications to existing shareholders with accounts (showing additional shares and new totals) or invitation emails with JWT tokens for new shareholders who need to register.
+-   **Email Service:** Integration with AWS SES for sending shareholder invitations, welcome emails, test emails, share update notifications, and certificate workflow emails. Features smart email detection that sends "Share Update" notifications to existing shareholders with accounts (showing additional shares and new totals) or invitation emails with JWT tokens for new shareholders who need to register. Certificate workflow emails include admin alerts for new requests and shareholder notifications for approvals/rejections.
+-   **Certificate Workflow:** Complete certificate conversion system with CertificateRequest model (DRS_TO_CERT, CERT_TO_DRS conversions), status tracking (PENDING/PROCESSING/COMPLETED/REJECTED), PDF certificate generation using ReportLab, email notifications at each stage, and configurable admin notification emails via TenantSettings.
 -   **Shareholder Management (Admin Console):** CRUD operations for shareholders, ability to issue shares, and a comprehensive cap table view with breakdowns by security class and top shareholders.
 -   **Billing:** Stripe integration for subscription management, checkout sessions, and webhook handling.
 
@@ -65,7 +66,27 @@ The system is built on a Python 3.11/Django 4.2 LTS backend with Django REST Fra
 -   AWS SES (Simple Email Service)
 -   Stripe (for billing and subscriptions)
 
+**PDF Generation:**
+-   `reportlab` (for stock certificate PDF generation)
+
 **Development Tools:**
 -   `pytest`
 -   `Faker`
 -   `black`, `flake8`, `isort`
+
+## Recent Changes (Sprint 2 - Certificate Workflow)
+
+**Date:** January 2026
+
+**Backend Additions:**
+- TenantSettings model with certificate_notification_emails field for admin alert configuration
+- CertificateRequest model extensions: certificate_pdf_url, shareholder_email_sent, admin_email_sent tracking fields
+- TenantSettings API endpoint (GET/PATCH) at `/api/v1/tenant/certificate-settings/`
+- Email triggers: admin alert on certificate request submission, shareholder notifications on approve/reject
+- PDF certificate generation service using ReportLab with proper fractional share formatting
+- PDF download endpoint at `/api/v1/shareholder/certificate-requests/{uuid}/download/`
+
+**Frontend Additions:**
+- Updated CertificatesPage with PDF download button for completed DRS_TO_CERT conversions
+- Rejection reason display with expandable rows for rejected certificate requests
+- Certificate number display for completed requests
