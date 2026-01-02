@@ -453,6 +453,7 @@ class CertificateRequestSerializer(serializers.ModelSerializer):
     """Serializer for shareholder viewing their certificate requests"""
     issuer_name = serializers.CharField(source='holding.issuer.company_name', read_only=True)
     security_type = serializers.CharField(source='holding.security_class.class_designation', read_only=True)
+    has_pdf_available = serializers.SerializerMethodField()
     
     class Meta:
         model = CertificateRequest
@@ -467,8 +468,14 @@ class CertificateRequestSerializer(serializers.ModelSerializer):
             'created_at',
             'processed_at',
             'rejection_reason',
+            'certificate_number',
+            'certificate_pdf_url',
+            'has_pdf_available',
         ]
-        read_only_fields = ['id', 'status', 'created_at', 'processed_at', 'rejection_reason']
+        read_only_fields = ['id', 'status', 'created_at', 'processed_at', 'rejection_reason', 'certificate_number', 'certificate_pdf_url']
+    
+    def get_has_pdf_available(self, obj):
+        return obj.status == 'COMPLETED' and obj.conversion_type == 'DRS_TO_CERT'
 
 
 class CertificateRequestAdminSerializer(serializers.ModelSerializer):
@@ -499,6 +506,9 @@ class CertificateRequestAdminSerializer(serializers.ModelSerializer):
             'processed_by_name',
             'processed_at',
             'certificate_number',
+            'certificate_pdf_url',
+            'shareholder_email_sent',
+            'admin_email_sent',
             'created_at',
             'updated_at',
         ]

@@ -1,0 +1,54 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Certificate Request Update{% endblock %}
+
+{% block content %}
+<h2>Certificate Request Update</h2>
+
+<p>
+    Hello {{ shareholder_name }},
+</p>
+
+<p>
+    We regret to inform you that your certificate conversion request could not be processed at this time.
+</p>
+
+<div class="share-details">
+    <table>
+        <tr>
+            <td>Company</td>
+            <td>{{ issuer_name }}</td>
+        </tr>
+        <tr>
+            <td>Request Type</td>
+            <td>{{ conversion_type }}</td>
+        </tr>
+        <tr>
+            <td>Shares</td>
+            <td>{{ share_quantity }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="highlight-box" style="border-left-color: #EF4444; background-color: #FEF2F2;">
+    <strong>Reason:</strong> {{ rejection_reason }}
+</div>
+
+{% if admin_notes %}
+<p>
+    <strong>Additional Notes:</strong> {{ admin_notes }}
+</p>
+{% endif %}
+
+<p>
+    If you believe this decision was made in error or if you have questions, please contact our support team. You may also submit a new request after addressing the issue.
+</p>
+
+<p style="text-align: center;">
+    <a href="{{ dashboard_link }}" class="btn">View Certificates</a>
+</p>
+
+<p class="text-muted">
+    This email was sent regarding your certificate request. If you did not submit a request, please contact support.
+</p>
+{% endblock %}

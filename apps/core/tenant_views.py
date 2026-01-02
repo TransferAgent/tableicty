@@ -20,13 +20,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.core.models import (
     Tenant, TenantMembership, SubscriptionPlan, Subscription, TenantInvitation,
-    Shareholder, Holding, Issuer
+    Shareholder, Holding, Issuer, TenantSettings
 )
 from apps.core.permissions import IsTenantAdmin, CanManageUsers, IsPlatformAdmin
 from apps.core.serializers import (
     TenantRegistrationSerializer, TenantSerializer, TenantMembershipSerializer,
     TenantInvitationSerializer, TenantInvitationCreateSerializer,
-    AcceptInvitationSerializer
+    AcceptInvitationSerializer, TenantSettingsSerializer
 )
 from apps.core.services.email import EmailService
 from apps.core.services.invite_tokens import create_invite_token, validate_invite_token
@@ -131,6 +131,22 @@ class TenantDetailView(generics.RetrieveUpdateAPIView):
     
     def get_object(self):
         return self.request.tenant
+
+
+class TenantCertificateSettingsView(generics.RetrieveUpdateAPIView):
+    """
+    Get or update tenant certificate notification settings.
+    
+    Only TENANT_ADMIN can update settings.
+    Creates TenantSettings record if it doesn't exist.
+    """
+    permission_classes = [IsAuthenticated, IsTenantAdmin]
+    serializer_class = TenantSettingsSerializer
+    
+    def get_object(self):
+        tenant = self.request.tenant
+        settings, created = TenantSettings.objects.get_or_create(tenant=tenant)
+        return settings
 
 
 class TenantMembershipViewSet(viewsets.ModelViewSet):

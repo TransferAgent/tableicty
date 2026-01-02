@@ -20,6 +20,8 @@ class SecurityClassSerializer(serializers.ModelSerializer):
 
 class ShareholderSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    has_pending_certificate_request = serializers.SerializerMethodField()
+    certificate_status = serializers.SerializerMethodField()
     
     class Meta:
         model = Shareholder
@@ -33,6 +35,14 @@ class ShareholderSerializer(serializers.ModelSerializer):
         if obj.account_type == 'ENTITY':
             return obj.entity_name
         return f"{obj.first_name} {obj.last_name}".strip()
+    
+    def get_has_pending_certificate_request(self, obj):
+        return obj.certificate_requests.filter(status='PENDING').exists()
+    
+    def get_certificate_status(self, obj):
+        if obj.certificate_requests.filter(status='PENDING').exists():
+            return 'Certificate'
+        return 'Standard'
 
 
 class HoldingSerializer(serializers.ModelSerializer):

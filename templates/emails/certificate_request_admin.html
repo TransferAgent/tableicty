@@ -1,0 +1,52 @@
+{% extends "emails/base.html" %}
+
+{% block title %}New Certificate Request{% endblock %}
+
+{% block content %}
+<h2>New Certificate Request Submitted</h2>
+
+<p>
+    A shareholder has submitted a certificate conversion request that requires your review.
+</p>
+
+<div class="share-details">
+    <table>
+        <tr>
+            <td>Shareholder</td>
+            <td>{{ shareholder_name }}</td>
+        </tr>
+        <tr>
+            <td>Email</td>
+            <td>{{ shareholder_email }}</td>
+        </tr>
+        <tr>
+            <td>Company</td>
+            <td>{{ issuer_name }}</td>
+        </tr>
+        <tr>
+            <td>Request Type</td>
+            <td>{{ conversion_type }}</td>
+        </tr>
+        <tr>
+            <td>Shares</td>
+            <td>{{ share_quantity }}</td>
+        </tr>
+        <tr>
+            <td>Request Date</td>
+            <td>{{ request_date }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="highlight-box">
+    <strong>Action Required:</strong> Please review this request in the admin dashboard and approve or reject as appropriate.
+</div>
+
+<p style="text-align: center;">
+    <a href="{{ admin_link }}" class="btn">Review Request</a>
+</p>
+
+<p class="text-muted">
+    You are receiving this email because you are configured to receive certificate request notifications for this tenant.
+</p>
+{% endblock %}

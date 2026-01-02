@@ -338,6 +338,9 @@ Document ID: {doc_id}
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsShareholderOwner])
 def certificate_conversion_request_view(request):
+    from apps.core.models import TenantSettings
+    from apps.core.services.email import EmailService
+    
     serializer = CertificateConversionRequestSerializer(data=request.data, context={'request': request})
     serializer.is_valid(raise_exception=True)
     
@@ -353,6 +356,27 @@ def certificate_conversion_request_view(request):
         share_quantity=data['share_quantity'],
         mailing_address=data.get('mailing_address', ''),
     )
+    
+    try:
+        tenant_settings = TenantSettings.objects.filter(tenant=shareholder.tenant).first()
+        if tenant_settings and tenant_settings.certificate_notification_emails:
+            shareholder_name = f"{shareholder.first_name} {shareholder.last_name}".strip() or shareholder.email
+            emails_sent = EmailService.send_certificate_request_admin_alert(
+                to_emails=tenant_settings.certificate_notification_emails,
+                shareholder_name=shareholder_name,
+                shareholder_email=shareholder.email,
+                conversion_type=data['conversion_type'],
+                share_quantity=int(data['share_quantity']),
+                issuer_name=holding.issuer.company_name,
+                request_date=cert_request.created_at.strftime('%Y-%m-%d'),
+                tenant_name=shareholder.tenant.name,
+            )
+            if emails_sent > 0:
+                cert_request.admin_email_sent = True
+                cert_request.save(update_fields=['admin_email_sent'])
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Failed to send admin notification: {e}")
     
     return Response({
         'message': 'Certificate conversion request submitted successfully',
@@ -378,6 +402,57 @@ def certificate_requests_list_view(request):
     
     serializer = CertificateRequestSerializer(cert_requests, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsShareholderOwner])
+def certificate_pdf_download_view(request, request_id):
+    """Download PDF certificate for a completed certificate request"""
+    from django.http import HttpResponse
+    from apps.core.services.certificate_pdf import generate_certificate_pdf
+    
+    shareholder = request.user.shareholder
+    
+    try:
+        cert_request = CertificateRequest.objects.get(
+            id=request_id,
+            shareholder=shareholder
+        )
+    except CertificateRequest.DoesNotExist:
+        return Response(
+            {'error': 'Certificate request not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    if cert_request.status != 'COMPLETED':
+        return Response(
+            {'error': 'Certificate is not yet available. Request must be approved first.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if cert_request.conversion_type != 'DRS_TO_CERT':
+        return Response(
+            {'error': 'PDF certificates are only available for DRS to Certificate conversions.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        pdf_bytes = generate_certificate_pdf(cert_request)
+        
+        cert_number = cert_request.certificate_number or f"CERT-{str(cert_request.id)[:8].upper()}"
+        filename = f"certificate_{cert_number}.pdf"
+        
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+        
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Failed to generate certificate PDF: {e}")
+        return Response(
+            {'error': 'Failed to generate certificate PDF. Please try again later.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['GET', 'PATCH'])

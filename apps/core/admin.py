@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from .models import (
     Tenant, TenantMembership, SubscriptionPlan, Subscription, TenantInvitation,
     Issuer, SecurityClass, Shareholder, Holding, Certificate, Transfer, AuditLog,
-    ShareIssuanceRequest, CertificateRequest
+    ShareIssuanceRequest, CertificateRequest, TenantSettings
 )
 
 
@@ -532,3 +532,28 @@ class CertificateRequestAdmin(admin.ModelAdmin):
         )
         self.message_user(request, f'{updated} request(s) rejected.')
     reject_requests.short_description = "Reject selected requests"
+
+
+@admin.register(TenantSettings)
+class TenantSettingsAdmin(admin.ModelAdmin):
+    list_display = ['tenant', 'get_email_count', 'created_at', 'updated_at']
+    search_fields = ['tenant__name']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    autocomplete_fields = ['tenant']
+    fieldsets = (
+        ('Tenant', {
+            'fields': ('id', 'tenant')
+        }),
+        ('Certificate Notifications', {
+            'fields': ('certificate_notification_emails', 'certificate_template_url')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_email_count(self, obj):
+        emails = obj.certificate_notification_emails or []
+        return len(emails)
+    get_email_count.short_description = 'Notification Emails'

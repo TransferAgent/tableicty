@@ -1,0 +1,46 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Certificate Issued{% endblock %}
+
+{% block content %}
+<h2>Great News, {{ shareholder_name }}!</h2>
+
+<p>
+    Your stock certificate has been issued. Here are the details:
+</p>
+
+<div class="share-details">
+    <table>
+        <tr>
+            <td>Certificate Number</td>
+            <td><strong>{{ certificate_number }}</strong></td>
+        </tr>
+        <tr>
+            <td>Company</td>
+            <td>{{ issuer_name }}</td>
+        </tr>
+        <tr>
+            <td>Conversion Type</td>
+            <td>{{ conversion_type }}</td>
+        </tr>
+        <tr>
+            <td>Shares</td>
+            <td>{{ share_quantity }}</td>
+        </tr>
+    </table>
+</div>
+
+{% if pdf_download_url %}
+<div class="highlight-box">
+    <strong>Download Your Certificate:</strong> Your PDF certificate is now available for download from your shareholder portal.
+</div>
+{% endif %}
+
+<p style="text-align: center;">
+    <a href="{{ dashboard_link }}" class="btn">View in Dashboard</a>
+</p>
+
+<p class="text-muted">
+    If you have any questions about your certificate, please contact our support team.
+</p>
+{% endblock %}

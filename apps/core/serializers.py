@@ -3,7 +3,7 @@ Serializers for tenant management.
 """
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from apps.core.models import Tenant, TenantMembership, SubscriptionPlan, Subscription, TenantInvitation
+from apps.core.models import Tenant, TenantMembership, SubscriptionPlan, Subscription, TenantInvitation, TenantSettings
 
 User = get_user_model()
 
@@ -170,3 +170,37 @@ class AcceptInvitationSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, min_length=8, required=False)
     first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+
+
+class TenantSettingsSerializer(serializers.ModelSerializer):
+    """Serializer for tenant certificate notification settings."""
+    id = serializers.CharField(read_only=True)
+    
+    class Meta:
+        model = TenantSettings
+        fields = [
+            'id',
+            'certificate_notification_emails',
+            'certificate_template_url',
+            'created_at',
+            'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def validate_certificate_notification_emails(self, value):
+        """Validate that all emails in the list are valid email format"""
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Must be a list of email addresses")
+        
+        import re
+        email_pattern = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+        
+        for email in value:
+            if not isinstance(email, str):
+                raise serializers.ValidationError(f"Invalid email format: {email}")
+            if not email_pattern.match(email):
+                raise serializers.ValidationError(f"Invalid email format: {email}")
+        
+        return value
