@@ -18,19 +18,20 @@ export function DashboardLayout() {
 
   const navItems = [
     { path: '/dashboard', label: 'Portfolio', icon: LayoutDashboard },
-    { path: '/dashboard/profile', label: 'Profile', icon: User },
+    ...(!isAdmin ? [{ path: '/dashboard/profile', label: 'Profile', icon: User }] : []),
     { path: '/dashboard/security', label: 'Security', icon: Shield },
-    { path: '/dashboard/transactions', label: 'Transactions', icon: FileText },
-    { path: '/dashboard/tax-documents', label: 'Tax Documents', icon: Receipt },
-    { path: '/dashboard/certificates', label: 'Certificates', icon: FileCheck },
+    ...(!isAdmin ? [
+      { path: '/dashboard/transactions', label: 'Transactions', icon: FileText },
+      { path: '/dashboard/tax-documents', label: 'Tax Documents', icon: Receipt },
+      { path: '/dashboard/certificates', label: 'Certificates', icon: FileCheck },
+    ] : []),
+    ...(isAdmin ? [
+      { path: '/dashboard/shareholders', label: 'Shareholders', icon: Users },
+      { path: '/dashboard/cap-table', label: 'Cap Table', icon: PieChart },
+      { path: '/dashboard/admin', label: 'Admin', icon: Settings },
+      { path: '/dashboard/billing', label: 'Billing', icon: CreditCard },
+    ] : []),
   ];
-
-  if (isAdmin) {
-    navItems.push({ path: '/dashboard/shareholders', label: 'Shareholders', icon: Users });
-    navItems.push({ path: '/dashboard/cap-table', label: 'Cap Table', icon: PieChart });
-    navItems.push({ path: '/dashboard/admin', label: 'Admin', icon: Settings });
-    navItems.push({ path: '/dashboard/billing', label: 'Billing', icon: CreditCard });
-  }
 
   const roleLabels: Record<string, string> = {
     'PLATFORM_ADMIN': 'Platform Admin',
