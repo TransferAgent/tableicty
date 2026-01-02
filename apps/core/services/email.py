@@ -223,3 +223,71 @@ class EmailService:
             template_name='share_update',
             context=context,
         )
+    
+    @classmethod
+    def send_share_update_or_invitation(
+        cls,
+        shareholder,
+        issuer,
+        additional_shares: int,
+        total_shares: int,
+        tenant_name: Optional[str] = None,
+    ) -> bool:
+        """
+        Smart email method: sends share update to existing users, or invitation to new users.
+        
+        Args:
+            shareholder: Shareholder model instance
+            issuer: Issuer model instance
+            additional_shares: Number of new shares granted
+            total_shares: New total share count
+            tenant_name: Optional tenant/platform name for branding
+            
+        Returns:
+            True if email sent successfully
+        """
+        import jwt
+        from datetime import datetime, timedelta
+        
+        if not shareholder.email:
+            logger.warning(f"Cannot send email - shareholder {shareholder.id} has no email")
+            return False
+        
+        shareholder_name = f"{shareholder.first_name} {shareholder.last_name}".strip() or "Shareholder"
+        company_name = issuer.company_name
+        share_class = "Common Stock"
+        
+        if hasattr(shareholder, 'security_class') and shareholder.security_class:
+            share_class = shareholder.security_class.class_designation
+        
+        if shareholder.user_id:
+            logger.info(f"Shareholder {shareholder.email} has account - sending share update notification")
+            return cls.send_share_update_notification(
+                email=shareholder.email,
+                shareholder_name=shareholder_name,
+                company_name=company_name,
+                additional_shares=additional_shares,
+                total_shares=total_shares,
+                share_class=share_class,
+                tenant_name=tenant_name,
+            )
+        else:
+            logger.info(f"Shareholder {shareholder.email} has no account - sending invitation")
+            secret_key = getattr(settings, 'SECRET_KEY', 'tableicty-secret')
+            payload = {
+                'shareholder_id': str(shareholder.id),
+                'email': shareholder.email,
+                'exp': datetime.utcnow() + timedelta(days=30),
+                'type': 'shareholder_invitation',
+            }
+            invite_token = jwt.encode(payload, secret_key, algorithm='HS256')
+            
+            return cls.send_shareholder_invitation(
+                email=shareholder.email,
+                shareholder_name=shareholder_name,
+                company_name=company_name,
+                share_count=additional_shares,
+                share_class=share_class,
+                invite_token=invite_token,
+                tenant_name=tenant_name,
+            )

@@ -345,35 +345,45 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
                     completed_at=timezone.now(),
                 )
                 
+                email_sent = False
+                email_error_msg = None
                 if shareholder.email:
                     try:
                         from apps.core.services.email import EmailService
                         from django.db.models import Sum
                         
-                        email_service = EmailService()
                         total_shares = Holding.objects.filter(
                             shareholder=shareholder,
                             status='ACTIVE'
                         ).aggregate(total=Sum('share_quantity'))['total'] or 0
                         
-                        email_service.send_share_update_or_invitation(
+                        email_sent = EmailService.send_share_update_or_invitation(
                             shareholder=shareholder,
                             issuer=issuer,
                             additional_shares=int(share_qty),
                             total_shares=int(total_shares),
                         )
+                        logger.info(f"ISSUE_SHARES: Email sent successfully to {shareholder.email}")
                     except Exception as email_error:
-                        pass
+                        email_error_msg = str(email_error)
+                        logger.error(f"ISSUE_SHARES: Failed to send email to {shareholder.email}: {email_error_msg}", exc_info=True)
                 
                 serializer = HoldingSerializer(holding)
-                return Response({
+                response_data = {
                     'status': 'completed',
-                    'message': 'Shares issued successfully and email notification sent.',
+                    'message': 'Shares issued successfully.',
                     'holding': serializer.data,
                     'issuance_request_id': str(issuance_request.id),
                     'investment_type': investment_type,
                     'holding_status': 'ACTIVE',
-                })
+                    'email_sent': email_sent,
+                }
+                if email_sent:
+                    response_data['message'] = 'Shares issued successfully and email notification sent.'
+                elif email_error_msg:
+                    response_data['message'] = f'Shares issued successfully but email failed: {email_error_msg}'
+                    response_data['email_error'] = email_error_msg
+                return Response(response_data)
             else:
                 holding = Holding.objects.create(
                     tenant=tenant,
