@@ -106,19 +106,27 @@ class CertificateRequestHoldingSerializer(serializers.Serializer):
     share_quantity = serializers.DecimalField(max_digits=20, decimal_places=4)
     
     def get_issuer(self, obj):
-        if obj and obj.issuer:
-            return {
-                'id': str(obj.issuer.id),
-                'company_name': obj.issuer.company_name
-            }
+        try:
+            # Correct relationship chain:
+            # Holding → Shareholder → Tenant (issuer)
+            if obj and obj.shareholder and obj.shareholder.tenant:
+                return {
+                    'id': str(obj.shareholder.tenant.id),
+                    'company_name': obj.shareholder.tenant.name
+                }
+        except AttributeError:
+            pass
         return None
     
     def get_security_class(self, obj):
-        if obj and obj.security_class:
-            return {
-                'id': str(obj.security_class.id),
-                'name': obj.security_class.name or obj.security_class.class_designation
-            }
+        try:
+            if obj and obj.security_class:
+                return {
+                    'id': str(obj.security_class.id),
+                    'name': obj.security_class.name or obj.security_class.class_designation
+                }
+        except AttributeError:
+            pass
         return None
 
 
@@ -182,8 +190,12 @@ class CertificateRequestSerializer(serializers.ModelSerializer):
         return None
     
     def get_issuer_name(self, obj):
-        if obj.holding and obj.holding.issuer:
-            return obj.holding.issuer.company_name
+        try:
+            # Correct relationship: Holding → Shareholder → Tenant (issuer)
+            if obj.holding and obj.holding.shareholder and obj.holding.shareholder.tenant:
+                return obj.holding.shareholder.tenant.name
+        except AttributeError:
+            pass
         return None
     
     def get_security_type(self, obj):
