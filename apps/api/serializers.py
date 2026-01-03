@@ -86,12 +86,47 @@ class AuditLogSerializer(serializers.ModelSerializer):
                            'changed_fields', 'timestamp', 'ip_address', 'user_agent', 'request_id']
 
 
+class CertificateRequestShareholderSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Shareholder
+        fields = ['id', 'first_name', 'last_name', 'email', 'full_name']
+    
+    def get_full_name(self, obj):
+        if obj.account_type == 'INDIVIDUAL':
+            return f"{obj.first_name} {obj.last_name}".strip()
+        return obj.entity_name or obj.email
+
+
+class CertificateRequestHoldingSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    issuer = serializers.SerializerMethodField()
+    security_class = serializers.SerializerMethodField()
+    quantity = serializers.DecimalField(source='share_quantity', max_digits=20, decimal_places=4)
+    
+    def get_issuer(self, obj):
+        return {
+            'id': str(obj.issuer.id),
+            'company_name': obj.issuer.company_name
+        }
+    
+    def get_security_class(self, obj):
+        return {
+            'id': str(obj.security_class.id),
+            'name': obj.security_class.name or obj.security_class.class_designation
+        }
+
+
 class CertificateRequestSerializer(serializers.ModelSerializer):
+    shareholder = CertificateRequestShareholderSerializer(read_only=True)
+    holding = CertificateRequestHoldingSerializer(read_only=True)
     shareholder_name = serializers.SerializerMethodField()
     shareholder_email = serializers.CharField(source='shareholder.email', read_only=True)
     issuer_name = serializers.CharField(source='holding.issuer.company_name', read_only=True)
     security_type = serializers.CharField(source='holding.security_class.class_designation', read_only=True)
     processed_by_name = serializers.SerializerMethodField()
+    shareholder_notes = serializers.CharField(required=False, allow_blank=True, read_only=True)
     
     class Meta:
         model = CertificateRequest
@@ -107,6 +142,7 @@ class CertificateRequestSerializer(serializers.ModelSerializer):
             'conversion_type',
             'share_quantity',
             'mailing_address',
+            'shareholder_notes',
             'status',
             'rejection_reason',
             'admin_notes',
