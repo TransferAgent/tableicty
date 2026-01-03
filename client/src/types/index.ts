@@ -143,7 +143,7 @@ export interface AdminCertificateRequest {
       id: string;
       name: string;
     };
-    quantity: string;
+    share_quantity: string;
   };
   conversion_type: 'DRS_TO_CERT' | 'CERT_TO_DRS';
   share_quantity: string;

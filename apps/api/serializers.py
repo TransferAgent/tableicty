@@ -103,7 +103,7 @@ class CertificateRequestHoldingSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     issuer = serializers.SerializerMethodField()
     security_class = serializers.SerializerMethodField()
-    quantity = serializers.DecimalField(source='share_quantity', max_digits=20, decimal_places=4)
+    share_quantity = serializers.DecimalField(max_digits=20, decimal_places=4)
     
     def get_issuer(self, obj):
         return {
