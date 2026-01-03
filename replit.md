@@ -135,3 +135,52 @@ AI-powered term sheet analyzer that helps founders understand dilution, identify
 - `celery` (async task processing)
 - `react-dropzone` (frontend file upload)
 - `recharts` (frontend charts)
+
+## Staging/Production Workflow
+
+### Environment URLs
+| Environment | Backend | Frontend S3 | CloudFront |
+|-------------|---------|-------------|------------|
+| **Production** | `https://2c54uemnqg.us-east-1.awsapprunner.com` | `tableicty-frontend` | `https://tableicty.com` |
+| **Staging** | `https://ghh6zmq2i6.us-east-1.awsapprunner.com` | `tableicty-staging-frontend` | TBD |
+
+### Git Branch Strategy
+- `main` → Production (auto-deploys backend via App Runner)
+- `staging` → Staging (auto-deploys backend via App Runner)
+
+### Development Rule
+**ALL new features are built in STAGING first, then promoted to production after testing.**
+
+### Frontend Deployment Files
+- `client/dist/` → Production build
+- `client/dist-staging/` → Staging build
+- `client/dist.zip` → Production deployment package
+- `client/dist-staging.zip` → Staging deployment package
+
+### Staging Deploy Commands
+```bash
+# Backend (auto-deploys via App Runner when pushed to staging branch)
+git checkout staging
+git push origin staging
+
+# Frontend
+aws s3 sync client/dist-staging/ s3://tableicty-staging-frontend/ --delete
+aws cloudfront create-invalidation --distribution-id [STAGING_ID] --paths "/*"
+```
+
+### Production Deploy Commands (after staging approval)
+```bash
+# Merge staging to main
+git checkout main
+git merge staging
+git push origin main
+
+# Frontend
+aws s3 sync client/dist/ s3://tableicty-frontend/ --delete
+aws cloudfront create-invalidation --distribution-id [PROD_ID] --paths "/*"
+```
+
+### Rollback Plan
+If production breaks:
+1. Backend: `git revert HEAD && git push origin main` (App Runner auto-deploys)
+2. Frontend: Re-deploy previous version from backup or last known good commit
