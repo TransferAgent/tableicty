@@ -115,8 +115,8 @@ export function CertificateRequestModal({ request, onClose, onUpdate }: Certific
                 <User className="w-5 h-5 text-gray-400 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-gray-500">Shareholder</p>
-                  <p className="text-gray-900">{request.shareholder.full_name}</p>
-                  <p className="text-sm text-gray-500">{request.shareholder.email}</p>
+                  <p className="text-gray-900">{request.shareholder?.full_name || 'Unknown'}</p>
+                  <p className="text-sm text-gray-500">{request.shareholder?.email || ''}</p>
                 </div>
               </div>
 
@@ -126,7 +126,7 @@ export function CertificateRequestModal({ request, onClose, onUpdate }: Certific
                   <p className="text-sm font-medium text-gray-500">Shares</p>
                   <p className="text-gray-900">{formatShareQuantity(request.share_quantity)} shares</p>
                   <p className="text-sm text-gray-500">
-                    {request.holding.issuer.company_name} - {request.holding.security_class.name}
+                    {request.holding?.issuer?.company_name || 'Unknown Issuer'} - {request.holding?.security_class?.name || 'Unknown Class'}
                   </p>
                 </div>
               </div>
