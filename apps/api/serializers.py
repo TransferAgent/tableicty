@@ -106,25 +106,29 @@ class CertificateRequestHoldingSerializer(serializers.Serializer):
     share_quantity = serializers.DecimalField(max_digits=20, decimal_places=4)
     
     def get_issuer(self, obj):
-        return {
-            'id': str(obj.issuer.id),
-            'company_name': obj.issuer.company_name
-        }
+        if obj and obj.issuer:
+            return {
+                'id': str(obj.issuer.id),
+                'company_name': obj.issuer.company_name
+            }
+        return None
     
     def get_security_class(self, obj):
-        return {
-            'id': str(obj.security_class.id),
-            'name': obj.security_class.name or obj.security_class.class_designation
-        }
+        if obj and obj.security_class:
+            return {
+                'id': str(obj.security_class.id),
+                'name': obj.security_class.name or obj.security_class.class_designation
+            }
+        return None
 
 
 class CertificateRequestSerializer(serializers.ModelSerializer):
-    shareholder = CertificateRequestShareholderSerializer(read_only=True)
-    holding = CertificateRequestHoldingSerializer(read_only=True)
+    shareholder = serializers.SerializerMethodField()
+    holding = serializers.SerializerMethodField()
     shareholder_name = serializers.SerializerMethodField()
-    shareholder_email = serializers.CharField(source='shareholder.email', read_only=True)
-    issuer_name = serializers.CharField(source='holding.issuer.company_name', read_only=True)
-    security_type = serializers.CharField(source='holding.security_class.class_designation', read_only=True)
+    shareholder_email = serializers.SerializerMethodField()
+    issuer_name = serializers.SerializerMethodField()
+    security_type = serializers.SerializerMethodField()
     processed_by_name = serializers.SerializerMethodField()
     shareholder_notes = serializers.CharField(required=False, allow_blank=True, read_only=True)
     
@@ -155,10 +159,37 @@ class CertificateRequestSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'shareholder', 'holding', 'created_at', 'updated_at', 'tenant']
     
+    def get_shareholder(self, obj):
+        if obj.shareholder:
+            return CertificateRequestShareholderSerializer(obj.shareholder).data
+        return None
+    
+    def get_holding(self, obj):
+        if obj.holding:
+            return CertificateRequestHoldingSerializer(obj.holding).data
+        return None
+    
     def get_shareholder_name(self, obj):
+        if not obj.shareholder:
+            return 'Unknown Shareholder'
         if obj.shareholder.account_type == 'INDIVIDUAL':
             return f"{obj.shareholder.first_name} {obj.shareholder.last_name}".strip()
         return obj.shareholder.entity_name or obj.shareholder.email
+    
+    def get_shareholder_email(self, obj):
+        if obj.shareholder:
+            return obj.shareholder.email
+        return None
+    
+    def get_issuer_name(self, obj):
+        if obj.holding and obj.holding.issuer:
+            return obj.holding.issuer.company_name
+        return None
+    
+    def get_security_type(self, obj):
+        if obj.holding and obj.holding.security_class:
+            return obj.holding.security_class.class_designation
+        return None
     
     def get_processed_by_name(self, obj):
         if obj.processed_by:
