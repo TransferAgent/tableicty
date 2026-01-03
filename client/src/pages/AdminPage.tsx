@@ -272,12 +272,12 @@ export function AdminPage() {
                         {request.status === 'REJECTED' && <XCircle className="w-5 h-5 text-red-600" />}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{request.shareholder.full_name}</p>
+                        <p className="font-medium text-gray-900">{request.shareholder?.full_name || 'Unknown Shareholder'}</p>
                         <p className="text-sm text-gray-500">
                           {request.conversion_type === 'DRS_TO_CERT' ? 'DRS to Certificate' : 'Certificate to DRS'} - {request.share_quantity} shares
                         </p>
                         <p className="text-xs text-gray-400">
-                          {request.holding.issuer.company_name} - {new Date(request.created_at).toLocaleDateString()}
+                          {request.holding?.issuer?.company_name || 'Unknown Issuer'} - {new Date(request.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
