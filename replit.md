@@ -95,3 +95,43 @@ The system is built on a Python 3.11/Django 4.2 LTS backend with Django REST Fra
 - AdminPage "Certificates" tab with request list, status filtering, pending badge count, and refresh capability
 - ShareholdersPage certificate status icon indicator (PENDING/PROCESSING/COMPLETED/REJECTED)
 - AdminCertificateRequest type and API client methods (getAdminCertificateRequests, approveCertificateRequest, rejectCertificateRequest)
+
+## Sprint 3 - Deal Desk (Planned)
+
+**Start Date:** January 4, 2026
+**Duration:** 2 weeks
+
+### Overview
+AI-powered term sheet analyzer that helps founders understand dilution, identify red flags, and generate negotiation scenarios. Founders upload a term sheet PDF and receive a comprehensive analysis in ~60 seconds.
+
+### Architecture Decision
+**Modular Monolith Approach** - Build Deal Desk as a separate Django app (`apps/deal_desk/`) within Tableicty, with clean API boundaries at `/api/v1/deal-desk/`. This allows future apps to call the API while avoiding premature microservice complexity. Can be extracted to standalone service later if needed.
+
+### Key Technical Decisions
+- **OpenAI Integration:** User's own API key (not Replit AI Integrations)
+- **Processing:** Async via Celery task queue
+- **File Storage:** AWS S3 for term sheet PDFs
+- **Subscription Plan Field:** TBD - needs to be added to Tenant model
+
+### Phase 1: Backend Foundation (Days 1-4)
+- **1A:** Django models (TermSheetAnalysis, AnalysisRedFlag, AnalysisScenario)
+- **1B:** API endpoints (upload, list, detail) with serializers
+- **1C:** OpenAI integration + PDF extraction service (pdfplumber + PyPDF2 fallback)
+
+### Phase 2: Frontend (Days 5-10)
+- **2A:** Upload page with drag-and-drop
+- **2B:** Dashboard listing analyses with status polling
+- **2C:** Analysis report with dilution charts, red flags, scenarios
+
+### Phase 3: Integration & Polish (Days 11-14)
+- **3A:** Routes and navigation
+- **3B:** Error handling and usage limits (Free: 1, Starter: 3/year, Pro: unlimited)
+- **3C:** Testing and deployment
+
+### New Dependencies (to be added)
+- `openai` (OpenAI Python client)
+- `pdfplumber` (PDF text extraction)
+- `PyPDF2` (PDF fallback)
+- `celery` (async task processing)
+- `react-dropzone` (frontend file upload)
+- `recharts` (frontend charts)
