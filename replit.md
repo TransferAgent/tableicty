@@ -115,7 +115,7 @@ AI-powered term sheet analyzer that helps founders understand dilution, identify
 
 ### Phase 1: Backend Foundation (Days 1-4)
 - **1A:** Django models (TermSheetAnalysis, AnalysisRedFlag, AnalysisScenario) - COMPLETED Jan 4, 2026
-- **1B:** API endpoints (upload, list, detail) with serializers
+- **1B:** API endpoints (upload, list, detail) with serializers - COMPLETED Jan 4, 2026
 - **1C:** OpenAI integration + PDF extraction service (pdfplumber + PyPDF2 fallback)
 
 ### Phase 1A Completion Notes (Jan 4, 2026)
@@ -124,6 +124,18 @@ AI-powered term sheet analyzer that helps founders understand dilution, identify
 - Multi-tenant isolation via Tenant FK with proper indexes
 - Django Admin with inline editors and organized fieldsets
 - Migration 0001_add_deal_desk_models applied successfully
+
+### Phase 1B Completion Notes (Jan 4, 2026)
+- Created 5 serializers: AnalysisRedFlagSerializer, AnalysisScenarioSerializer, TermSheetAnalysisListSerializer, TermSheetAnalysisDetailSerializer, TermSheetAnalysisCreateSerializer
+- DealDeskViewSet with multi-tenant queryset filtering and usage limit enforcement
+- API endpoints at `/api/v1/deal-desk/`:
+  - `POST /analyses/` - Upload PDF + analyze
+  - `GET /analyses/` - List analyses (tenant-scoped)
+  - `GET /analyses/{id}/` - Full analysis detail
+  - `GET /analyses/{id}/pdf/` - Download analysis report PDF
+  - `GET /analyses/{id}/original/` - Download original term sheet
+  - `GET /analyses/usage/` - Check usage limits
+- Usage limits: FREE (1 total), STARTER (3/year), PROFESSIONAL (unlimited)
 
 ### Phase 2: Frontend (Days 5-10)
 - **2A:** Upload page with drag-and-drop
