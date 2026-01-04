@@ -289,16 +289,42 @@ SIMPLE_JWT = {
     'TOKEN_OBTAIN_SERIALIZER': 'apps.shareholder.jwt.TenantTokenObtainPairSerializer',
 }
 
-CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
-    'http://localhost:3000',
-    'http://localhost:5000',
-    'http://localhost:5173',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:5000',
-    'http://127.0.0.1:5173',
-    'https://tableicty.com',
-    'https://www.tableicty.com',
-])
+# CORS Configuration - resolve from SSM in production
+if IS_PRODUCTION:
+    _cors_origins_raw = resolve_ssm_parameter('CORS_ALLOWED_ORIGINS', default='')
+    if _cors_origins_raw:
+        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _cors_origins_raw.split(',') if origin.strip()]
+    else:
+        CORS_ALLOWED_ORIGINS = [
+            'https://tableicty.com',
+            'https://www.tableicty.com',
+        ]
+    
+    _csrf_origins_raw = resolve_ssm_parameter('CSRF_TRUSTED_ORIGINS', default='')
+    if _csrf_origins_raw:
+        CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in _csrf_origins_raw.split(',') if origin.strip()]
+    else:
+        CSRF_TRUSTED_ORIGINS = [
+            'https://tableicty.com',
+            'https://www.tableicty.com',
+        ]
+else:
+    CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
+        'http://localhost:3000',
+        'http://localhost:5000',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5000',
+        'http://127.0.0.1:5173',
+        'https://tableicty.com',
+        'https://www.tableicty.com',
+    ])
+    CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
+        'http://localhost:3000',
+        'http://localhost:5000',
+        'http://localhost:5173',
+    ])
+
 CORS_ALLOW_CREDENTIALS = True
 
 REDIS_URL = env('REDIS_URL', default=None)
