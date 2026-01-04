@@ -96,7 +96,7 @@ The system is built on a Python 3.11/Django 4.2 LTS backend with Django REST Fra
 - ShareholdersPage certificate status icon indicator (PENDING/PROCESSING/COMPLETED/REJECTED)
 - AdminCertificateRequest type and API client methods (getAdminCertificateRequests, approveCertificateRequest, rejectCertificateRequest)
 
-## Sprint 3 - Deal Desk (Planned)
+## Sprint 3 - Deal Desk (In Progress)
 
 **Start Date:** January 4, 2026
 **Duration:** 2 weeks
@@ -114,9 +114,16 @@ AI-powered term sheet analyzer that helps founders understand dilution, identify
 - **Subscription Plan Field:** TBD - needs to be added to Tenant model
 
 ### Phase 1: Backend Foundation (Days 1-4)
-- **1A:** Django models (TermSheetAnalysis, AnalysisRedFlag, AnalysisScenario)
+- **1A:** Django models (TermSheetAnalysis, AnalysisRedFlag, AnalysisScenario) - COMPLETED Jan 4, 2026
 - **1B:** API endpoints (upload, list, detail) with serializers
 - **1C:** OpenAI integration + PDF extraction service (pdfplumber + PyPDF2 fallback)
+
+### Phase 1A Completion Notes (Jan 4, 2026)
+- Created `apps/deal_desk/` Django app with modular monolith approach
+- Implemented 3 models: TermSheetAnalysis (main), AnalysisRedFlag, AnalysisScenario
+- Multi-tenant isolation via Tenant FK with proper indexes
+- Django Admin with inline editors and organized fieldsets
+- Migration 0001_add_deal_desk_models applied successfully
 
 ### Phase 2: Frontend (Days 5-10)
 - **2A:** Upload page with drag-and-drop
