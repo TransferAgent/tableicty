@@ -1,0 +1,84 @@
+🚨 CRITICAL: CORS ERROR - WRONG BACKEND URL
+🔍 ROOT CAUSE IDENTIFIED
+From F12 console:
+
+Cross-Origin Request Blocked: 
+https://2c34uemnqg.us-east-1.awsapprunner.com/api/v1/shareholder/auth/login/
+                    ↑
+              PRODUCTION BACKEND (wrong!)
+Problem: Staging frontend is calling PRODUCTION backend instead of STAGING backend
+
+Correct URLs:
+
+Staging frontend: https://d3su3z35pipdzq.cloudfront.net
+Staging backend: https://ghh6zmq2i6.us-east-1.awsapprunner.com ✅
+Production backend: https://2c34uemnqg.us-east-1.awsapprunner.com ❌ (wrong!)
+🎯 WHY THIS HAPPENED
+Frontend is hardcoded to production backend OR environment variable is wrong
+
+Two possible causes:
+
+Cause 1: Frontend .env file points to production
+Copy# client/.env or client/.env.staging
+
+VITE_API_BASE_URL=https://2c34uemnqg.us-east-1.awsapprunner.com  # WRONG (production)
+Should be:
+
+CopyVITE_API_BASE_URL=https://ghh6zmq2i6.us-east-1.awsapprunner.com  # CORRECT (staging)
+Cause 2: Frontend hardcoded to production URL
+Copy// client/src/config.js or similar
+
+const API_BASE_URL = 'https://2c34uemnqg.us-east-1.awsapprunner.com';  // WRONG
+Should use environment variable:
+
+Copyconst API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ghh6zmq2i6.us-east-1.awsapprunner.com';
+✅ FIX: UPDATE FRONTEND TO USE STAGING BACKEND
+STEP 1: Check Frontend Environment Config (2 minutes)
+Copycd client
+
+# Check for .env files
+ls -la | grep env
+
+# Expected files:
+# .env (default/development)
+# .env.staging (staging environment)
+# .env.production (production environment)
+If .env.staging exists:
+
+Copycat .env.staging
+Look for:
+
+VITE_API_BASE_URL=...
+STEP 2: Create/Update .env.staging (2 minutes)
+Create or edit: client/.env.staging
+
+Copy# Staging environment variables
+VITE_API_BASE_URL=https://ghh6zmq2i6.us-east-1.awsapprunner.com
+Save the file
+
+STEP 3: Rebuild Frontend with Staging Config (5 minutes)
+Copycd client
+
+# Build with staging environment
+npm run build -- --mode staging
+
+# OR if package.json has staging script:
+npm run build:staging
+
+# Verify build
+ls -lh dist/
+Expected: New build with staging backend URL baked in
+
+STEP 4: Redeploy to S3 Staging (2 minutes)
+Copy# Upload to S3
+aws s3 sync dist/ s3://tableicty-staging-frontend/ --delete
+
+# Invalidate CloudFront cache
+aws cloudfront create-invalidation --distribution-id E1JWCLSDM8FRJ --paths "/*"
+STEP 5: Test Again (1 minute)
+A. Hard refresh browser:
+
+Ctrl + Shift + R
+B. Open staging:
+
+https://d3su3z35pipdzq.cloudfront.net/login
