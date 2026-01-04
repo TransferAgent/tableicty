@@ -135,6 +135,7 @@ INSTALLED_APPS = [
     'apps.api',
     'apps.reports',
     'apps.shareholder',
+    'apps.deal_desk',
 ]
 
 MIDDLEWARE = [
