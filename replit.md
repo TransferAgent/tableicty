@@ -142,7 +142,7 @@ AI-powered term sheet analyzer that helps founders understand dilution, identify
 | Environment | Backend | Frontend S3 | CloudFront |
 |-------------|---------|-------------|------------|
 | **Production** | `https://2c54uemnqg.us-east-1.awsapprunner.com` | `tableicty-frontend` | `https://tableicty.com` |
-| **Staging** | `https://ghh6zmq2i6.us-east-1.awsapprunner.com` | `tableicty-staging-frontend` | TBD |
+| **Staging** | `https://ghh6zmq2i6.us-east-1.awsapprunner.com` | `tableicty-staging-frontend` | `https://d3su3z35pipdzq.cloudfront.net` |
 
 ### Git Branch Strategy
 - `main` → Production (auto-deploys backend via App Runner)
