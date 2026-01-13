@@ -37,12 +37,24 @@ class ShareholderSerializer(serializers.ModelSerializer):
         return f"{obj.first_name} {obj.last_name}".strip()
     
     def get_has_pending_certificate_request(self, obj):
-        return obj.certificate_requests.filter(status='PENDING').exists()
+        try:
+            return obj.certificate_requests.filter(status='PENDING').exists()
+        except Exception:
+            return False
     
     def get_certificate_status(self, obj):
-        if obj.certificate_requests.filter(status='PENDING').exists():
-            return 'Certificate'
-        return 'Standard'
+        try:
+            if obj.certificate_requests.filter(status='PENDING').exists():
+                return 'PENDING'
+            if obj.certificate_requests.filter(status='PROCESSING').exists():
+                return 'PROCESSING'
+            if obj.certificate_requests.filter(status='COMPLETED').exists():
+                return 'COMPLETED'
+            if obj.certificate_requests.filter(status='REJECTED').exists():
+                return 'REJECTED'
+        except Exception:
+            pass
+        return None
 
 
 class HoldingSerializer(serializers.ModelSerializer):
