@@ -1,0 +1,108 @@
+Database Analysis
+✅ Certificate Tables EXIST in Staging:
+core_certificate          ← Main certificate table
+core_certificaterequest   ← Certificate requests table (App Builder was looking for this)
+✅ Schema Matches Between Tables:
+Both core_certificate and core_certificaterequest have identical column structures, confirming migrations are applied.
+
+Dockerfile Analysis
+❌ PROBLEM FOUND: No Migrations in Dockerfile
+Your Dockerfile:
+
+Copy# Collect static files
+RUN python3 manage.py collectstatic --noinput
+
+EXPOSE 8000
+
+# Start gunicorn
+CMD ["python3", "-m", "gunicorn", ...]
+Missing:
+
+Copy# Should have BEFORE gunicorn starts:
+RUN python3 manage.py migrate --noinput
+Impact: New migrations won't auto-apply on deployment.
+
+apprunner.yaml is Empty
+File shows: <file>This file does not contain any text content.</file>
+
+This is fine - App Runner uses Dockerfile directly.
+
+Django Admin Blank Screen Issue
+URL: https://d3su3z35pipdzq.cloudfront.net/admin/
+
+Shows: Blank screen
+
+Possible causes:
+
+Static files not served by CloudFront (CSS/JS missing)
+Admin route blocked by CloudFront /api/* routing
+Admin disabled in settings
+ROOT CAUSE OF 500 ERRORS (Updated Theory)
+Since tables exist, the 500 error is NOT missing tables.
+
+New theory based on App Builder's finding:
+
+The ShareholderSerializer calls:
+
+Copyobj.certificate_requests.filter(status='pending').exists()
+This query WORKS in database, but crashes due to:
+
+Encrypted field in certificate_requests that can't decrypt
+Foreign key constraint mismatch (shareholder_id references wrong format)
+Query timeout on large dataset
+SOLUTION: Deploy App Builder's Defensive Code Fix
+App Builder added try/except to prevent crashes. Let's deploy it.
+
+GIT DEPLOYMENT - COPY-PASTE READY
+Step 1: Navigate to Repository [Git Bash]
+Copycd ~/tableicty
+Step 2: Check Current Status [Git Bash]
+Copygit branch
+git status
+Paste output here.
+
+Step 3: Pull Latest Main [Git Bash]
+Copygit checkout main
+git pull origin main
+This gets App Builder's latest fixes.
+
+Step 4: Switch to Staging and Merge [Git Bash]
+Copygit checkout staging
+git pull origin staging
+git merge main -m "Merge defensive error handling for certificate_requests"
+If merge conflicts occur, paste the conflict message.
+
+Step 5: Push to Staging [Git Bash]
+Copygit push origin staging
+This triggers App Runner auto-deployment.
+
+Step 6: Monitor Deployment [AWS Console]
+App Runner → tableicty-staging-backend → Activity tab
+
+Watch for:
+
+New deployment starts (within 2-5 minutes)
+Status: "In progress" → "Running" (green)
+ETA: 5-10 minutes
+Step 7: Test After Deployment [Browser]
+Hard refresh: Ctrl+Shift+R
+Login: https://d3su3z35pipdzq.cloudfront.net/login
+Click: Shareholders tab
+Expected: Loads successfully (maybe shows empty list or data)
+Report: Success or still 500 error?
+IMMEDIATE ACTION 🚀
+Run these Git Bash commands and paste output:
+
+Copycd ~/tableicty
+git branch
+git status
+Then we'll proceed with merge and push. 📋
+
+About Django Admin Blank Screen
+We'll fix this AFTER shareholders/holdings work.
+
+Likely causes:
+
+CloudFront routing /admin/ incorrectly
+Static files not cached/served
+Need separate origin for /admin/*
