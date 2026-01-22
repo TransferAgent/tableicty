@@ -1,0 +1,94 @@
+01-21-2026 09:58:02 PM [Build]    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 85.5/85.5 kB 13.4 MB/s eta 0:00:00
+01-21-2026 09:58:02 PM [Build] Installing collected packages: pytz, whitenoise, wcwidth, vine, urllib3, uritemplate, tzdata, typing_extensions, sqlparse, six, setuptools, rpds-py, redis, PyYAML, pyjwt, psycopg2-binary, pillow, packaging, jmespath, inflection, idna, django-pgcrypto-fields, django-environ, click, charset-normalizer, certifi, billiard, attrs, asgiref, requests, reportlab, referencing, python-dateutil, prompt-toolkit, gunicorn, Django, click-plugins, click-didyoumean, amqp, stripe, kombu, jsonschema-specifications, djangorestframework, django-storages, django-otp, django-filter, django-cors-headers, django-axes, click-repl, botocore, s3transfer, jsonschema, djangorestframework-simplejwt, celery, drf-spectacular, boto3
+01-21-2026 09:58:02 PM [Build] Successfully installed Django-4.2.7 PyYAML-6.0.3 amqp-5.3.1 asgiref-3.11.0 attrs-25.4.0 billiard-4.2.4 boto3-1.34.0 botocore-1.34.162 celery-5.3.4 certifi-2026.1.4 charset-normalizer-3.4.4 click-8.3.1 click-didyoumean-0.3.1 click-plugins-1.1.1.2 click-repl-0.3.0 django-axes-6.1.1 django-cors-headers-4.3.0 django-environ-0.11.2 django-filter-23.3 django-otp-1.3.0 django-pgcrypto-fields-2.6.0 django-storages-1.14.2 djangorestframework-3.14.0 djangorestframework-simplejwt-5.3.0 drf-spectacular-0.26.5 gunicorn-21.2.0 idna-3.11 inflection-0.5.1 jmespath-1.0.1 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 kombu-5.6.2 packaging-26.0 pillow-12.1.0 prompt-toolkit-3.0.52 psycopg2-binary-2.9.9 pyjwt-2.10.1 python-dateutil-2.9.0.post0 pytz-2025.2 redis-5.0.1 referencing-0.37.0 reportlab-4.4.9 requests-2.32.5 rpds-py-0.30.0 s3transfer-0.9.0 setuptools-80.10.1 six-1.17.0 sqlparse-0.5.5 stripe-14.2.0 typing_extensions-4.15.0 tzdata-2025.3 uritemplate-4.2.0 urllib3-2.6.3 vine-5.1.0 wcwidth-0.3.0 whitenoise-6.6.0
+01-21-2026 09:58:02 PM [Build] [91mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+01-21-2026 09:58:02 PM [Build] [0m[91m
+01-21-2026 09:58:02 PM [Build] [notice] A new release of pip is available: 24.0 -> 25.3
+01-21-2026 09:58:02 PM [Build] [notice] To update, run: pip3 install --upgrade pip
+01-21-2026 09:58:02 PM [Build] [0m[91m/app/lib/rest_framework_simplejwt/__init__.py:1: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+01-21-2026 09:58:02 PM [Build]   from pkg_resources import DistributionNotFound, get_distribution
+01-21-2026 09:58:02 PM [Build] [0m[91mAXES: BEGIN version 6.1.1, blocking by ip_address
+01-21-2026 09:58:02 PM [Build] [0m
+01-21-2026 09:58:02 PM [Build] 160 static files copied to '/app/staticfiles'.
+01-21-2026 09:58:02 PM [Build] Removing intermediate container 4957fd9954ee
+01-21-2026 09:58:02 PM [Build]  ---> 0784faa95574
+01-21-2026 09:58:02 PM [Build] Successfully built 0784faa95574
+01-21-2026 09:58:10 PM [PreRun] Sending build context to Docker daemon  4.291MB
+
+01-21-2026 09:58:10 PM [PreRun] Step 1/10 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-python311-build:uuid-python311-20251118-203652-107 AS pre-build-stage
+01-21-2026 09:58:10 PM [PreRun]  ---> 6d281c3fb063
+01-21-2026 09:58:10 PM [PreRun] Step 2/10 : COPY . /app
+01-21-2026 09:58:10 PM [PreRun]  ---> Using cache
+01-21-2026 09:58:10 PM [PreRun]  ---> b5cdddcc31a3
+01-21-2026 09:58:10 PM [PreRun] Step 3/10 : WORKDIR /app//
+01-21-2026 09:58:10 PM [PreRun]  ---> Using cache
+01-21-2026 09:58:10 PM [PreRun]  ---> 3e99ba6cfa73
+01-21-2026 09:58:10 PM [PreRun] Step 4/10 : FROM pre-build-stage as build-stage
+01-21-2026 09:58:10 PM [PreRun]  ---> 3e99ba6cfa73
+01-21-2026 09:58:10 PM [PreRun] Step 5/10 : WORKDIR /app//
+01-21-2026 09:58:10 PM [PreRun]  ---> Using cache
+01-21-2026 09:58:10 PM [PreRun]  ---> a211b4f70f4f
+01-21-2026 09:58:10 PM [PreRun] Step 6/10 : RUN python3 -m pip install -r requirements.txt --target=/app/lib && PYTHONPATH=/app/lib python3 manage.py collectstatic --noinput
+01-21-2026 09:58:10 PM [PreRun]  ---> Using cache
+01-21-2026 09:58:10 PM [PreRun]  ---> 0784faa95574
+01-21-2026 09:58:10 PM [PreRun] Step 7/10 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-python311:uuid-python311-20251118-203652-107 AS packaging-stage
+01-21-2026 09:58:10 PM [PreRun] uuid-python311-20251118-203652-107: Pulling from awsfusionruntime-python311
+01-21-2026 09:58:10 PM [PreRun] 1c7de4eb5ced: Already exists
+01-21-2026 09:58:10 PM [PreRun] d3b7d4d31418: Already exists
+01-21-2026 09:58:10 PM [PreRun] 7f99578c5e0b: Pulling fs layer
+01-21-2026 09:58:10 PM [PreRun] 7f99578c5e0b: Verifying Checksum
+01-21-2026 09:58:10 PM [PreRun] 7f99578c5e0b: Download complete
+01-21-2026 09:58:10 PM [PreRun] 7f99578c5e0b: Pull complete
+01-21-2026 09:58:10 PM [PreRun] Digest: sha256:1e078068184ede276f8ef91afecf1d3ae711fadc2617ab3d0b87c944b9190c35
+01-21-2026 09:58:10 PM [PreRun] Status: Downloaded newer image for 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-python311:uuid-python311-20251118-203652-107
+01-21-2026 09:58:10 PM [PreRun]  ---> d37f785deb75
+01-21-2026 09:58:10 PM [PreRun] Step 8/10 : COPY --from=build-stage /app /app
+01-21-2026 09:58:10 PM [PreRun]  ---> adfac1d0f261
+01-21-2026 09:58:10 PM [PreRun] Step 9/10 : WORKDIR /app//
+01-21-2026 09:58:10 PM [PreRun]  ---> Running in f3b2f27f3f63
+01-21-2026 09:58:10 PM [PreRun] Removing intermediate container f3b2f27f3f63
+01-21-2026 09:58:10 PM [PreRun]  ---> b7242fe5298f
+01-21-2026 09:58:10 PM [PreRun] Step 10/10 : EXPOSE 8000
+01-21-2026 09:58:10 PM [PreRun]  ---> Running in 6601fa2c972c
+01-21-2026 09:58:10 PM [PreRun] Removing intermediate container 6601fa2c972c
+01-21-2026 09:58:10 PM [PreRun]  ---> a7f1277ab808
+01-21-2026 09:58:10 PM [PreRun] Successfully built a7f1277ab808
+01-21-2026 09:58:10 PM [PreRun] Successfully tagged application-image:latest
+01-21-2026 09:58:12 PM [PostBuild] Sending build context to Docker daemon  4.291MB
+
+01-21-2026 09:58:12 PM [PostBuild] Step 1/12 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-python311-build:uuid-python311-20251118-203652-107 AS pre-build-stage
+01-21-2026 09:58:12 PM [PostBuild]  ---> 6d281c3fb063
+01-21-2026 09:58:12 PM [PostBuild] Step 2/12 : COPY . /app
+01-21-2026 09:58:12 PM [PostBuild]  ---> Using cache
+01-21-2026 09:58:12 PM [PostBuild]  ---> b5cdddcc31a3
+01-21-2026 09:58:12 PM [PostBuild] Step 3/12 : WORKDIR /app//
+01-21-2026 09:58:12 PM [PostBuild]  ---> Using cache
+01-21-2026 09:58:12 PM [PostBuild]  ---> 3e99ba6cfa73
+01-21-2026 09:58:12 PM [PostBuild] Step 4/12 : FROM pre-build-stage as build-stage
+01-21-2026 09:58:12 PM [PostBuild]  ---> 3e99ba6cfa73
+01-21-2026 09:58:12 PM [PostBuild] Step 5/12 : WORKDIR /app//
+01-21-2026 09:58:12 PM [PostBuild]  ---> Using cache
+01-21-2026 09:58:12 PM [PostBuild]  ---> a211b4f70f4f
+01-21-2026 09:58:12 PM [PostBuild] Step 6/12 : RUN python3 -m pip install -r requirements.txt --target=/app/lib && PYTHONPATH=/app/lib python3 manage.py collectstatic --noinput
+01-21-2026 09:58:12 PM [PostBuild]  ---> Using cache
+01-21-2026 09:58:12 PM [PostBuild]  ---> 0784faa95574
+01-21-2026 09:58:12 PM [PostBuild] Step 7/12 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-python311:uuid-python311-20251118-203652-107 AS packaging-stage
+01-21-2026 09:58:12 PM [PostBuild]  ---> d37f785deb75
+01-21-2026 09:58:12 PM [PostBuild] Step 8/12 : COPY --from=build-stage /app /app
+01-21-2026 09:58:12 PM [PostBuild]  ---> Using cache
+01-21-2026 09:58:12 PM [PostBuild]  ---> adfac1d0f261
+01-21-2026 09:58:12 PM [PostBuild] Step 9/12 : WORKDIR /app//
+01-21-2026 09:58:12 PM [PostBuild]  ---> Using cache
+01-21-2026 09:58:12 PM [PostBuild]  ---> b7242fe5298f
+01-21-2026 09:58:12 PM [PostBuild] Step 10/12 : EXPOSE 8000
+01-21-2026 09:58:12 PM [PostBuild]  ---> Using cache
+01-21-2026 09:58:12 PM [PostBuild]  ---> a7f1277ab808
+01-21-2026 09:58:12 PM [PostBuild] Step 11/12 : FROM build-stage AS post-build-stage
+01-21-2026 09:58:12 PM [PostBuild]  ---> 0784faa95574
+01-21-2026 09:58:12 PM [PostBuild] Step 12/12 : WORKDIR /app//
+01-21-2026 09:58:12 PM [PostBuild]  ---> Running in b64cdf37e211
+01-21-2026 09:58:12 PM [PostBuild] Removing intermediate container b64cdf37e211
+01-21-2026 09:58:12 PM [PostBuild]  ---> 422df4b966fa
+01-21-2026 09:58:12 PM [PostBuild] Successfully built 422df4b966fa
+01-21-2026 09:58:32 PM [AppRunner] Successfully built your application source code.
+01-21-2026 10:00:02 PM [AppRunner] Failed to deploy your application source code.
