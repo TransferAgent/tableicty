@@ -1,0 +1,49 @@
+To https://github.com/TransferAgent/tableicty.git
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/TransferAgent/tableicty.git'
+Switched to branch 'staging'
+Your branch is ahead of 'origin/staging' by 1 commit.
+  (use "git push" to publish your local commits)
+Updating 1f1a853..c8a198b
+Fast-forward
+ apps/core/services/email.py                                                 |   25 +-
+ attached_assets/tableicty-production-backend-system-logs_1769124608483.json | 1845 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 1867 insertions(+), 3 deletions(-)
+ create mode 100644 attached_assets/tableicty-production-backend-system-logs_1769124608483.json
+Enumerating objects: 16, done.
+Counting objects: 100% (16/16), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (10/10), done.
+Writing objects: 100% (10/10), 7.99 KiB | 7.99 MiB/s, done.
+Total 10 (delta 8), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (8/8), completed with 6 local objects.
+remote: error: GH013: Repository rule violations found for refs/heads/staging.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:     
+remote:       —— Stripe Test API Secret Key ————————————————————————
+remote:        locations:
+remote:          - commit: 0cadb4fc157b5d01fd912ee4d2e35e323b3f49a3
+remote:            path: attached_assets/tableicty-production-backend-system-logs_1769124608483.json:662
+remote:          - commit: 0cadb4fc157b5d01fd912ee4d2e35e323b3f49a3
+remote:            path: attached_assets/tableicty-production-backend-system-logs_1769124608483.json:669
+remote:          - commit: 0cadb4fc157b5d01fd912ee4d2e35e323b3f49a3
+remote:            path: attached_assets/tableicty-production-backend-system-logs_1769124608483.json:671
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/TransferAgent/tableicty/security/secret-scanning/unblock-secret/38dNIt8YWXC8agy8nOJygZNClxL
+remote:     
+remote: 
+remote: 
+To https://github.com/TransferAgent/tableicty.git
+ ! [remote rejected] staging -> staging (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/TransferAgent/tableicty.git'
