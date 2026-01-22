@@ -270,11 +270,13 @@ class EmailService:
             )
         else:
             logger.info(f"Shareholder {shareholder.email} has no account - sending invitation")
-            from apps.core.services.invite_tokens import ShareholderInviteToken
+            from apps.core.services.invite_tokens import create_invite_token
+            from apps.core.models import TenantInvitation
+            from django.contrib.auth import get_user_model
             
             tenant_id = str(shareholder.tenant_id) if hasattr(shareholder, 'tenant_id') and shareholder.tenant_id else ''
             
-            token = ShareholderInviteToken.for_shareholder(
+            invite_token, token_hash, expires_at = create_invite_token(
                 shareholder_id=str(shareholder.id),
                 email=shareholder.email,
                 tenant_id=tenant_id,
@@ -283,7 +285,24 @@ class EmailService:
                 share_count=additional_shares,
                 share_class=share_class,
             )
-            invite_token = str(token)
+            
+            if hasattr(shareholder, 'tenant') and shareholder.tenant:
+                User = get_user_model()
+                admin_user = User.objects.filter(
+                    tenant_memberships__tenant=shareholder.tenant,
+                    tenant_memberships__role__in=['PLATFORM_ADMIN', 'TENANT_ADMIN']
+                ).first()
+                
+                TenantInvitation.objects.create(
+                    tenant=shareholder.tenant,
+                    invited_by=admin_user,
+                    email=shareholder.email,
+                    role='SHAREHOLDER',
+                    token=token_hash,
+                    expires_at=expires_at,
+                    status='PENDING',
+                )
+                logger.info(f"Created TenantInvitation record for {shareholder.email}")
             
             return cls.send_shareholder_invitation(
                 email=shareholder.email,
