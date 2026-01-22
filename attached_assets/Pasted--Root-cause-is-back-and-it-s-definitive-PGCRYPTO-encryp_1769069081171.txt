@@ -1,0 +1,31 @@
+✅ Root cause is back (and it’s definitive): PGCRYPTO / encryption key mismatch
+Your new application log shows the smoking gun on both endpoints:
+
+/api/v1/shareholders/ → psycopg2.errors.ExternalRoutineInvocationException: Wrong key or corrupt data → django.db.utils.InternalError: Wrong key or corrupt data Source
+/api/v1/holdings/ → hits related shareholder, then the same Wrong key or corrupt data error Source
+This error is produced by PostgreSQL crypto functions (pgcrypto) when decrypting data with the wrong key (or corrupted ciphertext). It’s not a frontend issue; the server is crashing while reading encrypted fields.
+
+Why “Create Shareholder = Green” but “List Shareholders = 500”
+Create can succeed if the newly created row has minimal encrypted reads or the UI confirms via the POST response.
+List crashes because it reads many rows and triggers decryption on at least one encrypted column (shareholder/holding related data).
+The list call pulls older rows too—one bad decrypt blows up the whole queryset pagination. Source
+What to do next (short, no experiments)
+Option A (fastest): Make staging use the same encryption key(s) as the data
+Ensure staging has the exact same value(s) as production for:
+PGCRYPTO_KEY
+(and if used for app-level crypto) SECRET_KEY / DJANGO_SECRET_KEY
+Redeploy App Runner.
+This is the “mirror” approach: production data requires production keys.
+
+Option B (cleanest long-term): Rebuild staging data so it matches staging keys
+Recreate staging RDS (fresh).
+Restore production schema + data but re-encrypt sensitive fields using staging keys (requires a scripted re-encryption path), or load anonymized staging-safe dataset.
+Immediate confirmation check (one thing)
+You currently have PGCRYPTO_KEY in staging App Runner as a runtime secret. The question is: does it match production’s PGCRYPTO_KEY?
+
+If the answer is “no / unknown”, that’s exactly why decryption fails.
+
+Evidence snapshot (what proves it)
+The error line you provided is conclusive and repeated:
+
+psycopg2.errors.ExternalRoutineInvocationException: Wrong key or corrupt data Source
