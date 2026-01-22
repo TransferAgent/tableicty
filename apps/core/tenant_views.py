@@ -957,8 +957,8 @@ def send_shareholder_invitation(request):
     else:
         shareholder_name = 'Shareholder'
     
-    all_holdings = Holding.objects.filter(shareholder=shareholder)
-    total_shares_decimal = sum(Decimal(str(h.share_quantity)) for h in all_holdings)
+    issuer_holdings = Holding.objects.filter(shareholder=shareholder, issuer=issuer)
+    total_shares_decimal = sum(Decimal(str(h.share_quantity)) for h in issuer_holdings)
     
     if total_shares_decimal <= 0:
         return Response(

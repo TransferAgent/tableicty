@@ -356,6 +356,7 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
                         
                         total_shares = Holding.objects.filter(
                             shareholder=shareholder,
+                            issuer=issuer,
                             status='ACTIVE'
                         ).aggregate(total=Sum('share_quantity'))['total'] or 0
                         
@@ -514,6 +515,7 @@ class HoldingViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
         
         total_active_shares = Holding.objects.filter(
             shareholder=shareholder,
+            issuer=issuer,
             tenant=tenant,
             status='ACTIVE'
         ).aggregate(total=Sum('share_quantity'))['total'] or 0
