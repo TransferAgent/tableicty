@@ -1,0 +1,37 @@
+
+01-21-2026 06:22:34 PM [PostBuild] Step 1/12 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-python311-build:uuid-python311-20251118-203652-107 AS pre-build-stage
+01-21-2026 06:22:34 PM [PostBuild]  ---> 6d281c3fb063
+01-21-2026 06:22:34 PM [PostBuild] Step 2/12 : COPY . /app
+01-21-2026 06:22:34 PM [PostBuild]  ---> Using cache
+01-21-2026 06:22:34 PM [PostBuild]  ---> 3d5632618eef
+01-21-2026 06:22:34 PM [PostBuild] Step 3/12 : WORKDIR /app//
+01-21-2026 06:22:34 PM [PostBuild]  ---> Using cache
+01-21-2026 06:22:34 PM [PostBuild]  ---> 3730f40e39d5
+01-21-2026 06:22:34 PM [PostBuild] Step 4/12 : FROM pre-build-stage as build-stage
+01-21-2026 06:22:34 PM [PostBuild]  ---> 3730f40e39d5
+01-21-2026 06:22:34 PM [PostBuild] Step 5/12 : WORKDIR /app//
+01-21-2026 06:22:34 PM [PostBuild]  ---> Using cache
+01-21-2026 06:22:34 PM [PostBuild]  ---> 32bae46aeaa5
+01-21-2026 06:22:34 PM [PostBuild] Step 6/12 : RUN echo "Build phase - dependencies will be installed at runtime"
+01-21-2026 06:22:34 PM [PostBuild]  ---> Using cache
+01-21-2026 06:22:34 PM [PostBuild]  ---> 0ba725c9c7e9
+01-21-2026 06:22:34 PM [PostBuild] Step 7/12 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-python311:uuid-python311-20251118-203652-107 AS packaging-stage
+01-21-2026 06:22:34 PM [PostBuild]  ---> d37f785deb75
+01-21-2026 06:22:34 PM [PostBuild] Step 8/12 : COPY --from=build-stage /app /app
+01-21-2026 06:22:34 PM [PostBuild]  ---> Using cache
+01-21-2026 06:22:34 PM [PostBuild]  ---> e4e8e163156e
+01-21-2026 06:22:34 PM [PostBuild] Step 9/12 : WORKDIR /app//
+01-21-2026 06:22:34 PM [PostBuild]  ---> Using cache
+01-21-2026 06:22:34 PM [PostBuild]  ---> bafd7cb0383a
+01-21-2026 06:22:34 PM [PostBuild] Step 10/12 : EXPOSE 8000
+01-21-2026 06:22:34 PM [PostBuild]  ---> Using cache
+01-21-2026 06:22:34 PM [PostBuild]  ---> 0b60c4d76261
+01-21-2026 06:22:34 PM [PostBuild] Step 11/12 : FROM build-stage AS post-build-stage
+01-21-2026 06:22:34 PM [PostBuild]  ---> 0ba725c9c7e9
+01-21-2026 06:22:34 PM [PostBuild] Step 12/12 : WORKDIR /app//
+01-21-2026 06:22:34 PM [PostBuild]  ---> Running in 05362bab1cb7
+01-21-2026 06:22:34 PM [PostBuild] Removing intermediate container 05362bab1cb7
+01-21-2026 06:22:34 PM [PostBuild]  ---> 72a6dbeecf87
+01-21-2026 06:22:34 PM [PostBuild] Successfully built 72a6dbeecf87
+01-21-2026 06:22:38 PM [AppRunner] Successfully built your application source code.
+01-21-2026 06:23:46 PM [AppRunner] Failed to deploy your application source code.
