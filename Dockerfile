@@ -25,7 +25,11 @@ RUN python3 -m pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Collect static files
-RUN python3 manage.py collectstatic --noinput
+# RUN python3 manage.py collectstatic --noinput
+
+# Collect static files (use dummy SECRET_KEY for build-time only)
+RUN SECRET_KEY=build-time-dummy-key-not-used-at-runtime python3 manage.py collectstatic --noinput
+
 
 EXPOSE 8000
 
