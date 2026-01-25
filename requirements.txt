@@ -1,5 +1,6 @@
 # tableicty production dependencies - AWS App Runner deployment Dec 2025
 # For development dependencies, see requirements-dev.txt
+# For development dependencies, see requirements-dev.txt
 
 # Django Core
 Django==4.2.7
