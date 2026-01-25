@@ -369,16 +369,15 @@ AXES_COOLOFF_TIME = 0.5
 
 PGCRYPTO_KEY = env('PGCRYPTO_KEY', default='development-encryption-key-32char')
 
+
 # ==============================================================================
 # EMAIL CONFIGURATION (AWS SES)
 # ==============================================================================
 if IS_PRODUCTION:
-    EMAIL_HOST = resolve_ssm_parameter('EMAIL_HOST', default='email-smtp.us-east-1.amazonaws.com')
-    EMAIL_PORT = int(resolve_ssm_parameter('EMAIL_PORT', default='587'))
-    EMAIL_HOST_USER = resolve_ssm_parameter('EMAIL_USERNAME', default='')
-    EMAIL_HOST_PASSWORD = resolve_ssm_parameter('EMAIL_PASSWORD', default='')
-    EMAIL_USE_TLS = True
-    EMAIL_USE_SSL = False
+    # SES API Email Backend (VPC-compatible, bypasses SMTP connectivity issues)
+    EMAIL_BACKEND = 'django_ses.SESBackend'
+    AWS_SES_REGION_NAME = 'us-east-1'
+    AWS_SES_REGION_ENDPOINT = 'email.us-east-1.amazonaws.com'
     DEFAULT_FROM_EMAIL = resolve_ssm_parameter('EMAIL_FROM_ADDRESS', default='noreply@tableicty.com')
     EMAIL_FROM_NAME = resolve_ssm_parameter('EMAIL_FROM_NAME', default='Tableicty')
 else:
