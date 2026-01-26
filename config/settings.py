@@ -391,6 +391,10 @@ else:
     EMAIL_USE_SSL = False
     DEFAULT_FROM_EMAIL = env('EMAIL_FROM_ADDRESS', default='noreply@tableicty.com')
     EMAIL_FROM_NAME = env('EMAIL_FROM_NAME', default='Tableicty')
+    # Global email toggle - set to 'false' to disable all email sending
+    EMAIL_ENABLED = env.bool('EMAIL_ENABLED', default=True)
+
+
 
 if IS_PRODUCTION:
     STRIPE_SECRET_KEY = resolve_ssm_parameter('STRIPE_SECRET_KEY', default='')
