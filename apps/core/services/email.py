@@ -7,7 +7,10 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+
 logger = logging.getLogger(__name__)
+
+
 class EmailService:
     """Service for sending transactional emails."""
     
@@ -65,10 +68,6 @@ class EmailService:
             logger.info(f"Email sent successfully to {to_email}: {subject}")
             return True
             
-        except Exception as e:
-            logger.error(f"Failed to send email to {to_email}: {str(e)}", exc_info=True)
-            raise
-Key change is lines 40-43 (the EMAIL_E
         except Exception as e:
             logger.error(f"Failed to send email to {to_email}: {str(e)}", exc_info=True)
             raise
