@@ -57,7 +57,18 @@ class EmailService:
                 reply_to=[reply_to] if reply_to else None,
             )
             email.attach_alternative(html_content, 'text/html')
-            
+
+            def send_email(to_email, subject, html_content, from_name=None, from_address=None):
+            """Send email via configured backend"""
+    
+            # Check if email is globally disabled
+            if not getattr(settings, 'EMAIL_ENABLED', True):
+            logger.info(f"Email disabled globally (EMAIL_ENABLED=false). Skipping email to {to_email}: {subject}")
+            return False
+    
+            try:
+            # ... rest of existing code
+
             email.send(fail_silently=False)
             
             logger.info(f"Email sent successfully to {to_email}: {subject}")
