@@ -291,15 +291,19 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration - resolve from SSM in production
+# Set CORS_ALLOW_ALL_ORIGINS=true in env vars to bypass CORS for debugging
+CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=False)
+
 if IS_PRODUCTION:
-    _cors_origins_raw = resolve_ssm_parameter('CORS_ALLOWED_ORIGINS', default='')
-    if _cors_origins_raw:
-        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _cors_origins_raw.split(',') if origin.strip()]
-    else:
-        CORS_ALLOWED_ORIGINS = [
-            'https://tableicty.com',
-            'https://www.tableicty.com',
-        ]
+    if not CORS_ALLOW_ALL_ORIGINS:
+        _cors_origins_raw = resolve_ssm_parameter('CORS_ALLOWED_ORIGINS', default='')
+        if _cors_origins_raw:
+            CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _cors_origins_raw.split(',') if origin.strip()]
+        else:
+            CORS_ALLOWED_ORIGINS = [
+                'https://tableicty.com',
+                'https://www.tableicty.com',
+            ]
     
     _csrf_origins_raw = resolve_ssm_parameter('CSRF_TRUSTED_ORIGINS', default='')
     if _csrf_origins_raw:
@@ -369,10 +373,12 @@ AXES_COOLOFF_TIME = 0.5
 
 PGCRYPTO_KEY = env('PGCRYPTO_KEY', default='development-encryption-key-32char')
 
-
 # ==============================================================================
 # EMAIL CONFIGURATION (AWS SES)
 # ==============================================================================
+# Global email toggle - set to 'false' to disable all email sending (useful when VPC blocks SES)
+EMAIL_ENABLED = env.bool('EMAIL_ENABLED', default=True)
+
 if IS_PRODUCTION:
     # SES API Email Backend (VPC-compatible, bypasses SMTP connectivity issues)
     EMAIL_BACKEND = 'django_ses.SESBackend'
@@ -391,10 +397,6 @@ else:
     EMAIL_USE_SSL = False
     DEFAULT_FROM_EMAIL = env('EMAIL_FROM_ADDRESS', default='noreply@tableicty.com')
     EMAIL_FROM_NAME = env('EMAIL_FROM_NAME', default='Tableicty')
-    # Global email toggle - set to 'false' to disable all email sending
-    EMAIL_ENABLED = env.bool('EMAIL_ENABLED', default=True)
-
-
 
 if IS_PRODUCTION:
     STRIPE_SECRET_KEY = resolve_ssm_parameter('STRIPE_SECRET_KEY', default='')
