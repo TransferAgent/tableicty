@@ -110,7 +110,7 @@ REFRESH_TOKEN_COOKIE_SETTINGS = {
     'domain': None,
     'httponly': True,
     'secure': IS_PRODUCTION,
-    'samesite': 'Strict',
+    'samesite': 'None' if IS_PRODUCTION else 'Lax',
     'max_age': 60 * 60 * 24 * 7,
 }
 
