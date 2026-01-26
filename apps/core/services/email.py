@@ -7,10 +7,7 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-
 logger = logging.getLogger(__name__)
-
-
 class EmailService:
     """Service for sending transactional emails."""
     
@@ -37,6 +34,11 @@ class EmailService:
         Returns:
             True if email sent successfully, False otherwise
         """
+        # Check if email is globally disabled (useful when VPC blocks SES)
+        if not getattr(settings, 'EMAIL_ENABLED', True):
+            logger.info(f"Email disabled globally (EMAIL_ENABLED=false). Skipping email to {to_email}: {subject}")
+            return False
+        
         try:
             from_name = getattr(settings, 'EMAIL_FROM_NAME', 'Tableicty')
             sender = from_email or settings.DEFAULT_FROM_EMAIL
@@ -57,21 +59,16 @@ class EmailService:
                 reply_to=[reply_to] if reply_to else None,
             )
             email.attach_alternative(html_content, 'text/html')
-            def send_email(to_email, subject, html_content, from_name=None, from_address=None):
-            """Send email via configured backend"""
-                # Check if email is globally disabled
-            if not getattr(settings, 'EMAIL_ENABLED', True):
-            logger.info(f"Email disabled globally (EMAIL_ENABLED=false). Skipping email to {to_email}: {subject}")
-            return False
-    
-            try:
-            # ... rest of existing code
-
+            
             email.send(fail_silently=False)
             
             logger.info(f"Email sent successfully to {to_email}: {subject}")
             return True
             
+        except Exception as e:
+            logger.error(f"Failed to send email to {to_email}: {str(e)}", exc_info=True)
+            raise
+Key change is lines 40-43 (the EMAIL_E
         except Exception as e:
             logger.error(f"Failed to send email to {to_email}: {str(e)}", exc_info=True)
             raise
